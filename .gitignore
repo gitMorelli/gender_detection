@@ -1,0 +1,16 @@
+# Ignore files
+*.jpg
+*.pth
+
+# Ignore folders
+catboost_info/
+checkpoints/
+Data/
+outputs/images/
+outputs/models/
+
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore system files
+.DS_Store
