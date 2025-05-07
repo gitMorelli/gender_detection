@@ -8,6 +8,7 @@ checkpoints/
 Data/
 outputs/images/
 outputs/models/
+outputs/preprocessed_data/
 
 # Ignore Jupyter notebook checkpoints
 .ipynb_checkpoints/
