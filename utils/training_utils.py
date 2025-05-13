@@ -5,7 +5,8 @@ import torch.optim as optim
 from datetime import datetime
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, 
-                device, num_epochs=5, checkpoint_path=None,early_stopping_patience=10, scheduler=None):
+                device, num_epochs=5, checkpoint_path=None,early_stopping_patience=10, scheduler=None
+                ,data_type='image'):
     start_time=datetime.now()
     train_losses = []
     val_losses = []
@@ -18,7 +19,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer,
 
         # Training Loop
         for batch in tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}"):
-            inputs, labels = batch['image'], batch['label']
+            inputs, labels = batch[data_type], batch['label']
             inputs, labels = inputs.to(device), labels.to(device)
 
             optimizer.zero_grad()
@@ -42,7 +43,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer,
         val_loss, correct, total = 0, 0, 0
         with torch.no_grad():
             for batch in val_loader:
-                inputs, labels = batch['image'], batch['label']
+                inputs, labels = batch[data_type], batch['label']
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
@@ -131,11 +132,17 @@ def fine_tune_last_n_layers(model, n):
         raise ValueError(f"Model has only {len(layers)} layers, but {n} were requested for fine-tuning.")
     print("\n")
     print("Unfreezing the following layers:")
-    for layer in layers[-n:]:  # Unfreeze the last n layers
-        print(layer)
-        for param in layer.parameters():
-            param.requires_grad = True
-    
+    if n>0:
+        for layer in layers[-n:]:  # Unfreeze the last n layers
+            print(layer)
+            for param in layer.parameters():
+                param.requires_grad = True
+    else:
+        for layer in layers:  # Unfreeze all layers
+            print(layer)
+            for param in layer.parameters():
+                param.requires_grad = True
+
     print("\n")
     # Trainable parameters after unfreezing 
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)

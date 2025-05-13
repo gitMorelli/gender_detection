@@ -1,6 +1,7 @@
 
 from torchvision.transforms import InterpolationMode
 from torchvision import datasets, transforms
+from transformers import TrOCRProcessor
 
 
 def get_mnist_transforms():
@@ -52,6 +53,20 @@ def get_resnet_transforms(use_patches=False):
     
     return transform_resnet18
 
+def get_deit_transforms(name='trocr-small-stage1'):
+    """
+    Returns the transformation pipeline for Deit.
+    """
+
+    # load image from the IAM database
+    '''url = 'https://fki.tic.heia-fr.ch/static/img/a01-122-02-00.jpg'
+    image = Image.open(requests.get(url, stream=True).raw).convert("RGB")'''
+    # Select one word image from the word_images list
+    if name=='trocr-small-stage1':
+        processor = TrOCRProcessor.from_pretrained('microsoft/trocr-small-stage1',use_fast=False)
+    else:
+        raise ValueError(f"Model {name} is not supported. Choose from ['trocr-small-stage1']")
+    return processor
 
 def get_handwriting_transforms():
     """
@@ -92,7 +107,7 @@ def get_transform(name='resnet18',use_patches=True):
         return get_small_cnn_transforms()
     elif name=='mnist':
         return get_mnist_transforms()
-    elif name=='Deit':
-        return get_resnet_transforms(use_patches=use_patches)  # Assuming Deit uses the same transform as ResNet without patches
+    elif name=='trocr-small-stage1':
+        return get_deit_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
     else:
         raise ValueError(f"Unknown model name: {name}. Please provide a valid model name.")

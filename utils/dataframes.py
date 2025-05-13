@@ -3,6 +3,8 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 import cv2
 from PIL import Image
+import h5py
+import numpy as np
 
 def pad_collate_fn(batch):
     """
@@ -113,6 +115,68 @@ class CustomPatchDataset(Dataset):
 
         return {
             'image': patch,
+            'writer': int(writer),
+            'label': label
+        }
+
+class CustomExtractedDataset(Dataset):
+    def __init__(self, df,label_column):
+        """
+        Args:
+            image_dirs (list of str): List of directories to load images from.
+            labels_df (DataFrame): DataFrame containing labeled images.
+            transform (callable, optional): Optional transform to be applied on an image.
+        """
+        #self.label_column=label_column
+        self.feature_columns = [col for col in df.columns if col.startswith('f') and col[1].isdigit()]
+        print(f'Extracted {len(self.feature_columns)} feature columns:')
+        self.features_df = df[self.feature_columns]
+        self.img_labels = df[label_column].tolist()
+        self.img_writers = df['writer'].tolist()
+
+    def __len__(self):
+        return len(self.img_labels)
+
+    def __getitem__(self, idx):
+        features = torch.tensor(self.features_df.iloc[idx].values, dtype=torch.float32)
+        writer=self.img_writers[idx]
+        label = self.img_labels[idx]
+
+        return {
+            'features': features,
+            'writer': int(writer),
+            'label': label
+        }
+
+class CustomHdf5ExtractedDataset(Dataset):
+    def __init__(self, df,label_column,filepath):
+        """
+        Args:
+            image_dirs (list of str): List of directories to load images from.
+            labels_df (DataFrame): DataFrame containing labeled images.
+            transform (callable, optional): Optional transform to be applied on an image.
+        """
+        #self.label_column=label_column
+        self.img_labels = df[label_column].tolist()
+        self.img_writers = df['writer'].tolist()
+        self.indices = df.index
+        self.filepath=filepath
+
+    def __len__(self):
+        return len(self.img_labels)
+
+    def __getitem__(self, idx):
+        index=self.indices[idx]
+        with h5py.File(self.filepath, "r") as f:
+            key = f"{index:06d}"
+            rep = f[key][:]  
+        features = torch.tensor(rep, dtype=torch.float32)
+        #features = torch.tensor(self.features_df.iloc[idx].values, dtype=torch.float32)
+        writer=self.img_writers[idx]
+        label = self.img_labels[idx]
+
+        return {
+            'features': features,
             'writer': int(writer),
             'label': label
         }
