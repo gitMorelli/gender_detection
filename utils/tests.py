@@ -66,14 +66,6 @@ def check_sex_association(train_df,sex_df):
         print(train_df[train_df['writer'] == n][['writer','male']])
         print(sex_df[sex_df['writer'] == n][['writer','male']])
         print('-------------')
-def compare(train_df_1,train_df_2):
-    random_numbers = random.sample(range(1, len(train_df_1)), 10)
-    for n in random_numbers:
-        print(n)
-        print('first df', train_df_1[n])
-        i=train_df_1['writer'][n]
-        print(train_df_2[train_df_2['writer'] == i])
-        print('-------------')
 def check_if_seed(train_df):
     train_0_writers = train_df[train_df['train'] == 0]['writer'].unique().tolist()
     train_1_writers = train_df[train_df['train'] == 1]['writer'].unique().tolist()
