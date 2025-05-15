@@ -116,7 +116,7 @@ class CustomTransformer(nn.Module):
         x = self.output_layer(x)
         return x
 
-def get_efficientnet(pretrained=True, num_classes=None):
+'''def get_efficientnet(pretrained=True):
     weights = EfficientNet_V2_S_Weights.IMAGENET1K_V1 if pretrained else None
     model = efficientnet_v2_s(weights=weights)
     if num_classes:
@@ -129,14 +129,26 @@ def get_alexnet(pretrained=True, num_classes=None):
     if num_classes:
         in_features = model.classifier[6].in_features
         model.classifier[6] = torch.nn.Linear(in_features, num_classes)
-    return model
-def get_resnet50(pretrained=True, num_classes=None):
+    return model'''
+def get_resnet50(mode, pretrained, **kwargs):
     weights = ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
     model = resnet50(weights=weights)
-    if num_classes:
+    if mode=='classification head':
+        num_classes=kwargs.get('num_classes', 2)
+        hidden_sizes=kwargs.get('hidden_sizes', [128])
         in_features = model.fc.in_features
-        model.fc = torch.nn.Linear(in_features, num_classes)
+        mlp=CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+        model.fc = mlp
+    elif mode=='as is':
+        pass
+    elif mode=='truncated':
+        truncation=kwargs.get('truncation', 'remove head')
+        if truncation=='remove head':
+            model.fc = torch.nn.Identity()
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
     return model, weights
+'''
 def get_vgg16(pretrained=True, num_classes=None):   
     weights = VGG16_Weights.IMAGENET1K_V1 if pretrained else None
     model = vgg16(weights=weights)
@@ -151,35 +163,58 @@ def get_resnet18(pretrained=True, num_classes=None):
         in_features = model.fc.in_features
         model.fc = torch.nn.Linear(in_features, num_classes)
     return model
-def get_trocr(name='trocr-small-stage1', strategy='cls', mlp=CustomMLP(input_size=384, hidden_sizes=[128], output_size=2),pooled=True):
+'''
+def get_trocr(name, mode, pretrained, **kwargs):
     if name == 'trocr-small-stage1':
-        model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
-        model = WrappedHuggingfaceModel(model.encoder) #remove pixel_values argument
-    elif name == 'trocr-2transformer-blocks':
-        model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
-        model = TruncatedDeiT(model.encoder, num_layers=10, from_above=False, encoder_only=not(pooled))
+        if pretrained:
+            model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
+            model = WrappedHuggingfaceModel(model.encoder) #remove pixel_values argument
+        else:
+            print("no support for loading model without pretrained weights")
+        if mode=='classification head':
+            num_classes=kwargs.get('num_classes', 2)
+            hidden_sizes=kwargs.get('hidden_sizes', [128])
+            how_to_read=kwargs.get('how_to_read', 'cls')
+            if how_to_read=='cls':
+                in_features = 384
+            else:
+                print('still no support for pooling or other averaging techniques')
+            mlp=CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+            
+        elif mode=='as is':
+            pass
+        elif mode=='truncated':
+            truncation=kwargs.get('truncation', 'remove head')
+            if truncation=='remove head':
+                model.hugging_model.decoder = torch.nn.Identity()
+            else:
+                raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+                model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
+                model = TruncatedDeiT(model.encoder, num_layers=10, from_above=False, encoder_only=not(pooled))
+    elif name == 'trocr-small-handwriting':
+        print("no support for loading trocr-small-handwriting model")
     else:
-        raise ValueError(f"Model {name} is not supported. Choose from ['trocr-small-stage1']")
-    model=FullClassifier(model, strategy=strategy, mlp=mlp, pooled=pooled)
+        raise ValueError(f"Model {name} is not supported. Choose from ['trocr-small-stage1','trocr-small-handwriting']")
     return model
 
-def get_model(name="resnet50", pretrained=True, num_classes=None, input_size=768, hidden_sizes=[512, 256]):
-    if name == "efficientnet":
-        return get_efficientnet(pretrained, num_classes)
-    elif name == "resnet50":
-        return get_resnet50(pretrained, num_classes)
-    elif name == "resnet18":
-        return get_resnet18(pretrained, num_classes)
-    elif name == "alexnet":
-        return get_alexnet(pretrained, num_classes)
-    elif name == "vgg16":
-        return get_vgg16(pretrained, num_classes)
-    elif name in ["trocr-small-stage1",'trocr-2transformer-blocks']:
-        return get_trocr(name, strategy='cls', mlp=CustomMLP(input_size=input_size, hidden_sizes=hidden_sizes, output_size=2), pooled=True)
-    elif name == "MLP":
-        return CustomMLP(input_size=input_size, hidden_sizes=hidden_sizes, output_size=2)
+
+def get_model(name="resnet50", mode='classification head', pretrained=True, **kwargs):
+    ''' 
+    - name: the name of the model to download/load 
+    -mode: 1) classification_head (modifies the last layers of the loaded model and appends an mlp classifier to the model)
+    2) as is (loads the model as is, without any modifications)
+    3) truncated (truncates the model to a certain number of layers) so that it returns an hidden representation
+    - pretrained: whether to load the pretrained weights or not
+    - '''
+    if name == "resnet50":
+        return get_resnet50(mode, pretrained, **kwargs)
+    elif name in ["trocr-small-stage1",'trocr-small-handwriting']:
+        return get_trocr(name,mode, pretrained, **kwargs)
+    elif name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224"]:
+        print("no support for loading vit-base-patch16-224-in21k model")
+    #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)
     else:
-        raise ValueError(f"Model {name} is not supported. Choose from ['efficientnet', 'resnet50', 'resnet18', 'alexnet', 'vgg16']")
+        raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', trocr family]")
 
 def get_weights(name="resnet50"):
     if name == "efficientnet":
