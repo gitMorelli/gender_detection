@@ -50,7 +50,7 @@ class WrappedHuggingfaceModel(torch.nn.Module):
 
     def forward(self, pixel_values):
         outputs = self.hugging_model(pixel_values=pixel_values)
-        return outputs.logits
+        return outputs.last_hidden_state
 
 class Classifier(nn.Module):
     def __init__(self, encoder, num_classes=2):
@@ -165,10 +165,11 @@ def get_resnet18(pretrained=True, num_classes=None):
     return model
 '''
 def get_trocr(name, mode, pretrained, **kwargs):
-    if name == 'trocr-small-stage1':
+    if name in ['trocr-small-stage1','trocr-small-handwriting']:
         if pretrained:
-            model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
-            model = WrappedHuggingfaceModel(model.encoder) #remove pixel_values argument
+            model = VisionEncoderDecoderModel.from_pretrained(f'microsoft/{name}')
+            model = WrappedHuggingfaceModel(model.encoder) 
+            #remove pixel_values argument; returns the output of the last layernorm (no pooling) 1,578,384
         else:
             print("no support for loading model without pretrained weights")
         if mode=='classification head':
@@ -186,13 +187,11 @@ def get_trocr(name, mode, pretrained, **kwargs):
         elif mode=='truncated':
             truncation=kwargs.get('truncation', 'remove head')
             if truncation=='remove head':
-                model.hugging_model.decoder = torch.nn.Identity()
+                pass #I simply take the output of the last encoder layer (as in the pretrained model)
             else:
                 raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
                 model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
                 model = TruncatedDeiT(model.encoder, num_layers=10, from_above=False, encoder_only=not(pooled))
-    elif name == 'trocr-small-handwriting':
-        print("no support for loading trocr-small-handwriting model")
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['trocr-small-stage1','trocr-small-handwriting']")
     return model
