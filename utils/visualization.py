@@ -3,6 +3,7 @@ import os
 import cv2
 import random
 import matplotlib.pyplot as plt
+from PIL import Image
 
 def plot_cropped_sections(train_df_expanded):
     # Select 10 random rows from the dataset
@@ -32,6 +33,37 @@ def plot_cropped_sections(train_df_expanded):
 
     plt.tight_layout()
     plt.show()
+
+def show_preprocessed_from_csv(train_df,transform,hugging=False,index=0,patches=True):
+    if patches:
+        # Select an image row from train_df
+        sample_row = train_df.iloc[index]
+        image_file = sample_row['file_name']
+        image = Image.open(image_file).convert("RGB")
+
+        # If using patches, crop the patch, else use the whole image
+        if patches:
+            x1, y1, x2, y2 = sample_row['x'], sample_row['y'], sample_row['x2'], sample_row['y2']
+            patch = image.crop((x1, y1, x2, y2))
+        else:
+            patch = image.copy()
+
+        if hugging:
+            # the transform is actually an huggingface processor in this case
+            inputs = transform(images=patch, return_tensors="pt")
+            # Remove batch dimension from inputs
+            patch = inputs['pixel_values'].squeeze()
+        else:
+            patch = transform(patch)
+
+        # Convert tensor to numpy for plotting
+        img_np = patch.permute(1, 2, 0).cpu().numpy()
+        img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min())
+
+        plt.imshow(img_np)
+        plt.title("Preprocessed Image")
+        plt.axis('off')
+        plt.show()
 # Function to show a batch of images
 def show_images(images, writers, labels, save_path=None):
     fig, axes = plt.subplots(4, 4, figsize=(12, 12))
