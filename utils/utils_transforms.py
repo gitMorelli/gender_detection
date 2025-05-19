@@ -2,6 +2,7 @@
 from torchvision.transforms import InterpolationMode
 from torchvision import datasets, transforms
 from transformers import TrOCRProcessor, ViTImageProcessor
+from doctr.models.preprocessor import PreProcessor
 
 
 def get_mnist_transforms():
@@ -116,6 +117,26 @@ def get_small_cnn_transforms():
     
     return small_cnn_transform
 
+def get_dresnet50_transforms(**kwargs):
+    ''' doctr default preprocessor
+    transform=PreProcessor(
+        (1024, 1024),
+        batch_size=1,
+        mean=(0.798, 0.785, 0.772),
+        std=(0.264, 0.2749, 0.287),
+        preserve_aspect_ratio=True,
+        symmetric_pad=True,
+    )'''
+    if kwargs.get('custom')==True:
+        print('no support for custom transforms')
+    else:
+        transform = transforms.Compose([
+            transforms.Resize(1024, interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.798, 0.785, 0.772], std=[0.264, 0.2749, 0.287]),
+        ])
+    return transform
+
 def get_transform(name='resnet18',use_patches=True, **kwargs):
     if name in ['resnet18','resnet50','resnet101','resnet152']:
         return get_resnet_transforms(name,use_patches=use_patches,**kwargs)
@@ -131,5 +152,7 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
         return get_trocr_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
     elif name in ['vit-base-patch16-224-in21k']:
         return get_vit_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
+    elif name=='dresnet50':
+        return get_dresnet50_transforms(**kwargs)
     else:
         raise ValueError(f"Unknown model name: {name}. Please provide a valid model name.")
