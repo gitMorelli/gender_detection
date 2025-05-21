@@ -3,6 +3,23 @@ from torchvision.transforms import InterpolationMode
 from torchvision import datasets, transforms
 from transformers import TrOCRProcessor, ViTImageProcessor
 from doctr.models.preprocessor import PreProcessor
+from PIL import Image, ImageOps
+
+# Step 1: Define your resize_with_padding function
+def resize_with_padding(image, target_size=(32, 128)):
+    width, height = image.size
+    #print(image.size)
+    top = height // 3
+    bottom = 2 * height // 3
+    image = image.crop((0, top, width, bottom))  # (left, top, right, bottom)
+    #print(image.size)
+    #image.thumbnail(target_size, Image.ANTIALIAS)
+    image.thumbnail((target_size[1],target_size[0]), Image.Resampling.LANCZOS)
+    #print(image.size)
+    delta_w = target_size[1] - image.width
+    delta_h = target_size[0] - image.height
+    padding = (delta_w // 2, delta_h // 2, delta_w - delta_w // 2, delta_h - delta_h // 2)
+    return ImageOps.expand(image, padding, fill=0)
 
 
 def get_mnist_transforms():
@@ -137,6 +154,61 @@ def get_dresnet50_transforms(**kwargs):
         ])
     return transform
 
+def get_crnn_vgg16_bn_transforms(**kwargs):
+    #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
+    mode=kwargs.get('mode',)
+    if kwargs.get('custom')==True:
+        mode=kwargs.get('mode','padding')
+        if mode=='padding':
+            transform = transforms.Compose([
+                transforms.Lambda(lambda img: resize_with_padding(img, target_size=(32, 128))),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+            ])
+        elif mode == 'crop':
+            transform = transforms.Compose([
+                transforms.Resize(128, interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.CenterCrop((32, 128)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+            ])
+    else:
+        transform = transforms.Compose([
+            transforms.Resize((32,128), interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+        ])
+    return transform
+
+def get_sar_resnet31_transforms(**kwargs):
+    #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
+    if kwargs.get('custom')==True:
+        print('no support for custom transforms')
+    else:
+        transform = transforms.Compose([
+            transforms.Resize((32,128), interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+        ])
+    return transform
+
+def get_vitstr_base_transforms(**kwargs):
+    #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
+    if kwargs.get('custom')==True:
+        print('no support for custom transforms')
+    else:
+        transform = transforms.Compose([
+            transforms.Resize((32,128), interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+        ])
+    return transform
+
+def get_layoutlmv3_base_transforms(**kwargs):
+    from transformers import LayoutLMv3Processor
+    processor = LayoutLMv3Processor.from_pretrained("microsoft/layoutlmv3-base")
+    return processor
+
 def get_transform(name='resnet18',use_patches=True, **kwargs):
     if name in ['resnet18','resnet50','resnet101','resnet152']:
         return get_resnet_transforms(name,use_patches=use_patches,**kwargs)
@@ -154,5 +226,13 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
         return get_vit_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
     elif name=='dresnet50':
         return get_dresnet50_transforms(**kwargs)
+    elif name=='crnn_vgg16_bn':
+        return get_crnn_vgg16_bn_transforms(**kwargs)
+    elif name=='sar_resnet31':
+        return get_sar_resnet31_transforms(**kwargs)
+    elif name=='vitstr_base':
+        return get_vitstr_base_transforms(**kwargs)
+    elif name=='layoutlmv3_base':
+        return get_layoutlmv3_base_transforms(**kwargs)
     else:
         raise ValueError(f"Unknown model name: {name}. Please provide a valid model name.")

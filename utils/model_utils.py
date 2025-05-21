@@ -5,6 +5,7 @@ from torchvision.models import vgg16, VGG16_Weights
 import torch
 from transformers import VisionEncoderDecoderModel, ViTModel
 import torch.nn as nn
+import torch.nn.functional as F
 
 # Define a custom truncated model
 class TruncatedDeiT(nn.Module):
@@ -221,6 +222,138 @@ def get_vit(name, mode, pretrained, **kwargs):
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['vit-base-patch16-224-in21k', 'vit-base-patch16-224']")
     return model
+def get_dbnet(name, mode, pretrained, **kwargs):
+    from doctr.models import db_resnet50
+    model = db_resnet50(pretrained=pretrained)
+    model=model.feat_extractor
+    class WrappedModel(torch.nn.Module):
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
+
+        def forward(self, x):
+            out = self.model(x)
+            deepest_feature= out['3']  # shape: [1, 2048, 32, 32]
+            pooled = F.adaptive_avg_pool2d(deepest_feature, (1, 1))  # shape: [1, 2048, 1, 1]
+            # Flatten to shape: [1, 2048]
+            feature_vector = pooled.view(pooled.size(0), -1)
+            return feature_vector
+    if mode=='classification head':
+        print('no support for classification head for dbnet')
+    elif mode=='as is':
+        pass
+    elif mode=='truncated':
+        truncation=kwargs.get('truncation', 'remove head')
+        if truncation=='remove head':
+            return WrappedModel(model)
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+def get_vitstr_base(name, mode, pretrained, **kwargs):
+    from doctr.models import vitstr_base
+    model = vitstr_base(pretrained=pretrained)
+    model=model.feat_extractor
+    class WrappedModel(torch.nn.Module):
+        def __init__(self, model, type_of_output='cls'):
+            super().__init__()
+            self.model = model
+            self.type_of_output = type_of_output
+
+        def forward(self, x):
+            out = self.model(x)
+            x=out['features']  
+            if self.type_of_output=='cls':
+                x=x[:,0,:]
+            else:
+                pass
+            return x
+    if mode=='classification head':
+        print('no support for classification head for dbnet')
+    elif mode=='as is':
+        pass
+    elif mode=='truncated':
+        truncation=kwargs.get('truncation', 'remove head')
+        if truncation=='remove head':
+            return WrappedModel(model,'cls') #add an option for other ways of reading the output
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+def get_sar_resnet31(name, mode, pretrained, **kwargs):
+    from doctr.models import sar_resnet31
+    model = sar_resnet31(pretrained=pretrained)
+    model=model.feat_extractor
+    class WrappedModel(torch.nn.Module):
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
+
+        def forward(self, x):
+            out = self.model(x)
+            x=out['features']  # shape: [1, 512, 32, 32]
+            x = F.adaptive_avg_pool2d(x, (1, 1))  # [1, 512, 1, 1]
+            x = x.view(x.size(0), -1)  # Flatten to shape: [1, 512]
+            return x
+    if mode=='classification head':
+        print('no support for classification head for dbnet')
+    elif mode=='as is':
+        pass
+    elif mode=='truncated':
+        truncation=kwargs.get('truncation', 'remove head')
+        if truncation=='remove head':
+            return WrappedModel(model)
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+def get_crnn_vgg16_bn(name, mode, pretrained, **kwargs):
+    from doctr.models import crnn_vgg16_bn
+    model = crnn_vgg16_bn(pretrained=pretrained)
+    model=model.feat_extractor
+    class WrappedModel(torch.nn.Module):
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
+
+        def forward(self, x):
+            x=self.model(x)
+            x = x.squeeze(2)           # [B, C, W]
+            x = x.permute(0, 2, 1)     # [B, W, C]
+            x = x.mean(dim=1)
+            return x
+    if mode=='classification head':
+        print('no support for classification head for dbnet')
+    elif mode=='as is':
+        pass
+    elif mode=='truncated':
+        truncation=kwargs.get('truncation', 'remove head')
+        if truncation=='remove head':
+            return WrappedModel(model)
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+def get_layoutlmv3_base(name, mode, pretrained, **kwargs): #need to test
+    from transformers import LayoutLMv3ForTokenClassification
+    if pretrained:
+        model = LayoutLMv3ForTokenClassification.from_pretrained("microsoft/layoutlmv3-base", num_labels=... )
+        model = WrappedHuggingfaceModel(model.encoder) 
+        #remove pixel_values argument; returns the output of the last layernorm (no pooling) 1,578,384
+    else:
+        print("no support for loading model without pretrained weights")
+    if mode=='classification head':
+        num_classes=kwargs.get('num_classes', 2)
+        hidden_sizes=kwargs.get('hidden_sizes', [128])
+        how_to_read=kwargs.get('how_to_read', 'cls')
+        if how_to_read=='cls':
+            in_features = 384
+        else:
+            print('still no support for pooling or other averaging techniques')
+        mlp=CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+        
+    elif mode=='as is':
+        pass
+    elif mode=='truncated':
+        truncation=kwargs.get('truncation', 'remove head')
+        if truncation=='remove head':
+            pass #I simply take the output of the last encoder layer (as in the pretrained model)
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+            model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
+            model = TruncatedDeiT(model.encoder, num_layers=10, from_above=False, encoder_only=not(pooled))
 
 def get_model(name="resnet50", mode='classification head', pretrained=True, **kwargs):
     ''' 
@@ -236,6 +369,16 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
         return get_trocr(name,mode, pretrained, **kwargs)
     elif name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224"]:
         return get_vit(name, mode, pretrained, **kwargs)
+    elif name == "dresnet50":
+        return get_dbnet(name, mode, pretrained, **kwargs)
+    elif name == "vitstr_base":
+        return get_vitstr_base(name, mode, pretrained, **kwargs)
+    elif name == "sar_resnet31":
+        return get_sar_resnet31(name, mode, pretrained, **kwargs)
+    elif name == "crnn_vgg16_bn":
+        return get_crnn_vgg16_bn(name, mode, pretrained, **kwargs)
+    elif name == "layoutlmv3_base":
+        return get_layoutlmv3_base(name, mode, pretrained, **kwargs)
     #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', trocr family]")
