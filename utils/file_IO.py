@@ -63,3 +63,23 @@ def read_metadata(filepath, log_path):
             print(f"{key}: {value}")
     else:
         print(f"No metadata found for {filename}")
+
+def change_filename_from_to(df, fr="old-laptop", to="new-laptop"):
+    '''
+    this function takes the dataframe (with the file_name column) and changes it so 
+    that it can be used on the new computer if it was saved on the old an viceversa
+    '''
+    if fr == 'old-laptop':
+        remove="D:\\download\\PD project\\datasets"
+    elif fr == 'new-laptop':
+        pass
+    else:
+        pass
+    if to == 'new-laptop':
+        add='C:\\Users\\andre\\PhD\\Datasets'
+    elif to == 'old-laptop':
+        pass
+    else:
+        raise ValueError("Invalid value for 'which'. Use 'New' or 'Old'.")
+    df['file_name'] = df['file_name'].str.replace(remove, add, regex=False)
+    return df
