@@ -52,12 +52,13 @@ def get_resnet_transforms(name, use_patches=False, **kwargs):
     """
     Returns the transformation pipeline for ResNet.
     """
+    mode=kwargs.get('mode',)
     if kwargs.get('custom')==True:
         if name in ['resnet18','resnet50']:
             if use_patches:
                 transform = transforms.Compose([
                     transforms.Resize(256,interpolation=InterpolationMode.BILINEAR),
-                    transforms.CenterCrop(256),
+                    transforms.CenterCrop(224),
                     transforms.ToTensor(),
                     #transforms.Pad((0, 0, 0, 0), fill=0, padding_mode="constant"),  # Optional: Add padding if needed
                     #weights["efficient"].transforms()
@@ -65,7 +66,7 @@ def get_resnet_transforms(name, use_patches=False, **kwargs):
             else:
                 transform = transforms.Compose([
                     transforms.Resize(500,interpolation=InterpolationMode.BILINEAR),
-                    transforms.CenterCrop(256),
+                    #transforms.CenterCrop(224),
                     transforms.ToTensor(),
                     #transforms.Pad((0, 0, 0, 0), fill=0, padding_mode="constant"),  # Optional: Add padding if needed
                     #weights["efficient"].transforms()
@@ -74,12 +75,20 @@ def get_resnet_transforms(name, use_patches=False, **kwargs):
             raise ValueError(f"Model {name} is not supported for custom transforms.")
     else:
         if name in ['resnet18','resnet50']:
-            transform = transforms.Compose([
-                transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ])
+            if mode=='resize':
+                transform = transforms.Compose([
+                    transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+                    #transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                ])
+            else:
+                transform = transforms.Compose([
+                    transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ])
         else:
             raise ValueError(f"Model {name} is not supported.")
     return transform
