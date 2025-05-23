@@ -93,6 +93,28 @@ def extract_patches(image,gw=5,n_cc=10, prop=1):
             #not on the number of different components (see): https://chatgpt.com/share/682d9a39-622c-8010-b50a-da370dcf214c
     return valid_patches
 
+def extract_body(image,r=0.1):
+    img = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
+    height, width = img.shape
+    binary = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                cv2.THRESH_BINARY_INV, 15, 10)
+    #_, binary = cv2.threshold(patch, 180, 255, cv2.THRESH_BINARY_INV)
+    horizontal_projection = np.sum(binary, axis=1)
+    start = None
+    end = None
+    min_sum = r * np.max(horizontal_projection)  # Minimum sum to consider a line
+
+    for j, row_sum in enumerate(horizontal_projection):
+        if row_sum > min_sum and start is None:
+            start = j
+            break
+
+    for j, row_sum in enumerate(reversed(horizontal_projection)):
+        if row_sum > min_sum and end is None:
+            end = len(horizontal_projection)-1-j
+            break
+    return (0,start,width,end)
+
 def process_row(row,gw=5,n_cc=10,prop=1):
     image = Image.open(row["file_name"])  # Open the image
     #print(row["file_name"])
@@ -111,7 +133,8 @@ def process_row_sentences(row,n_selected_lines=3, n_slices=3, spacing=15, r_mask
     #image = Image.open(row["file_name"])  # Open the image
     image = cv2.imread(row["file_name"], cv2.IMREAD_GRAYSCALE)
     #print(row["file_name"])
-    lines_per_page,x_lims = get_sentence_regions(image, n_selected_lines=3, n_slices=3, spacing=15, r_mask=0.1, r_min=0.5)
+    lines_per_page,x_lims = get_sentence_regions(image, n_selected_lines=n_selected_lines, n_slices=n_slices, 
+                                                 spacing=spacing, r_mask=r_mask, r_min=r_min)
     
     # Create a new row for each patch
     new_rows = []
@@ -122,4 +145,15 @@ def process_row_sentences(row,n_selected_lines=3, n_slices=3, spacing=15, r_mask
             new_row["x"], new_row["y"], new_row["x2"], new_row["y2"] = x1, y1, x2, y2
             new_rows.append(new_row)
     
+    return new_rows
+
+def process_row_body(row,r=0.1):
+    new_rows = []
+    image = Image.open(row["file_name"])  # Open the image
+    #print(row["file_name"])
+    x1,y1,x2,y2 = extract_body(image,r=r)  # Extract patches
+    
+    new_row = row.copy()
+    new_row["x"], new_row["y"], new_row["x2"], new_row["y2"] = x1, y1, x2, y2
+    new_rows.append(new_row)
     return new_rows

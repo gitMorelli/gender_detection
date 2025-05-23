@@ -85,18 +85,7 @@ def get_resnet_transforms(name, use_patches=False, **kwargs):
     return transform
 
 def get_trocr_transforms(name='trocr-small-stage1'):
-    """
-    Returns the transformation pipeline for Deit.
-    """
-
-    # load image from the IAM database
-    '''url = 'https://fki.tic.heia-fr.ch/static/img/a01-122-02-00.jpg'
-    image = Image.open(requests.get(url, stream=True).raw).convert("RGB")'''
-    # Select one word image from the word_images list
-    if name in ['trocr-small-stage1','trocr-small-handwritten']:
-        processor = TrOCRProcessor.from_pretrained(f'microsoft/{name}',use_fast=False)
-    else:
-        raise ValueError(f"Model {name} is not supported.")
+    processor = TrOCRProcessor.from_pretrained(f'microsoft/{name}',use_fast=False)
     return processor
 
 def get_vit_transforms(name='vit-base-patch16-224-in21k'):
@@ -220,7 +209,7 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
         return get_small_cnn_transforms()
     elif name=='mnist':
         return get_mnist_transforms()
-    elif name in ['trocr-small-stage1','trocr-small-handwritten']:
+    elif name in ['trocr-small-stage1','trocr-small-handwritten','trocr-base-handwritten']:
         return get_trocr_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
     elif name in ['vit-base-patch16-224-in21k']:
         return get_vit_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches

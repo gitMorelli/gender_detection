@@ -172,35 +172,32 @@ def get_resnet18(pretrained=True, num_classes=None):
     return model
 '''
 def get_trocr(name, mode, pretrained, **kwargs):
-    if name in ['trocr-small-stage1','trocr-small-handwritten']:
-        if pretrained:
-            model = VisionEncoderDecoderModel.from_pretrained(f'microsoft/{name}')
-            model = WrappedHuggingfaceModel(model.encoder) 
-            #remove pixel_values argument; returns the output of the last layernorm (no pooling) 1,578,384
-        else:
-            print("no support for loading model without pretrained weights")
-        if mode=='classification head':
-            num_classes=kwargs.get('num_classes', 2)
-            hidden_sizes=kwargs.get('hidden_sizes', [128])
-            how_to_read=kwargs.get('how_to_read', 'cls')
-            if how_to_read=='cls':
-                in_features = 384
-            else:
-                print('still no support for pooling or other averaging techniques')
-            mlp=CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
-            
-        elif mode=='as is':
-            pass
-        elif mode=='truncated':
-            truncation=kwargs.get('truncation', 'remove head')
-            if truncation=='remove head':
-                pass #I simply take the output of the last encoder layer (as in the pretrained model)
-            else:
-                raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
-                model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
-                model = TruncatedDeiT(model.encoder, num_layers=10, from_above=False, encoder_only=not(pooled))
+    if pretrained:
+        model = VisionEncoderDecoderModel.from_pretrained(f'microsoft/{name}')
+        model = WrappedHuggingfaceModel(model.encoder) 
+        #remove pixel_values argument; returns the output of the last layernorm (no pooling) 1,578,384
     else:
-        raise ValueError(f"Model {name} is not supported. Choose from ['trocr-small-stage1','trocr-small-handwriting']")
+        print("no support for loading model without pretrained weights")
+    if mode=='classification head':
+        num_classes=kwargs.get('num_classes', 2)
+        hidden_sizes=kwargs.get('hidden_sizes', [128])
+        how_to_read=kwargs.get('how_to_read', 'cls')
+        if how_to_read=='cls':
+            in_features = 384
+        else:
+            print('still no support for pooling or other averaging techniques')
+        mlp=CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+        
+    elif mode=='as is':
+        pass
+    elif mode=='truncated':
+        truncation=kwargs.get('truncation', 'remove head')
+        if truncation=='remove head':
+            pass #I simply take the output of the last encoder layer (as in the pretrained model)
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+            model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
+            model = TruncatedDeiT(model.encoder, num_layers=10, from_above=False, encoder_only=not(pooled))
     return model
 def get_vit(name, mode, pretrained, **kwargs):
     if name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224"]:
@@ -365,7 +362,7 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     - '''
     if name in ["resnet50",'resnet18']:
         return get_resnet(name,mode, pretrained, **kwargs)
-    elif name in ["trocr-small-stage1",'trocr-small-handwritten']:
+    elif name in ["trocr-small-stage1",'trocr-small-handwritten','trocr-base-handwritten']:
         return get_trocr(name,mode, pretrained, **kwargs)
     elif name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224"]:
         return get_vit(name, mode, pretrained, **kwargs)
