@@ -60,13 +60,14 @@ def get_sentence_regions(img, n_selected_lines=3, n_slices=3, spacing=15, r_mask
             selected_lines[i].append((lines[closest_idx][0]-spacing, lines[closest_idx][1]+spacing))
     return selected_lines, x_limits
 
-def extract_patches(image,gw=5,n_cc=10):
+def extract_patches(image,gw=5,n_cc=10, prop=1):
     """Splits image into grid patches and checks for text presence."""
     image_gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
     h, w = image_gray.shape
     patch_w = w // gw
-    patch_h = patch_w
-    gh= h // patch_h
+    patch_h = int(patch_w*prop)
+    gh= int(h // patch_h)
+    #print(gw,gh,h/patch_h)
     
     valid_patches = []
     
@@ -92,10 +93,10 @@ def extract_patches(image,gw=5,n_cc=10):
             #not on the number of different components (see): https://chatgpt.com/share/682d9a39-622c-8010-b50a-da370dcf214c
     return valid_patches
 
-def process_row(row,gw=5,n_cc=10):
+def process_row(row,gw=5,n_cc=10,prop=1):
     image = Image.open(row["file_name"])  # Open the image
     #print(row["file_name"])
-    patches = extract_patches(image,gw=gw,n_cc=n_cc)  # Extract patches
+    patches = extract_patches(image,gw=gw,n_cc=n_cc, prop=prop)  # Extract patches
     
     # Create a new row for each patch
     new_rows = []
