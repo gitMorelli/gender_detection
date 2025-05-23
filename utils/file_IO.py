@@ -69,16 +69,18 @@ def change_filename_from_to(df, fr="old-laptop", to="new-laptop"):
     this function takes the dataframe (with the file_name column) and changes it so 
     that it can be used on the new computer if it was saved on the old an viceversa
     '''
+    source_old = 'D:\\download\\PD project\\datasets'
+    source_new = 'C:\\Users\\andre\\PhD\\Datasets'
     if fr == 'old-laptop':
-        remove="D:\\download\\PD project\\datasets"
+        remove=source_old
     elif fr == 'new-laptop':
-        pass
+        remove=source_new
     else:
-        pass
+        raise ValueError("Invalid value for 'which'. Use 'New' or 'Old'.")
     if to == 'new-laptop':
-        add='C:\\Users\\andre\\PhD\\Datasets'
+        add=source_new
     elif to == 'old-laptop':
-        pass
+        add=source_old
     else:
         raise ValueError("Invalid value for 'which'. Use 'New' or 'Old'.")
     df['file_name'] = df['file_name'].str.replace(remove, add, regex=False)
