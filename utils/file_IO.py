@@ -45,6 +45,7 @@ def add_or_update_file(filepath, log_path, custom_metadata=None):
     save_log(log, log_path)
     print(f"Updated log for {filename}")
 
+
 def read_metadata(filepath, log_path):
     """
     Adds or updates a file's metadata entry, including custom metadata.
@@ -63,6 +64,60 @@ def read_metadata(filepath, log_path):
             print(f"{key}: {value}")
     else:
         print(f"No metadata found for {filename}")
+
+def show_model_instances(log_path,keys=None, source_file=None):
+    """
+    Returns a list of model instances from the specified directory.
+    """
+
+    log = load_log(log_path)
+
+    for filename, metadata in log.items():
+        '''if 'EXTRACTED' in filename:
+            #this is the result of applying a model to a preproccessed file
+            pass
+        elif 'KAGGLE' in filename:
+            continue
+        elif 'representation' in filename:
+            continue
+        else:
+            #this is a preprocessed file
+            pass'''
+        metadata_source_file= metadata.get('source_file', None)
+        if metadata_source_file == source_file:
+            print(f"Metadata for {filename}:")
+            #print(metadata)
+            for key in keys:
+                if key in metadata:
+                    print(f"{key}: {metadata[key]}")
+            print("------------------------------------------")
+        else:
+            continue
+        '''
+        if 'model' in metadata.get('model', []):
+            model_instances.append({
+                "filename": filename,
+                "metadata": metadata
+            })'''
+    return 
+
+def get_file_name(log_path,key_values=None, source_file=None):
+    log = load_log(log_path)
+    for filename, metadata in log.items():
+        metadata_source_file= metadata.get('source_file', None)
+        if metadata_source_file == source_file:
+            truth_value=True
+            for key in key_values:
+                if key in metadata and metadata[key]==key_values[key]:
+                    pass
+                else:
+                    truth_value=False
+                    break
+            if truth_value:
+                print(filename)
+        else:
+            continue
+    return
 
 def change_filename_from_to(df, fr="old-laptop", to="new-laptop"):
     '''
@@ -85,3 +140,43 @@ def change_filename_from_to(df, fr="old-laptop", to="new-laptop"):
         raise ValueError("Invalid value for 'which'. Use 'New' or 'Old'.")
     df['file_name'] = df['file_name'].str.replace(remove, add, regex=False)
     return df
+
+def add_or_update_experiment(experiment_id, log_path, custom_metadata=None):
+    """
+    Adds or updates an experiment's metadata entry in the log.
+
+    Parameters:
+        experiment_id (str): A unique identifier for the experiment (e.g., a timestamp).
+        log_path (str): Path to the JSON or pickle log file.
+        base_metadata (dict): Core metadata for the experiment.
+        custom_metadata (dict): Any additional metadata to attach.
+    """
+    log = load_log(log_path)
+    
+    # Start with any existing entry
+    entry = log.get(experiment_id, {})
+
+    if custom_metadata:
+        entry.update(custom_metadata)
+
+    log[experiment_id] = entry
+    save_log(log, log_path)
+    print(f"Updated log for experiment {experiment_id}")
+
+def read_experiment_metadata(experiment_id, log_path):
+    """
+    Reads and prints metadata for a specific experiment.
+
+    Parameters:
+        experiment_id (str): The unique identifier for the experiment.
+        log_path (str): Path to the JSON or pickle log file.
+    """
+    log = load_log(log_path)
+    
+    entry = log.get(experiment_id, None)
+    if entry:
+        print(f"Metadata for experiment {experiment_id}:")
+        for key, value in entry.items():
+            print(f"{key}: {value}")
+    else:
+        print(f"No metadata found for experiment {experiment_id}")
