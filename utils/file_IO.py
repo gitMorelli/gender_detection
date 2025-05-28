@@ -1,6 +1,10 @@
 import json
 from datetime import datetime
 import os
+import pandas as pd
+import numpy as np
+import scipy.stats as st
+
 
 def get_base_metadata(filepath):
     stats = os.stat(filepath)
@@ -40,7 +44,7 @@ def add_or_update_file(filepath, log_path, custom_metadata=None):
     entry.update(base_meta)
     if custom_metadata:
         entry.update(custom_metadata)
-
+    print(filename)
     log[filename] = entry
     save_log(log, log_path)
     print(f"Updated log for {filename}")
@@ -163,7 +167,7 @@ def add_or_update_experiment(experiment_id, log_path, custom_metadata=None):
     save_log(log, log_path)
     print(f"Updated log for experiment {experiment_id}")
 
-def read_experiment_metadata(experiment_id, log_path):
+def read_experiment_metadata(experiment_id, log_path, keys=None):
     """
     Reads and prints metadata for a specific experiment.
 
@@ -174,9 +178,93 @@ def read_experiment_metadata(experiment_id, log_path):
     log = load_log(log_path)
     
     entry = log.get(experiment_id, None)
-    if entry:
-        print(f"Metadata for experiment {experiment_id}:")
-        for key, value in entry.items():
-            print(f"{key}: {value}")
-    else:
-        print(f"No metadata found for experiment {experiment_id}")
+    metadata = log[entry]
+    for key in keys:
+        if key in metadata:
+            print(f"{key}: {metadata[key]}")
+        else:
+            print(f"{key} not found in metadata for experiment {experiment_id}")
+
+def assemble_csv_from_log(log_path):
+    """
+    Assembles a CSV file from the log data.
+
+    Parameters:
+        log_path (str): Path to the JSON or pickle log file.
+        output_csv (str): Path where the CSV file will be saved.
+    """
+    
+    log = load_log(log_path)
+    df = pd.DataFrame.from_dict(log, orient='index')
+    df = df.reset_index()
+    # Rename the new column for clarity (e.g., "timestamp" if keys represent time)
+    df.rename(columns={'index': 'experiment'}, inplace=True)
+
+    return df
+
+def summarize_cv_results(train_accs, oof_accs):
+    train_accs = np.array(train_accs)
+    oof_accs = np.array(oof_accs)
+
+    def compute_summary(arr):
+        mean = np.mean(arr)
+        variance = np.var(arr, ddof=1)  # Unbiased variance (sample variance)
+        min_val = np.min(arr)
+        max_val = np.max(arr)
+        median = np.median(arr)
+        ci_low, ci_high = st.t.interval(0.95, len(arr)-1, loc=mean, scale=st.sem(arr))
+        return mean, variance, min_val, max_val, median, (ci_low, ci_high)
+
+    train_summary = compute_summary(train_accs)
+    oof_summary = compute_summary(oof_accs)
+
+    generalization_gap = train_summary[0] - oof_summary[0]  # Difference in mean accuracies
+
+    if_name="IF_accuracy_"
+    oof_name="OOF_accuracy_"
+    summary = {
+            f"{if_name}Mean": train_summary[0],
+            f"{if_name}Variance": train_summary[1],
+            f"{if_name}Min": train_summary[2],
+            f"{if_name}Max": train_summary[3],
+            f"{if_name}Median": train_summary[4],
+            f"{if_name}Confidence Interval": train_summary[5],
+            f"{oof_name}Mean": oof_summary[0],
+            f"{oof_name}Variance": oof_summary[1],
+            f"{oof_name}Min": oof_summary[2],
+            f"{oof_name}Max": oof_summary[3],
+            f"{oof_name}Median": oof_summary[4],
+            f"{oof_name}Confidence Interval": oof_summary[5],
+            "Generalization Gap": generalization_gap
+        }
+
+    return summary
+
+def expand_accuracies(df):
+    new_columns = []
+    for idx, row in df.iterrows():
+        c_val = row['cross_val_accuracies']
+        IF_values = c_val['IF']
+        ensembled_accuracies_IF = []
+        individual_accuracies_IF = []
+        for value in IF_values:
+            ensembled_accuracies_IF.append(value['ensembled'])
+            individual_accuracies_IF.append(value['individual'])
+        OOF_values = c_val['OOF']
+        ensembled_accuracies_OOF = []
+        individual_accuracies_OOF = []
+        for value in OOF_values:
+            ensembled_accuracies_OOF.append(value['ensembled'])
+            individual_accuracies_OOF.append(value['individual'])
+        ensembled_summary=summarize_cv_results(ensembled_accuracies_IF, ensembled_accuracies_OOF)
+        individual_summary=summarize_cv_results(individual_accuracies_IF, individual_accuracies_OOF)
+        subgroup_accuracies = row['subgroup_accuracies']
+        subgroup_ensembled_summary = {}
+        subgroup_individual_summary = {}
+        for key in subgroup_accuracies:
+            subgroup_ensembled_summary['(ensembled)'+key] = subgroup_accuracies[key]['ensembled']
+            subgroup_individual_summary['(individual)'+key] = subgroup_accuracies[key]['individual']
+        dict1 = {**ensembled_summary, **individual_summary,**subgroup_ensembled_summary, **subgroup_individual_summary}
+        new_columns.append(dict1)
+        acc_df = pd.DataFrame(new_columns)
+    return pd.concat([df.reset_index(drop=True), acc_df.reset_index(drop=True)], axis=1)
