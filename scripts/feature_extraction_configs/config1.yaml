@@ -1,0 +1,7 @@
+# config.yaml
+model:
+  type: 'resnet18'
+  lr: 0.001
+  epochs: 10
+data:
+  dataset: 'CIFAR10'

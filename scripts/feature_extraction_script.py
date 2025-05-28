@@ -13,6 +13,7 @@ import sys
 import argparse
 import time
 from collections import Counter
+import yaml
 
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.pipeline import Pipeline
@@ -25,6 +26,28 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils import shuffle
+
+
+class DotDict:
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def __repr__(self):
+        return f"{self.__dict__}"
+
+def load_config(path):
+    with open(path, 'r') as f:
+        config=yaml.safe_load(f)
+        args = DotDict()
+        for key, value in config.items():
+            args[key] = value
+        return args
 
 def ensembled_predictions(base_preds,writers):
     pred_df = pd.DataFrame({
@@ -84,6 +107,8 @@ def main(args):
     Main function to run the feature extraction and classification pipeline.
     """
     print("Running feature extraction script...")
+    args = load_config(args.config)
+
     output_dir = source_path + "\\outputs\\preprocessed_data\\"
     LOG_FILE = output_dir+"file_metadata_log.json"
     df_log = file_IO.assemble_csv_from_log(LOG_FILE)
@@ -111,13 +136,13 @@ def main(args):
         target_label='male'
     else:
         target_label='isEng'
+    
+    input_file=source_path+'\\outputs\\preprocessed_data\\'+input_file_name
+    train_FE = pd.read_csv(input_file)
     if is_kaggle:
         cols_to_drop = ['writer', 'same_text', 'train','page_id','isEng','train','index','male']
     else:
         cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
-    
-    input_file=source_path+'\\outputs\\preprocessed_data\\'+input_file_name
-    train_FE = pd.read_csv(input_file)
     train_FE = file_IO.change_filename_from_to(train_FE, fr="old-laptop", to="new-laptop")
     cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
 
@@ -307,8 +332,9 @@ def main(args):
     )
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Greet someone from the terminal.")
-    parser.add_argument("--input_file_name", type=str, required=True, help="The input training file")
+    parser = argparse.ArgumentParser(description="ML experiments!")
+    parser.add_argument("--config", type=str, required=True, help="The cofig file to pass in input to the script")
+    '''parser.add_argument("--input_file_name", type=str, required=True, help="The input training file")
     parser.add_argument("--selected_model", type=str, required=True, help="The name of the model to use.")
     parser.add_argument("--is_kaggle", default=False, action="store_true", help="Flag to indicate if running on Kaggle.")
     parser.add_argument("--with_pca", required=True, action="store_true", help="Flag to apply PCA.")
@@ -317,8 +343,7 @@ def parse_args():
     parser.add_argument("--task", type=str, required=True, choices=['gender detection', 'language detection'], help="Type of task.")
     parser.add_argument("--train_on_language", type=str, default='all' , choices=['all', 'english','arabic'],help="Language subset to train on (e.g., 'en', 'fr').")
     parser.add_argument("--train_on_same", type=str, default='all', choices=['all', 'same','different'], help="Train only on samples with the same attribute.")
-    parser.add_argument("--n_splits", type=int, default=5, help="Number of splits for cross-validation.")
-
+    parser.add_argument("--n_splits", type=int, default=5, help="Number of splits for cross-validation.")'''
     return parser.parse_args()
 
 if __name__ == "__main__":
