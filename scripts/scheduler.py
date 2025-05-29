@@ -62,14 +62,15 @@ for file in try_files:
             try_args.append(copy.deepcopy(args))
 print(i)
 
-for arg in try_args:
+'''for arg in try_args:
     #print(arg)
-    run_experiment(arg)
+    run_experiment(arg)'''
 
 #run_experiment(args)
 
-'''with Pool(processes=os.cpu_count()) as pool:  # Use os.cpu_count() or limit by RAM/GPU
-    pool.map(run_experiment, try_args)'''
+if __name__ == "__main__":
+    with Pool(processes=3) as pool:  # Use os.cpu_count() or limit by RAM/GPU
+        pool.map(run_experiment, try_args[:3])
 
 '''with Pool(processes=3) as pool:  # Use os.cpu_count() or limit by RAM/GPU
     pool.map(run_experiment, configs)'''

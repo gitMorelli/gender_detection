@@ -8,7 +8,8 @@ checkpoints/
 Data/
 outputs/images/
 outputs/models/
-outputs/preprocessed_data/
+outputs/preprocessed_data/*
+!outputs/preprocessed_data/file_metadata_log.json
 
 # Ignore Jupyter notebook checkpoints
 .ipynb_checkpoints/
