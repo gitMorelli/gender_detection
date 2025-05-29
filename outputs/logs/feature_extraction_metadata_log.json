@@ -7382,5 +7382,989 @@
         "is_kaggle": false,
         "test": "this is a test column",
         "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+    },
+    "20250529_215127": {
+        "type of preprocessing": "standard patches",
+        "original raw file": "icdar_train_df_patches_20250515_164130.csv",
+        "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
+        "FE model": "trocr-small-stage1",
+        "classifier model": "logreg",
+        "model_params": {
+            "C": 1.0,
+            "class_weight": null,
+            "dual": false,
+            "fit_intercept": true,
+            "intercept_scaling": 1,
+            "l1_ratio": null,
+            "max_iter": 1000,
+            "multi_class": "deprecated",
+            "n_jobs": null,
+            "penalty": "l2",
+            "random_state": 42,
+            "solver": "lbfgs",
+            "tol": 0.0001,
+            "verbose": 0,
+            "warm_start": false
+        },
+        "n_splits": 5,
+        "train_on_language": "all",
+        "train_on_same": "all",
+        "task": "gender_detection",
+        "with cross validation": true,
+        "with PCA": false,
+        "n_components": 0.95,
+        "training time for cross-validation": 1.391165018081665,
+        "training time for final model": 0.20670318603515625,
+        "cross_val_accuracies": {
+            "IF": [
+                {
+                    "ensembled": 0.88,
+                    "individual": 0.7153333333333334
+                },
+                {
+                    "ensembled": 0.8488888888888889,
+                    "individual": 0.7046666666666667
+                },
+                {
+                    "ensembled": 0.8761061946902655,
+                    "individual": 0.7161504424778761
+                },
+                {
+                    "ensembled": 0.8672566371681416,
+                    "individual": 0.7099557522123894
+                },
+                {
+                    "ensembled": 0.8893805309734514,
+                    "individual": 0.7238938053097345
+                }
+            ],
+            "OOF": [
+                {
+                    "ensembled": 0.6666666666666666,
+                    "individual": 0.5982456140350877
+                },
+                {
+                    "ensembled": 0.7368421052631579,
+                    "individual": 0.6219298245614036
+                },
+                {
+                    "ensembled": 0.6071428571428571,
+                    "individual": 0.5660714285714286
+                },
+                {
+                    "ensembled": 0.6785714285714286,
+                    "individual": 0.6223214285714286
+                },
+                {
+                    "ensembled": 0.6071428571428571,
+                    "individual": 0.5696428571428571
+                }
+            ]
+        },
+        "subgroup_accuracies": {
+            "english+arabic,different+same": {
+                "ensembled": 0.8439716312056738,
+                "individual": 0.7012411347517731
+            },
+            "english,different": {
+                "ensembled": 0.7872340425531915,
+                "individual": 0.7156028368794326
+            },
+            "english,same": {
+                "ensembled": 0.7304964539007093,
+                "individual": 0.6865248226950355
+            },
+            "arabic,different": {
+                "ensembled": 0.7695035460992907,
+                "individual": 0.701418439716312
+            },
+            "arabic,same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "english,different+same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "arabic,different+same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "english+arabic,different": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "english+arabic,same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            }
+        },
+        "is_kaggle": false,
+        "test": "this is a test column",
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+    },
+    "20250529_215131": {
+        "type of preprocessing": "standard patches",
+        "original raw file": "icdar_train_df_patches_20250515_164130.csv",
+        "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
+        "FE model": "trocr-small-stage1",
+        "classifier model": "mlp",
+        "model_params": {
+            "activation": "relu",
+            "alpha": 0.0001,
+            "batch_size": "auto",
+            "beta_1": 0.9,
+            "beta_2": 0.999,
+            "early_stopping": true,
+            "epsilon": 1e-08,
+            "hidden_layer_sizes": 128,
+            "learning_rate": "constant",
+            "learning_rate_init": 0.001,
+            "max_fun": 15000,
+            "max_iter": 200,
+            "momentum": 0.9,
+            "n_iter_no_change": 10,
+            "nesterovs_momentum": true,
+            "power_t": 0.5,
+            "random_state": 42,
+            "shuffle": true,
+            "solver": "adam",
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": false,
+            "warm_start": false
+        },
+        "n_splits": 5,
+        "train_on_language": "all",
+        "train_on_same": "all",
+        "task": "gender_detection",
+        "with cross validation": true,
+        "with PCA": true,
+        "n_components": 0.95,
+        "training time for cross-validation": 4.395500659942627,
+        "training time for final model": 0.6033265590667725,
+        "cross_val_accuracies": {
+            "IF": [
+                {
+                    "ensembled": 0.9866666666666667,
+                    "individual": 0.8568888888888889
+                },
+                {
+                    "ensembled": 1.0,
+                    "individual": 0.9371111111111111
+                },
+                {
+                    "ensembled": 0.995575221238938,
+                    "individual": 0.8944690265486726
+                },
+                {
+                    "ensembled": 0.9424778761061947,
+                    "individual": 0.7761061946902655
+                },
+                {
+                    "ensembled": 0.911504424778761,
+                    "individual": 0.7601769911504425
+                }
+            ],
+            "OOF": [
+                {
+                    "ensembled": 0.7192982456140351,
+                    "individual": 0.5973684210526315
+                },
+                {
+                    "ensembled": 0.7192982456140351,
+                    "individual": 0.606140350877193
+                },
+                {
+                    "ensembled": 0.5892857142857143,
+                    "individual": 0.5464285714285714
+                },
+                {
+                    "ensembled": 0.7321428571428571,
+                    "individual": 0.6375
+                },
+                {
+                    "ensembled": 0.5714285714285714,
+                    "individual": 0.5660714285714286
+                }
+            ]
+        },
+        "subgroup_accuracies": {
+            "english+arabic,different+same": {
+                "ensembled": 0.9539007092198581,
+                "individual": 0.7881205673758865
+            },
+            "english,different": {
+                "ensembled": 0.8617021276595744,
+                "individual": 0.7851063829787234
+            },
+            "english,same": {
+                "ensembled": 0.8900709219858156,
+                "individual": 0.7921985815602837
+            },
+            "arabic,different": {
+                "ensembled": 0.8900709219858156,
+                "individual": 0.7907801418439716
+            },
+            "arabic,same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "english,different+same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "arabic,different+same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "english+arabic,different": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "english+arabic,same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            }
+        },
+        "is_kaggle": false,
+        "test": "this is a test column",
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+    },
+    "20250529_215825": {
+        "type of preprocessing": "standard patches",
+        "original raw file": "icdar_train_df_patches_20250515_164130.csv",
+        "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
+        "FE model": "trocr-small-stage1",
+        "classifier model": "logreg",
+        "model_params": {
+            "C": 1.0,
+            "class_weight": null,
+            "dual": false,
+            "fit_intercept": true,
+            "intercept_scaling": 1,
+            "l1_ratio": null,
+            "max_iter": 1000,
+            "multi_class": "deprecated",
+            "n_jobs": null,
+            "penalty": "l2",
+            "random_state": 42,
+            "solver": "lbfgs",
+            "tol": 0.0001,
+            "verbose": 0,
+            "warm_start": false
+        },
+        "n_splits": 5,
+        "train_on_language": "all",
+        "train_on_same": "all",
+        "task": "gender_detection",
+        "with cross validation": true,
+        "with PCA": true,
+        "n_components": 0.95,
+        "training time for cross-validation": 0.6887619495391846,
+        "training time for final model": 0.11214971542358398,
+        "cross_val_accuracies": {
+            "IF": [
+                {
+                    "ensembled": 0.8133333333333334,
+                    "individual": 0.6746666666666666
+                },
+                {
+                    "ensembled": 0.8,
+                    "individual": 0.6662222222222223
+                },
+                {
+                    "ensembled": 0.8097345132743363,
+                    "individual": 0.6738938053097345
+                },
+                {
+                    "ensembled": 0.7610619469026548,
+                    "individual": 0.6484513274336283
+                },
+                {
+                    "ensembled": 0.7610619469026548,
+                    "individual": 0.6646017699115044
+                }
+            ],
+            "OOF": [
+                {
+                    "ensembled": 0.5964912280701754,
+                    "individual": 0.5850877192982457
+                },
+                {
+                    "ensembled": 0.7894736842105263,
+                    "individual": 0.6087719298245614
+                },
+                {
+                    "ensembled": 0.6428571428571429,
+                    "individual": 0.56875
+                },
+                {
+                    "ensembled": 0.7678571428571429,
+                    "individual": 0.6357142857142857
+                },
+                {
+                    "ensembled": 0.6964285714285714,
+                    "individual": 0.5758928571428571
+                }
+            ]
+        },
+        "subgroup_accuracies": {
+            "english+arabic,different+same": {
+                "ensembled": 0.7659574468085106,
+                "individual": 0.649822695035461
+            },
+            "english,different": {
+                "ensembled": 0.6737588652482269,
+                "individual": 0.650354609929078
+            },
+            "english,same": {
+                "ensembled": 0.7021276595744681,
+                "individual": 0.6510638297872341
+            },
+            "arabic,different": {
+                "ensembled": 0.7056737588652482,
+                "individual": 0.6546099290780142
+            },
+            "arabic,same": {
+                "ensembled": 0.6959219858156028,
+                "individual": 0.6517730496453902
+            },
+            "english,different+same": {
+                "ensembled": 0.6959219858156028,
+                "individual": 0.6517730496453902
+            },
+            "arabic,different+same": {
+                "ensembled": 0.6959219858156028,
+                "individual": 0.6517730496453902
+            },
+            "english+arabic,different": {
+                "ensembled": 0.6959219858156028,
+                "individual": 0.6517730496453902
+            },
+            "english+arabic,same": {
+                "ensembled": 0.6959219858156028,
+                "individual": 0.6517730496453902
+            }
+        },
+        "is_kaggle": false,
+        "test": "this is a test column",
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+    },
+    "20250529_220206": {
+        "type of preprocessing": "standard patches",
+        "original raw file": "icdar_train_df_patches_20250515_164130.csv",
+        "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
+        "FE model": "trocr-small-stage1",
+        "classifier model": "logreg",
+        "model_params": {
+            "C": 1.0,
+            "class_weight": null,
+            "dual": false,
+            "fit_intercept": true,
+            "intercept_scaling": 1,
+            "l1_ratio": null,
+            "max_iter": 1000,
+            "multi_class": "deprecated",
+            "n_jobs": null,
+            "penalty": "l2",
+            "random_state": 42,
+            "solver": "lbfgs",
+            "tol": 0.0001,
+            "verbose": 0,
+            "warm_start": false
+        },
+        "n_splits": 5,
+        "train_on_language": "all",
+        "train_on_same": "all",
+        "task": "gender_detection",
+        "with cross validation": true,
+        "with PCA": false,
+        "n_components": 0.95,
+        "training time for cross-validation": 1.0666325092315674,
+        "training time for final model": 0.1570723056793213,
+        "cross_val_accuracies": {
+            "IF": [
+                {
+                    "ensembled": 0.88,
+                    "individual": 0.7153333333333334
+                },
+                {
+                    "ensembled": 0.8488888888888889,
+                    "individual": 0.7046666666666667
+                },
+                {
+                    "ensembled": 0.8761061946902655,
+                    "individual": 0.7161504424778761
+                },
+                {
+                    "ensembled": 0.8672566371681416,
+                    "individual": 0.7099557522123894
+                },
+                {
+                    "ensembled": 0.8893805309734514,
+                    "individual": 0.7238938053097345
+                }
+            ],
+            "OOF": [
+                {
+                    "ensembled": 0.6666666666666666,
+                    "individual": 0.5982456140350877
+                },
+                {
+                    "ensembled": 0.7368421052631579,
+                    "individual": 0.6219298245614036
+                },
+                {
+                    "ensembled": 0.6071428571428571,
+                    "individual": 0.5660714285714286
+                },
+                {
+                    "ensembled": 0.6785714285714286,
+                    "individual": 0.6223214285714286
+                },
+                {
+                    "ensembled": 0.6071428571428571,
+                    "individual": 0.5696428571428571
+                }
+            ]
+        },
+        "subgroup_accuracies": {
+            "english+arabic,different+same": {
+                "ensembled": 0.8439716312056738,
+                "individual": 0.7012411347517731
+            },
+            "english,different": {
+                "ensembled": 0.7872340425531915,
+                "individual": 0.7156028368794326
+            },
+            "english,same": {
+                "ensembled": 0.7304964539007093,
+                "individual": 0.6865248226950355
+            },
+            "arabic,different": {
+                "ensembled": 0.7695035460992907,
+                "individual": 0.701418439716312
+            },
+            "arabic,same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "english,different+same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "arabic,different+same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "english+arabic,different": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "english+arabic,same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            }
+        },
+        "is_kaggle": false,
+        "test": "this is a test column",
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+    },
+    "20250529_220210": {
+        "type of preprocessing": "standard patches",
+        "original raw file": "icdar_train_df_patches_20250515_164130.csv",
+        "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
+        "FE model": "trocr-small-stage1",
+        "classifier model": "mlp",
+        "model_params": {
+            "activation": "relu",
+            "alpha": 0.0001,
+            "batch_size": "auto",
+            "beta_1": 0.9,
+            "beta_2": 0.999,
+            "early_stopping": true,
+            "epsilon": 1e-08,
+            "hidden_layer_sizes": 128,
+            "learning_rate": "constant",
+            "learning_rate_init": 0.001,
+            "max_fun": 15000,
+            "max_iter": 200,
+            "momentum": 0.9,
+            "n_iter_no_change": 10,
+            "nesterovs_momentum": true,
+            "power_t": 0.5,
+            "random_state": 42,
+            "shuffle": true,
+            "solver": "adam",
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": false,
+            "warm_start": false
+        },
+        "n_splits": 5,
+        "train_on_language": "all",
+        "train_on_same": "all",
+        "task": "gender_detection",
+        "with cross validation": true,
+        "with PCA": true,
+        "n_components": 0.95,
+        "training time for cross-validation": 3.915076494216919,
+        "training time for final model": 0.6134381294250488,
+        "cross_val_accuracies": {
+            "IF": [
+                {
+                    "ensembled": 0.9866666666666667,
+                    "individual": 0.8568888888888889
+                },
+                {
+                    "ensembled": 1.0,
+                    "individual": 0.9371111111111111
+                },
+                {
+                    "ensembled": 0.995575221238938,
+                    "individual": 0.8944690265486726
+                },
+                {
+                    "ensembled": 0.9424778761061947,
+                    "individual": 0.7761061946902655
+                },
+                {
+                    "ensembled": 0.911504424778761,
+                    "individual": 0.7601769911504425
+                }
+            ],
+            "OOF": [
+                {
+                    "ensembled": 0.7192982456140351,
+                    "individual": 0.5973684210526315
+                },
+                {
+                    "ensembled": 0.7192982456140351,
+                    "individual": 0.606140350877193
+                },
+                {
+                    "ensembled": 0.5892857142857143,
+                    "individual": 0.5464285714285714
+                },
+                {
+                    "ensembled": 0.7321428571428571,
+                    "individual": 0.6375
+                },
+                {
+                    "ensembled": 0.5714285714285714,
+                    "individual": 0.5660714285714286
+                }
+            ]
+        },
+        "subgroup_accuracies": {
+            "english+arabic,different+same": {
+                "ensembled": 0.9539007092198581,
+                "individual": 0.7881205673758865
+            },
+            "english,different": {
+                "ensembled": 0.8617021276595744,
+                "individual": 0.7851063829787234
+            },
+            "english,same": {
+                "ensembled": 0.8900709219858156,
+                "individual": 0.7921985815602837
+            },
+            "arabic,different": {
+                "ensembled": 0.8900709219858156,
+                "individual": 0.7907801418439716
+            },
+            "arabic,same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "english,different+same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "arabic,different+same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "english+arabic,different": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "english+arabic,same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            }
+        },
+        "is_kaggle": false,
+        "test": "this is a test column",
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+    },
+    "1_20250529_221335": {
+        "type of preprocessing": "standard patches",
+        "original raw file": "icdar_train_df_patches_20250515_164130.csv",
+        "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
+        "FE model": "trocr-small-stage1",
+        "classifier model": "logreg",
+        "model_params": {
+            "C": 1.0,
+            "class_weight": null,
+            "dual": false,
+            "fit_intercept": true,
+            "intercept_scaling": 1,
+            "l1_ratio": null,
+            "max_iter": 1000,
+            "multi_class": "deprecated",
+            "n_jobs": null,
+            "penalty": "l2",
+            "random_state": 42,
+            "solver": "lbfgs",
+            "tol": 0.0001,
+            "verbose": 0,
+            "warm_start": false
+        },
+        "n_splits": 5,
+        "train_on_language": "all",
+        "train_on_same": "all",
+        "task": "gender_detection",
+        "with cross validation": true,
+        "with PCA": true,
+        "n_components": 0.95,
+        "training time for cross-validation": 0.8921160697937012,
+        "training time for final model": 0.12557172775268555,
+        "cross_val_accuracies": {
+            "IF": [
+                {
+                    "ensembled": 0.8133333333333334,
+                    "individual": 0.6746666666666666
+                },
+                {
+                    "ensembled": 0.8,
+                    "individual": 0.6662222222222223
+                },
+                {
+                    "ensembled": 0.8097345132743363,
+                    "individual": 0.6738938053097345
+                },
+                {
+                    "ensembled": 0.7610619469026548,
+                    "individual": 0.6484513274336283
+                },
+                {
+                    "ensembled": 0.7610619469026548,
+                    "individual": 0.6646017699115044
+                }
+            ],
+            "OOF": [
+                {
+                    "ensembled": 0.5964912280701754,
+                    "individual": 0.5850877192982457
+                },
+                {
+                    "ensembled": 0.7894736842105263,
+                    "individual": 0.6087719298245614
+                },
+                {
+                    "ensembled": 0.6428571428571429,
+                    "individual": 0.56875
+                },
+                {
+                    "ensembled": 0.7678571428571429,
+                    "individual": 0.6357142857142857
+                },
+                {
+                    "ensembled": 0.6964285714285714,
+                    "individual": 0.5758928571428571
+                }
+            ]
+        },
+        "subgroup_accuracies": {
+            "english+arabic,different+same": {
+                "ensembled": 0.7659574468085106,
+                "individual": 0.649822695035461
+            },
+            "english,different": {
+                "ensembled": 0.6737588652482269,
+                "individual": 0.650354609929078
+            },
+            "english,same": {
+                "ensembled": 0.7021276595744681,
+                "individual": 0.6510638297872341
+            },
+            "arabic,different": {
+                "ensembled": 0.7056737588652482,
+                "individual": 0.6546099290780142
+            },
+            "arabic,same": {
+                "ensembled": 0.6959219858156028,
+                "individual": 0.6517730496453902
+            },
+            "english,different+same": {
+                "ensembled": 0.6959219858156028,
+                "individual": 0.6517730496453902
+            },
+            "arabic,different+same": {
+                "ensembled": 0.6959219858156028,
+                "individual": 0.6517730496453902
+            },
+            "english+arabic,different": {
+                "ensembled": 0.6959219858156028,
+                "individual": 0.6517730496453902
+            },
+            "english+arabic,same": {
+                "ensembled": 0.6959219858156028,
+                "individual": 0.6517730496453902
+            }
+        },
+        "is_kaggle": false,
+        "test": "this is a test column",
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+    },
+    "2_20250529_221335": {
+        "type of preprocessing": "standard patches",
+        "original raw file": "icdar_train_df_patches_20250515_164130.csv",
+        "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
+        "FE model": "trocr-small-stage1",
+        "classifier model": "logreg",
+        "model_params": {
+            "C": 1.0,
+            "class_weight": null,
+            "dual": false,
+            "fit_intercept": true,
+            "intercept_scaling": 1,
+            "l1_ratio": null,
+            "max_iter": 1000,
+            "multi_class": "deprecated",
+            "n_jobs": null,
+            "penalty": "l2",
+            "random_state": 42,
+            "solver": "lbfgs",
+            "tol": 0.0001,
+            "verbose": 0,
+            "warm_start": false
+        },
+        "n_splits": 5,
+        "train_on_language": "all",
+        "train_on_same": "all",
+        "task": "gender_detection",
+        "with cross validation": true,
+        "with PCA": false,
+        "n_components": 0.95,
+        "training time for cross-validation": 1.0025970935821533,
+        "training time for final model": 0.1738903522491455,
+        "cross_val_accuracies": {
+            "IF": [
+                {
+                    "ensembled": 0.88,
+                    "individual": 0.7153333333333334
+                },
+                {
+                    "ensembled": 0.8488888888888889,
+                    "individual": 0.7046666666666667
+                },
+                {
+                    "ensembled": 0.8761061946902655,
+                    "individual": 0.7161504424778761
+                },
+                {
+                    "ensembled": 0.8672566371681416,
+                    "individual": 0.7099557522123894
+                },
+                {
+                    "ensembled": 0.8893805309734514,
+                    "individual": 0.7238938053097345
+                }
+            ],
+            "OOF": [
+                {
+                    "ensembled": 0.6666666666666666,
+                    "individual": 0.5982456140350877
+                },
+                {
+                    "ensembled": 0.7368421052631579,
+                    "individual": 0.6219298245614036
+                },
+                {
+                    "ensembled": 0.6071428571428571,
+                    "individual": 0.5660714285714286
+                },
+                {
+                    "ensembled": 0.6785714285714286,
+                    "individual": 0.6223214285714286
+                },
+                {
+                    "ensembled": 0.6071428571428571,
+                    "individual": 0.5696428571428571
+                }
+            ]
+        },
+        "subgroup_accuracies": {
+            "english+arabic,different+same": {
+                "ensembled": 0.8439716312056738,
+                "individual": 0.7012411347517731
+            },
+            "english,different": {
+                "ensembled": 0.7872340425531915,
+                "individual": 0.7156028368794326
+            },
+            "english,same": {
+                "ensembled": 0.7304964539007093,
+                "individual": 0.6865248226950355
+            },
+            "arabic,different": {
+                "ensembled": 0.7695035460992907,
+                "individual": 0.701418439716312
+            },
+            "arabic,same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "english,different+same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "arabic,different+same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "english+arabic,different": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            },
+            "english+arabic,same": {
+                "ensembled": 0.7544326241134752,
+                "individual": 0.6975177304964539
+            }
+        },
+        "is_kaggle": false,
+        "test": "this is a test column",
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+    },
+    "3_20250529_221339": {
+        "type of preprocessing": "standard patches",
+        "original raw file": "icdar_train_df_patches_20250515_164130.csv",
+        "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
+        "FE model": "trocr-small-stage1",
+        "classifier model": "mlp",
+        "model_params": {
+            "activation": "relu",
+            "alpha": 0.0001,
+            "batch_size": "auto",
+            "beta_1": 0.9,
+            "beta_2": 0.999,
+            "early_stopping": true,
+            "epsilon": 1e-08,
+            "hidden_layer_sizes": 128,
+            "learning_rate": "constant",
+            "learning_rate_init": 0.001,
+            "max_fun": 15000,
+            "max_iter": 200,
+            "momentum": 0.9,
+            "n_iter_no_change": 10,
+            "nesterovs_momentum": true,
+            "power_t": 0.5,
+            "random_state": 42,
+            "shuffle": true,
+            "solver": "adam",
+            "tol": 0.0001,
+            "validation_fraction": 0.1,
+            "verbose": false,
+            "warm_start": false
+        },
+        "n_splits": 5,
+        "train_on_language": "all",
+        "train_on_same": "all",
+        "task": "gender_detection",
+        "with cross validation": true,
+        "with PCA": true,
+        "n_components": 0.95,
+        "training time for cross-validation": 3.929063558578491,
+        "training time for final model": 0.5929238796234131,
+        "cross_val_accuracies": {
+            "IF": [
+                {
+                    "ensembled": 0.9866666666666667,
+                    "individual": 0.8568888888888889
+                },
+                {
+                    "ensembled": 1.0,
+                    "individual": 0.9371111111111111
+                },
+                {
+                    "ensembled": 0.995575221238938,
+                    "individual": 0.8944690265486726
+                },
+                {
+                    "ensembled": 0.9424778761061947,
+                    "individual": 0.7761061946902655
+                },
+                {
+                    "ensembled": 0.911504424778761,
+                    "individual": 0.7601769911504425
+                }
+            ],
+            "OOF": [
+                {
+                    "ensembled": 0.7192982456140351,
+                    "individual": 0.5973684210526315
+                },
+                {
+                    "ensembled": 0.7192982456140351,
+                    "individual": 0.606140350877193
+                },
+                {
+                    "ensembled": 0.5892857142857143,
+                    "individual": 0.5464285714285714
+                },
+                {
+                    "ensembled": 0.7321428571428571,
+                    "individual": 0.6375
+                },
+                {
+                    "ensembled": 0.5714285714285714,
+                    "individual": 0.5660714285714286
+                }
+            ]
+        },
+        "subgroup_accuracies": {
+            "english+arabic,different+same": {
+                "ensembled": 0.9539007092198581,
+                "individual": 0.7881205673758865
+            },
+            "english,different": {
+                "ensembled": 0.8617021276595744,
+                "individual": 0.7851063829787234
+            },
+            "english,same": {
+                "ensembled": 0.8900709219858156,
+                "individual": 0.7921985815602837
+            },
+            "arabic,different": {
+                "ensembled": 0.8900709219858156,
+                "individual": 0.7907801418439716
+            },
+            "arabic,same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "english,different+same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "arabic,different+same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "english+arabic,different": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            },
+            "english+arabic,same": {
+                "ensembled": 0.8829787234042553,
+                "individual": 0.7900709219858156
+            }
+        },
+        "is_kaggle": false,
+        "test": "this is a test column",
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
     }
 }

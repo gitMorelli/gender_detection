@@ -443,13 +443,14 @@ def main(args):
         subgroup_accuracies[f'{group_name}'] = accuracies
 
     print('saving to log file...')
+    #experiment = datetime.now().strftime("%Y%m%d_%H%M%S")
     experiment = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = os.path.join(source_path, "outputs", "logs")
     # Example usage:
     LOG_OUT_FILE = out_dir+"\\feature_extraction_metadata_log.json"
     print(f"Log file path: {LOG_OUT_FILE}")
     file_IO.add_or_update_experiment(
-        experiment, LOG_OUT_FILE,
+        f"{args.n_job}_{experiment}", LOG_OUT_FILE,
         custom_metadata={
             "type of preprocessing": extracted_from,
             "original raw file": source_data,
