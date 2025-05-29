@@ -202,7 +202,7 @@ def assemble_csv_from_log(log_path):
 
     return df
 
-def summarize_cv_results(train_accs, oof_accs):
+def summarize_cv_results(train_accs, oof_accs, prefix=""):
     train_accs = np.array(train_accs)
     oof_accs = np.array(oof_accs)
 
@@ -223,19 +223,19 @@ def summarize_cv_results(train_accs, oof_accs):
     if_name="IF_accuracy_"
     oof_name="OOF_accuracy_"
     summary = {
-            f"{if_name}Mean": train_summary[0],
-            f"{if_name}Variance": train_summary[1],
-            f"{if_name}Min": train_summary[2],
-            f"{if_name}Max": train_summary[3],
-            f"{if_name}Median": train_summary[4],
-            f"{if_name}Confidence Interval": train_summary[5],
-            f"{oof_name}Mean": oof_summary[0],
-            f"{oof_name}Variance": oof_summary[1],
-            f"{oof_name}Min": oof_summary[2],
-            f"{oof_name}Max": oof_summary[3],
-            f"{oof_name}Median": oof_summary[4],
-            f"{oof_name}Confidence Interval": oof_summary[5],
-            "Generalization Gap": generalization_gap
+            f"{prefix}_{if_name}Mean": train_summary[0],
+            f"{prefix}_{if_name}Variance": train_summary[1],
+            f"{prefix}_{if_name}Min": train_summary[2],
+            f"{prefix}_{if_name}Max": train_summary[3],
+            f"{prefix}_{if_name}Median": train_summary[4],
+            f"{prefix}_{if_name}Confidence Interval": train_summary[5],
+            f"{prefix}_{oof_name}Mean": oof_summary[0],
+            f"{prefix}_{oof_name}Variance": oof_summary[1],
+            f"{prefix}_{oof_name}Min": oof_summary[2],
+            f"{prefix}_{oof_name}Max": oof_summary[3],
+            f"{prefix}_{oof_name}Median": oof_summary[4],
+            f"{prefix}_{oof_name}Confidence Interval": oof_summary[5],
+            f"{prefix}_Generalization Gap": generalization_gap
         }
 
     return summary
@@ -256,8 +256,8 @@ def expand_accuracies(df):
         for value in OOF_values:
             ensembled_accuracies_OOF.append(value['ensembled'])
             individual_accuracies_OOF.append(value['individual'])
-        ensembled_summary=summarize_cv_results(ensembled_accuracies_IF, ensembled_accuracies_OOF)
-        individual_summary=summarize_cv_results(individual_accuracies_IF, individual_accuracies_OOF)
+        ensembled_summary=summarize_cv_results(ensembled_accuracies_IF, ensembled_accuracies_OOF,prefix="ensembled")
+        individual_summary=summarize_cv_results(individual_accuracies_IF, individual_accuracies_OOF,prefix="individual")
         subgroup_accuracies = row['subgroup_accuracies']
         subgroup_ensembled_summary = {}
         subgroup_individual_summary = {}

@@ -1,8 +1,8 @@
 # config.yaml
-input_file_name: 'icdar_EXTRACTED_train_df_trocr-base-handwritten_20250517_140220.csv'
-selected_model: 'logreg'
+input_file_name: 'icdar_EXTRACTED_train_df_trocr-base-handwritten_20250523_190523.csv'
+selected_model: 'mlp'
 is_kaggle: False
-with_pca: True
+with_pca: False
 n_components: 0.95
 with_cross_validation: True
 task: 'gender_detection'
