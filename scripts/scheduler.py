@@ -65,13 +65,20 @@ if __name__ == "__main__":
     log_file = os.path.join(output_dir, "file_metadata_log.json")
     config_path = 'feature_extraction_configs/exp_patch_overfitting1.yaml'
 
+    exclusion = [1,  2,  3,  7,  8,  9, 10, 16, 22, 25, 26, 28, 31, 32, 34, 37,
+       38, 40, 43, 44, 46, 52, 55, 56, 57, 58, 61, 62, 63, 64, 67, 68, 69,
+       70, 73, 74, 76, 79, 80]
+
     try_args, total_jobs = generate_experiments(config_path, log_file)
     print(f"Total experiments to run: {total_jobs}")
 
     #print(try_args[:3])  # Print first 3 for verification
     # Run in parallel
-    #run_experiment(try_args[0])  # Test a single run first
-    with Pool(processes=os.cpu_count()) as pool:  # Adjust the number of processes as needed
+    for i, arg in enumerate(try_args):
+        if not(i in exclusion):
+            print(f"Experiment {i}/{total_jobs}: {arg.input_file_name}, Model: {arg.selected_model}, PCA: {arg.with_pca}")
+            run_experiment(arg)  # Test a single run first
+    '''with Pool(processes=os.cpu_count()) as pool:  # Adjust the number of processes as needed
         pool.map(run_experiment, try_args[3:])  # Use the full list or a subset for testing'''
 
 
