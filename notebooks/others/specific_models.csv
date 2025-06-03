@@ -1,0 +1,7 @@
+type of preprocessing,FE model,individual_OOF_accuracy_Mean,individual_OOF_accuracy_Mean,ensembled_OOF_accuracy_Mean,ensembled_IF_accuracy_Mean,classifier model,with PCA
+standard patches,clip-vit-large-patch14,0.690,0.690,0.787,0.981,mlp,False
+words-sentences,trocr-base-handwritten,0.656,0.656,0.776,0.931,logreg,False
+body,vit-base-patch16-224-in21k,0.654,0.654,0.709,0.945,mlp,False
+longer-than-higher,trocr-base-handwritten,0.653,0.653,0.720,0.838,logreg,True
+small_patches,vit-base-patch16-224-in21k,0.638,0.638,0.730,0.997,mlp,False
+patch_dataset,trocr-base-handwritten,0.636,0.636,0.716,0.806,logreg,True

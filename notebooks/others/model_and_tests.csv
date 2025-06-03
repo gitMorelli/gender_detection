@@ -1,0 +1,7 @@
+type of preprocessing,FE Models
+body,"vit-base-patch16-224-in21k, trocr-base-handwritten, resnet50"
+longer-than-higher,"trocr-small-stage1, trocr-base-handwritten, crnn_vgg16_bn"
+patch_dataset,trocr-base-handwritten
+small_patches,"trocr-base-handwritten, vit-base-patch16-224-in21k, resnet50"
+standard patches,"trocr-base-handwritten, trocr-small-stage1, trocr-small-handwritten, crnn_vgg16_bn, clip-vit-large-patch14, vit-base-patch16-224-in21k, trocr-large-handwritten, resnet50, dresnet50, vitstr_base"
+words-sentences,"trocr-base-handwritten, vitstr_base, trocr-small-stage1, vit-base-patch16-224-in21k, crnn_vgg16_bn"
