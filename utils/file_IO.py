@@ -240,31 +240,31 @@ def summarize_cv_results(train_accs, oof_accs, prefix=""):
 
     return summary
 
-def expand_accuracies(df):
+def expand_accuracies(df, type='ensembled',group=None):
     new_columns = []
-    for idx, row in df.iterrows():
-        c_val = row['cross_val_accuracies']
-        IF_values = c_val['IF']
-        ensembled_accuracies_IF = []
-        individual_accuracies_IF = []
-        for value in IF_values:
-            ensembled_accuracies_IF.append(value['ensembled'])
-            individual_accuracies_IF.append(value['individual'])
-        OOF_values = c_val['OOF']
-        ensembled_accuracies_OOF = []
-        individual_accuracies_OOF = []
-        for value in OOF_values:
-            ensembled_accuracies_OOF.append(value['ensembled'])
-            individual_accuracies_OOF.append(value['individual'])
-        ensembled_summary=summarize_cv_results(ensembled_accuracies_IF, ensembled_accuracies_OOF,prefix="ensembled")
-        individual_summary=summarize_cv_results(individual_accuracies_IF, individual_accuracies_OOF,prefix="individual")
-        subgroup_accuracies = row['subgroup_accuracies']
-        subgroup_ensembled_summary = {}
-        subgroup_individual_summary = {}
-        for key in subgroup_accuracies:
-            subgroup_ensembled_summary['(ensembled)'+key] = subgroup_accuracies[key]['ensembled']
-            subgroup_individual_summary['(individual)'+key] = subgroup_accuracies[key]['individual']
-        dict1 = {**ensembled_summary, **individual_summary,**subgroup_ensembled_summary, **subgroup_individual_summary}
-        new_columns.append(dict1)
-        acc_df = pd.DataFrame(new_columns)
+    if group is None:
+        for idx, row in df.iterrows():
+            c_val = row['cross_val_accuracies']
+            IF_values = c_val['IF']
+            accuracies_IF = []
+            for value in IF_values: #value is a list of dict
+                accuracies_IF.append(value[type])
+            OOF_values = c_val['OOF']
+            accuracies_OOF = []
+            for value in OOF_values:
+                accuracies_OOF.append(value['ensembled'])
+            summary=summarize_cv_results(accuracies_IF, accuracies_OOF,prefix=type)
+            dict1 = {**summary}
+            new_columns.append(dict1)
+    else:
+        for idx, row in df.iterrows():
+            c_val = row['cross_val_subgroup_accuracies']
+            summary = {}
+            group_accuracies=[]
+            for fold_accuracies in c_val:
+                group_accuracies.append(fold_accuracies[group][type])
+            summary=summarize_cv_results(group_accuracies, group_accuracies,prefix=group+'_'+type)
+            dict1 = {**summary}
+            new_columns.append(dict1)
+    acc_df = pd.DataFrame(new_columns)
     return pd.concat([df.reset_index(drop=True), acc_df.reset_index(drop=True)], axis=1)

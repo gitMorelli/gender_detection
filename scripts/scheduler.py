@@ -45,7 +45,7 @@ def generate_experiments(config_path, log_file_path):
 
     try_files = df[df['experiment'].str.contains('icdar_EXTRACTED_train_df_')]['experiment'].tolist()
     try_pca = [True, False]
-    try_models = ['logreg', 'mlp', 'lgbm']
+    try_models = ['logreg', 'mlp']#, 'lgbm']
 
     try_args = []
     i = 0
@@ -65,9 +65,9 @@ if __name__ == "__main__":
     log_file = os.path.join(output_dir, "file_metadata_log.json")
     config_path = 'feature_extraction_configs/exp_patch_overfitting1.yaml'
 
-    exclusion = [1,  2,  3,  7,  8,  9, 10, 16, 22, 25, 26, 28, 31, 32, 34, 37,
+    '''exclusion = [1,  2,  3,  7,  8,  9, 10, 16, 22, 25, 26, 28, 31, 32, 34, 37,
        38, 40, 43, 44, 46, 52, 55, 56, 57, 58, 61, 62, 63, 64, 67, 68, 69,
-       70, 73, 74, 76, 79, 80]
+       70, 73, 74, 76, 79, 80]'''
     exclusion=[]
 
     try_args, total_jobs = generate_experiments(config_path, log_file)

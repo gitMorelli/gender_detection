@@ -229,14 +229,13 @@ def select_groups(train_FE,select_column='train', train_on_language='arabic', tr
         return train_FE
 
 
-def compute_subgroup_accuracies(pipeline, train_df):
+def compute_subgroup_accuracies(pipeline, train_df,cols_to_drop,target_label):
     subgroup_accuracies = {}
     groups = [('english','different'), ('english','same'), ('arabic','different'), ('arabic','same'),
               ('english','all'), ('arabic','all'), ('all','different'), ('all','same')]
     group_sizes = []
     acc_keys=None
     for group in groups:
-        print(f"Evaluating group: {group}")
         train_df=select_groups(train_df,select_column='train', 
                             train_on_language=group[0], train_on_same=group[1])
         X_s = train_df[train_df['train']==1].drop(columns=cols_to_drop)
@@ -250,10 +249,7 @@ def compute_subgroup_accuracies(pipeline, train_df):
         y_pred=(y_prob >= 0.5).astype(int)
         accuracies = compute_accuracies(y_s, y_pred, y_prob, pages_s,writers_s)
         subgroup_accuracies[f'{group[0]},{group[1]}'] = accuracies
-        if acc_keys==None:
-            acc_keys = list(accuracies.keys())
-        print(f"Accuracy on subgroup -> Ensembled accuracy writer: {accuracies['ensembled_writers']:.3f}, Ensembled accuracy: {accuracies['ensembled']:.3f}, Individual accuracy: {accuracies['individual']:.3f}")
-        print('----------------------------------------')
+
     return subgroup_accuracies
 
 def main(args):
@@ -297,6 +293,7 @@ def main(args):
     else:
         cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
     train_FE = file_IO.change_filename_from_to(train_FE, fr="old-laptop", to="new-laptop")
+    train_FE['page'] = train_FE.groupby(['writer', 'isEng', 'same_text']).ngroup()
     cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
 
 
@@ -415,7 +412,7 @@ def main(args):
         accuracies = compute_accuracies(y_val, y_pred, y_prob,pages.loc[val_idx], writers.loc[val_idx])
         cross_val_accuracies["OOF"].append(accuracies)
 
-        cross_val_subgroup_accuracies.append(compute_subgroup_accuracies(pipeline, train_FE_selected.loc[val_idx]))
+        cross_val_subgroup_accuracies.append(compute_subgroup_accuracies(pipeline, train_FE_selected.loc[val_idx],cols_to_drop,target_label))
     
     # Measure the end time
     end_time = time.time()
