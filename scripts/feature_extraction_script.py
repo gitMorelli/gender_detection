@@ -150,20 +150,35 @@ class TorchClassifier(BaseEstimator, ClassifierMixin):
         return preds.cpu().numpy()
 
 
-def ensembled_predictions(base_preds,writers):
+def ensembled_predictions(base_preds,writers,mode='majority_vote',probs=None):
     pred_df = pd.DataFrame({
             'writer': writers,
             'pred': base_preds
         })
-
-    # Step 4: Compute majority vote for each writer
-    writer_preds = pred_df.groupby('writer')['pred'].agg(
-        lambda x: Counter(x).most_common(1)[0][0]
-    )
+    if probs is not None:
+        probs = np.abs(probs - 0.5) / 0.5
+        pred_df['prob'] = probs
+    if mode == 'majority_vote':
+        writer_preds = pred_df.groupby('writer')['pred'].agg(
+            lambda x: Counter(x).most_common(1)[0][0]
+        )
+    elif mode == 'weighted_vote':
+        if probs is None:
+            raise ValueError("For 'weighted_vote', 'probs' must be provided.")
+        writer_preds = pred_df.groupby('writer', group_keys=False).apply(
+            lambda x: pd.Series({
+                'writer_pred': round((x['pred'] * x['prob']).sum() / x['prob'].sum())
+            })
+        )['writer_pred'].astype(int)
+    elif mode == 'most_probable':
+        if probs is None:
+            raise ValueError("For 'most_probable', 'probs' must be provided.")
+        writer_preds = pred_df.groupby('writer', group_keys=False).apply(
+            lambda x: x.loc[x['prob'].idxmax(), 'pred']
+        )
 
     # Step 5: Map writer-level prediction back to each sample
-    final_preds = writers.map(writer_preds)
-
+    #final_preds = writers.map(writer_preds)
     return writer_preds#final_preds.values
 
 def group_labels(y, writers):
@@ -173,16 +188,27 @@ def group_labels(y, writers):
     grouped_labels = y.groupby(writers).agg(lambda x: Counter(x).most_common(1)[0][0])
     return grouped_labels
 
-def compute_accuracies(y_true, y_pred, writers):
+def compute_accuracies(y_true, y_pred, y_prob, pages, writers):
     """
     Computes accuracy for each writer.
     """
-    grouped_true = group_labels(y_true, writers)
-    grouped_pred = ensembled_predictions(y_pred, writers)
-    
     accuracies = {}
-    accuracies['ensembled'] = accuracy_score(grouped_true, grouped_pred)
     accuracies['individual'] = accuracy_score(y_true, y_pred)
+
+    grouped_true = group_labels(y_true, pages)
+    grouped_pred = ensembled_predictions(y_pred, pages)
+    accuracies['ensembled'] = accuracy_score(grouped_true, grouped_pred)
+
+    grouped_pred = ensembled_predictions(y_pred, pages, mode='weighted_vote',probs=y_prob)
+    accuracies['ensembled_weighted'] = accuracy_score(grouped_true, grouped_pred)
+
+    grouped_pred = ensembled_predictions(y_pred, pages, mode='most_probable',probs=y_prob)
+    accuracies['ensembled_most_probable'] = accuracy_score(grouped_true, grouped_pred)
+
+    grouped_true_writers = group_labels(y_true, writers)
+    grouped_pred_writers = ensembled_predictions(y_pred, writers)
+    accuracies['ensembled_writers'] = accuracy_score(grouped_true_writers, grouped_pred_writers)
+    
     return accuracies
 
 
@@ -202,6 +228,33 @@ def select_groups(train_FE,select_column='train', train_on_language='arabic', tr
             pass
         return train_FE
 
+
+def compute_subgroup_accuracies(pipeline, train_df):
+    subgroup_accuracies = {}
+    groups = [('english','different'), ('english','same'), ('arabic','different'), ('arabic','same'),
+              ('english','all'), ('arabic','all'), ('all','different'), ('all','same')]
+    group_sizes = []
+    acc_keys=None
+    for group in groups:
+        print(f"Evaluating group: {group}")
+        train_df=select_groups(train_df,select_column='train', 
+                            train_on_language=group[0], train_on_same=group[1])
+        X_s = train_df[train_df['train']==1].drop(columns=cols_to_drop)
+        y_s = train_df[train_df['train']==1][target_label]
+        writers_s = train_df[train_df['train']==1]['writer']-1
+        pages_s = train_df[train_df['train']==1]['page']
+        group_sizes.append(len(X_s))
+
+        y_prob= pipeline.predict_proba(X_s.values)[:,1]
+        #y_pred = pipeline.predict(X_s.values)
+        y_pred=(y_prob >= 0.5).astype(int)
+        accuracies = compute_accuracies(y_s, y_pred, y_prob, pages_s,writers_s)
+        subgroup_accuracies[f'{group[0]},{group[1]}'] = accuracies
+        if acc_keys==None:
+            acc_keys = list(accuracies.keys())
+        print(f"Accuracy on subgroup -> Ensembled accuracy writer: {accuracies['ensembled_writers']:.3f}, Ensembled accuracy: {accuracies['ensembled']:.3f}, Individual accuracy: {accuracies['individual']:.3f}")
+        print('----------------------------------------')
+    return subgroup_accuracies
 
 def main(args):
     """
@@ -249,11 +302,13 @@ def main(args):
 
     train_FE=select_groups(train_FE,select_column='train', 
                         train_on_language=train_on_language, train_on_same=train_on_same)
+    train_FE_selected = train_FE[train_FE['train']==1].copy()
 
     X = train_FE[train_FE['train']==1].drop(columns=cols_to_drop)
     y = train_FE[train_FE['train']==1][target_label]
 
     writers = train_FE[train_FE['train']==1]['writer']-1
+    pages = train_FE[train_FE['train']==1]['page']
 
     gkf = GroupKFold(n_splits=n_splits)
 
@@ -337,110 +392,41 @@ def main(args):
     start_time = time.time()
     print(f"Starting model cross-val...")
     cross_val_accuracies = {"IF": [], "OOF": []}
+    cross_val_subgroup_accuracies = []
     for train_idx, val_idx in gkf.split(X, y, groups=writers):
         #print(train_idx)
         X_train, X_val = X.loc[train_idx], X.loc[val_idx]
         y_train, y_val = y.loc[train_idx], y.loc[val_idx]
-        X_train, y_train, writers_train = shuffle(
-            X_train, y_train, writers.loc[train_idx], random_state=42
+        X_train, y_train, writers_train, pages_train = shuffle(
+            X_train, y_train, writers.loc[train_idx], pages.loc[train_idx], random_state=42
         )
-        '''X_train_sub, X_val_sub, y_train_sub, y_val_sub = train_test_split(
-            X_train, y_train, test_size=0.1, random_state=42
-        )
-        # Fit preprocessing steps only
-        pipeline[:-1].fit(X_train_sub.values, y_train_sub)
 
-        # Transform training and validation sets
-        X_train_trans = pipeline[:-1].transform(X_train_sub.values)
-        X_val_trans = pipeline[:-1].transform(X_val_sub.values)
-        pipeline.named_steps['lgbm'].fit(
-            X_train_trans, y_train_sub,
-            eval_set=[(X_val_trans, y_val_sub)],
-            callbacks=[early_stopping(stopping_rounds=20), log_evaluation(0)]
-        )'''
         # Fit the model on training data
         pipeline.fit(X_train.values, y_train)
-        y_pred = pipeline.predict(X_train.values)
-        accuracies = compute_accuracies(y_train, y_pred, writers_train)
+        y_prob= pipeline.predict_proba(X_train.values)[:,1]
+        #y_pred = pipeline.predict(X_train.values)
+        y_pred=(y_prob>= 0.5).astype(int)
+        accuracies = compute_accuracies(y_train, y_pred, y_prob,pages_train,writers_train)
         cross_val_accuracies["IF"].append(accuracies)
-        y_pred = pipeline.predict(X_val.values)
-        accuracies = compute_accuracies(y_val, y_pred, writers.loc[val_idx])
+
+        y_prob= pipeline.predict_proba(X_val.values)[:,1]
+        #y_pred = pipeline.predict(X_val.values)
+        y_pred=(y_prob >= 0.5).astype(int)
+        accuracies = compute_accuracies(y_val, y_pred, y_prob,pages.loc[val_idx], writers.loc[val_idx])
         cross_val_accuracies["OOF"].append(accuracies)
-    IF_values = cross_val_accuracies['IF']
-    ensembled_accuracies_IF = []
-    individual_accuracies_IF = []
-    for value in IF_values:
-        ensembled_accuracies_IF.append(value['ensembled'])
-        individual_accuracies_IF.append(value['individual'])
-    avg_ensembled_IF = np.mean(ensembled_accuracies_IF)
-    avg_individual_IF = np.mean(individual_accuracies_IF)
-    print(f"Average ensembled accuracy on training data (IF): {avg_ensembled_IF:.3f}")
-    print(f"Average individual accuracy on training data (IF): {avg_individual_IF:.3f}")
-    OOF_values = cross_val_accuracies['OOF']
-    ensembled_accuracies_OOF = []
-    individual_accuracies_OOF = []
-    for value in OOF_values:
-        ensembled_accuracies_OOF.append(value['ensembled'])
-        individual_accuracies_OOF.append(value['individual'])
-    avg_ensembled_OOF = np.mean(ensembled_accuracies_OOF)
-    avg_individual_OOF = np.mean(individual_accuracies_OOF)
-    print(f"Average ensembled accuracy on validation data (OOF): {avg_ensembled_OOF:.3f}")
-    print(f"Average individual accuracy on validation data (OOF): {avg_individual_OOF:.3f}")
+
+        cross_val_subgroup_accuracies.append(compute_subgroup_accuracies(pipeline, train_FE_selected.loc[val_idx]))
+    
     # Measure the end time
     end_time = time.time()
     # Calculate the time taken
     time_taken_cross_val = end_time - start_time
     print(f"Time taken to cross-validate the model: {time_taken_cross_val:.2f} seconds")
 
-
-    start_time = time.time()
-    print(f"Retraining on all training data...")
-    pipeline.fit(X, y)
-    end_time = time.time()
-    # Calculate the time taken
-    time_taken = end_time - start_time
-    print(f"Time taken to fit the model: {time_taken:.2f} seconds")
     if with_pca:
         pca = pipeline.named_steps['pca']
         print(f"Number of features used after PCA: {pca.n_components_}")
 
-    subgroup_accuracies = {}
-    # Predict on train data
-    y_pred = pipeline.predict(X)
-    accuracies = compute_accuracies(y, y_pred, writers)
-    subgroup_accuracies['english+arabic,different+same'] = accuracies
-    print(f"Training Accuracy on all training data -> Ensembled accuracy: {accuracies['ensembled']:.3f}, Individual accuracy: {accuracies['individual']:.3f}")
-    print('----------------------------------------')
-    groups = [('english','different'), ('english','same'), ('arabic','different'), ('arabic','same')]
-    group_sizes = []
-    for group in groups:
-        train_FE=select_groups(train_FE,select_column='train', 
-                            train_on_language=group[0], train_on_same=group[1])
-        X_s = train_FE[train_FE['train']==1].drop(columns=cols_to_drop)
-        y_s = train_FE[train_FE['train']==1][target_label]
-        writers_s = train_FE[train_FE['train']==1]['writer']-1
-        group_sizes.append(len(X_s))
-        y_pred = pipeline.predict(X_s)
-        accuracies = compute_accuracies(y_s, y_pred, writers_s)
-        subgroup_accuracies[f'{group[0]},{group[1]}'] = accuracies
-    groups_joined = [(0,1),(2,3),(0,2),(1,3)]
-    for group in groups_joined:
-        language_1,same_1 = groups[group[0]]
-        language_2,same_2 = groups[group[1]]
-        if language_1 == language_2:
-            first= f'{language_1}'
-        else:
-            first = f'{language_1}+{language_2}'
-        if same_1 == same_2:
-            second = f'{same_1}'
-        else:
-            second = f'{same_1}+{same_2}'
-        group_name= f'{first},{second}'
-        sub_group_sizes = [group_sizes[group[0]], group_sizes[group[1]]]
-        sub_group_accuracies = [subgroup_accuracies[f'{language_1},{same_1}'], subgroup_accuracies[f'{language_2},{same_2}']]
-        accuracies['ensembled'] = np.average([g['ensembled'] for g in sub_group_accuracies], weights=sub_group_sizes)
-        accuracies['individual'] = np.average([g['individual'] for g in sub_group_accuracies], weights=sub_group_sizes)
-        subgroup_accuracies[f'{group_name}'] = accuracies
 
     print('saving to log file...')
     #experiment = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -466,9 +452,8 @@ def main(args):
             "with PCA": with_pca,
             "n_components": n_components,
             "training time for cross-validation": time_taken_cross_val,
-            "training time for final model": time_taken,
             "cross_val_accuracies": cross_val_accuracies,
-            "subgroup_accuracies": subgroup_accuracies,
+            "cross_val_subgroup_accuracies": cross_val_subgroup_accuracies,
             "is_kaggle": is_kaggle,
             "test": 'this is a test column',
             "description": ''' I am training a classifier on the feature vectors extracted by a deep model

@@ -207,6 +207,14 @@ def get_layoutlmv3_base_transforms(**kwargs):
     processor = LayoutLMv3Processor.from_pretrained("microsoft/layoutlmv3-base")
     return processor
 
+def get_clip_vit_transforms(name, **kwargs):
+    from transformers import CLIPImageProcessor
+    if name == "clip-vit-large-patch14":
+        processor = CLIPImageProcessor.from_pretrained("openai/clip-vit-large-patch14")
+    else:
+        raise ValueError(f"Model {name} is not supported.")
+    return processor
+
 def get_transform(name='resnet18',use_patches=True, **kwargs):
     if name in ['resnet18','resnet50','resnet101','resnet152']:
         return get_resnet_transforms(name,use_patches=use_patches,**kwargs)
@@ -218,7 +226,7 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
         return get_small_cnn_transforms()
     elif name=='mnist':
         return get_mnist_transforms()
-    elif name in ['trocr-small-stage1','trocr-small-handwritten','trocr-base-handwritten']:
+    elif name in ['trocr-small-stage1','trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1']:
         return get_trocr_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
     elif name in ['vit-base-patch16-224-in21k']:
         return get_vit_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
@@ -232,5 +240,7 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
         return get_vitstr_base_transforms(**kwargs)
     elif name=='layoutlmv3_base':
         return get_layoutlmv3_base_transforms(**kwargs)
+    elif name == "clip-vit-large-patch14":
+        return get_clip_vit_transforms(name, **kwargs)
     else:
         raise ValueError(f"Unknown model name: {name}. Please provide a valid model name.")

@@ -351,7 +351,43 @@ def get_layoutlmv3_base(name, mode, pretrained, **kwargs): #need to test
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
             model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
             model = TruncatedDeiT(model.encoder, num_layers=10, from_above=False, encoder_only=not(pooled))
+def get_clip_vit(name, mode, pretrained, **kwargs):
+    from transformers import CLIPModel
+    class WrappedModel(torch.nn.Module):
+        def __init__(self, model, type_of_output='cls'):
+            super().__init__()
+            self.model = model
+            self.type_of_output = type_of_output
 
+        def forward(self, x):
+            image_features = model.get_image_features(x)
+            # Normalize the features (optional but common)
+            image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
+            return image_features
+    if pretrained:
+        model = CLIPModel.from_pretrained(f'openai/{name}')
+        #model = WrappedHuggingfaceModel(model.vision_model) 
+        #remove pixel_values argument; returns the output of the last layernorm (no pooling) 1,578,384
+    else:
+        print("no support for loading model without pretrained weights")
+    if mode=='classification head':
+        num_classes=kwargs.get('num_classes', 2)
+        hidden_sizes=kwargs.get('hidden_sizes', [128])
+        how_to_read=kwargs.get('how_to_read', 'cls')
+        if how_to_read=='cls':
+            in_features = 384
+        else:
+            print('still no support for pooling or other averaging techniques')
+        mlp=CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+        
+    elif mode=='as is':
+        pass
+    elif mode=='truncated':
+        truncation=kwargs.get('truncation', 'remove head')
+        if truncation=='remove head':
+            return WrappedModel(model,'cls') #add an option for other ways of reading the output
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
 def get_model(name="resnet50", mode='classification head', pretrained=True, **kwargs):
     ''' 
     - name: the name of the model to download/load 
@@ -362,7 +398,7 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     - '''
     if name in ["resnet50",'resnet18']:
         return get_resnet(name,mode, pretrained, **kwargs)
-    elif name in ["trocr-small-stage1",'trocr-small-handwritten','trocr-base-handwritten']:
+    elif name in ["trocr-small-stage1",'trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1']:
         return get_trocr(name,mode, pretrained, **kwargs)
     elif name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224"]:
         return get_vit(name, mode, pretrained, **kwargs)
@@ -376,6 +412,8 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
         return get_crnn_vgg16_bn(name, mode, pretrained, **kwargs)
     elif name == "layoutlmv3_base":
         return get_layoutlmv3_base(name, mode, pretrained, **kwargs)
+    elif name == "clip-vit-large-patch14":
+        return get_clip_vit(name, mode, pretrained, **kwargs)
     #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', trocr family]")
