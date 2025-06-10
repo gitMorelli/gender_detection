@@ -246,13 +246,15 @@ def expand_accuracies(df, type='ensembled',group=None):
         for idx, row in df.iterrows():
             c_val = row['cross_val_accuracies']
             IF_values = c_val['IF']
+            #print(IF_values)
             accuracies_IF = []
             for value in IF_values: #value is a list of dict
                 accuracies_IF.append(value[type])
+            #print(accuracies_IF)
             OOF_values = c_val['OOF']
             accuracies_OOF = []
             for value in OOF_values:
-                accuracies_OOF.append(value['ensembled'])
+                accuracies_OOF.append(value[type])
             summary=summarize_cv_results(accuracies_IF, accuracies_OOF,prefix=type)
             dict1 = {**summary}
             new_columns.append(dict1)

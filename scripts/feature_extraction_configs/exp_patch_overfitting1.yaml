@@ -10,3 +10,5 @@ train_on_language: 'all'
 train_on_same: 'all'
 n_splits: 5
 n_job: 0
+n_patches: -1
+n_writers: -1

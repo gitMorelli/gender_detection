@@ -252,6 +252,11 @@ def compute_subgroup_accuracies(pipeline, train_df,cols_to_drop,target_label):
 
     return subgroup_accuracies
 
+def select_n_patches(train_df, n_patches=10):
+    grouped_sorted = train_df.groupby('page', group_keys=False).apply(lambda x: x.sort_values('black_ratio', ascending=False))
+    grouped_sorted = grouped_sorted.groupby('page', group_keys=False).head(n_patches)
+    return grouped_sorted
+
 def main(args):
     """
     Main function to run the feature extraction and classification pipeline.
@@ -262,6 +267,8 @@ def main(args):
     LOG_FILE = output_dir+"file_metadata_log.json"
     df_log = file_IO.assemble_csv_from_log(LOG_FILE)
 
+    n_patches = args.n_patches
+    n_writers = args.n_writers
     input_file_name=args.input_file_name
     df_log = file_IO.assemble_csv_from_log(LOG_FILE)
     row=df_log[df_log['experiment']==input_file_name]
@@ -294,6 +301,14 @@ def main(args):
         cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
     train_FE = file_IO.change_filename_from_to(train_FE, fr="old-laptop", to="new-laptop")
     train_FE['page'] = train_FE.groupby(['writer', 'isEng', 'same_text']).ngroup()
+    if n_patches > 0:
+        #print(f"Selecting {n_patches} patches per page...")
+        train_FE = select_n_patches(train_FE, n_patches=n_patches).reset_index(drop=True)
+    if n_writers > 0:
+        unique_writers = train_FE['writer'].unique()
+        n_selected = int(len(unique_writers) * n_writers)
+        selected_writers = np.random.choice(unique_writers, n_selected, replace=False)
+        train_FE = train_FE[train_FE['writer'].isin(selected_writers)].reset_index(drop=True)
     cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
 
 
@@ -453,6 +468,8 @@ def main(args):
             "cross_val_subgroup_accuracies": cross_val_subgroup_accuracies,
             "is_kaggle": is_kaggle,
             "test": 'this is a test column',
+            "n_sub_patches": n_patches,
+            "n_writers": n_writers,
             "description": ''' I am training a classifier on the feature vectors extracted by a deep model
             I am evaluating the results on subsets of the training data, based on language and same/different text.''' 
         }

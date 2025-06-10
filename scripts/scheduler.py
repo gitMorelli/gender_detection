@@ -5,6 +5,8 @@ import os
 import sys
 import tempfile
 import copy
+from datetime import datetime
+import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import utils.file_IO as file_IO
@@ -43,7 +45,12 @@ def generate_experiments(config_path, log_file_path):
     df = file_IO.assemble_csv_from_log(log_file_path)
     args = load_config(config_path)
 
-    try_files = df[df['experiment'].str.contains('icdar_EXTRACTED_train_df_')]['experiment'].tolist()
+    df['created'] = pd.to_datetime(df['created'])
+    #cutoff_date = datetime(2025, 6, 6)
+    cutoff_date = datetime.strptime('20250606_150034', '%Y%m%d_%H%M%S')
+    filtered= df[df['created'] >= cutoff_date]
+    try_files = filtered[filtered['experiment'].str.contains('icdar_EXTRACTED_train_df_')]['experiment'].tolist()
+    #try_files = df[df['experiment'].str.contains('icdar_EXTRACTED_train_df_')]['experiment'].tolist()
     try_pca = [True, False]
     try_models = ['logreg', 'mlp']#, 'lgbm']
 
@@ -79,6 +86,8 @@ if __name__ == "__main__":
         if not(i in exclusion):
             print(f"Experiment {i}/{total_jobs}: {arg.input_file_name}, Model: {arg.selected_model}, PCA: {arg.with_pca}")
             run_experiment(arg)  # Test a single run first
+    
+    
     '''with Pool(processes=os.cpu_count()) as pool:  # Adjust the number of processes as needed
         pool.map(run_experiment, try_args[3:])  # Use the full list or a subset for testing'''
 

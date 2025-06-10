@@ -226,7 +226,7 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
         return get_small_cnn_transforms()
     elif name=='mnist':
         return get_mnist_transforms()
-    elif name in ['trocr-small-stage1','trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1']:
+    elif name in ['trocr-small-stage1','trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1','trocr-base-stage1']:
         return get_trocr_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
     elif name in ['vit-base-patch16-224-in21k']:
         return get_vit_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches

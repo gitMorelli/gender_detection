@@ -398,7 +398,7 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     - '''
     if name in ["resnet50",'resnet18']:
         return get_resnet(name,mode, pretrained, **kwargs)
-    elif name in ["trocr-small-stage1",'trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1']:
+    elif name in ["trocr-small-stage1",'trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1','trocr-base-stage1']:
         return get_trocr(name,mode, pretrained, **kwargs)
     elif name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224"]:
         return get_vit(name, mode, pretrained, **kwargs)
