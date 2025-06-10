@@ -45,15 +45,21 @@ def generate_experiments(config_path, log_file_path):
     df = file_IO.assemble_csv_from_log(log_file_path)
     args = load_config(config_path)
 
-    try_files = ['icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv','icdar_EXTRACTED_train_df_resnet50_20250516_161022.csv']
+    try_files = ['icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv']
     #try_files = df[df['experiment'].str.contains('icdar_EXTRACTED_train_df_')]['experiment'].tolist()
     try_pca = [False]
     try_models = ['logreg']#, 'lgbm']
-    n_tot = 280
+    '''
+    #exponential
     n_test=10
     f_0 = 0.05
     k = (1/f_0)**(1/n_test)
-    try_n_writers = [int(k**i * f_0 * n_tot) for i in range(0, n_test+1)]
+    try_n_writers = [k**i * f_0 for i in range(0, n_test+1)]
+    '''
+    #linear
+    n_test=20
+    f_0 = 1/n_test
+    try_n_writers = [i*f_0 for i in range(1, n_test+1)]
     #print(f"Number of writers to try: {try_n_writers}")
     try_args = []
     i = 0

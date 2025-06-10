@@ -47,12 +47,14 @@ def generate_experiments(config_path, log_file_path):
 
     df['created'] = pd.to_datetime(df['created'])
     #cutoff_date = datetime(2025, 6, 6)
-    cutoff_date = datetime.strptime('20250606_150034', '%Y%m%d_%H%M%S')
+    cutoff_date = datetime.strptime('20250609_150034', '%Y%m%d_%H%M%S')
     filtered= df[df['created'] >= cutoff_date]
     try_files = filtered[filtered['experiment'].str.contains('icdar_EXTRACTED_train_df_')]['experiment'].tolist()
+    try_files = ['icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250609_175355.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250609_182038.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250609_184935.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250609_220009.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250610_115509.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250610_122808.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250610_124922.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250610_140930.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250610_143919.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250610_161236.csv']
+    #print(try_files)
     #try_files = df[df['experiment'].str.contains('icdar_EXTRACTED_train_df_')]['experiment'].tolist()
-    try_pca = [True, False]
-    try_models = ['logreg', 'mlp']#, 'lgbm']
+    try_pca = [False]
+    try_models = ['logreg']#, 'lgbm']
 
     try_args = []
     i = 0

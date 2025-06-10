@@ -960,5 +960,35 @@
         "truncation": "remove head",
         "transform_mode": "resize",
         "description": "\n        testing the vitstr model with the sentence level dataset"
+    },
+    "icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250610_143919.csv": {
+        "full_path": "c:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\preprocessed_data\\icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250610_143919.csv",
+        "size_bytes": 93259863,
+        "created": "2025-06-10T14:39:19.892016",
+        "modified": "2025-06-10T14:39:23.242236",
+        "accessed": "2025-06-10T14:39:23.242236",
+        "source_file": "icdar_train_df_patches_20250610_120640.csv",
+        "model": "clip-vit-large-patch14",
+        "pooling": false,
+        "custom transform": false,
+        "save_h5": false,
+        "truncation": "remove head",
+        "transform_mode": "resize",
+        "description": "\n        testing the vitstr model with the sentence level dataset"
+    },
+    "icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250610_161236.csv": {
+        "full_path": "c:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\preprocessed_data\\icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250610_161236.csv",
+        "size_bytes": 93089591,
+        "created": "2025-06-10T16:12:36.839353",
+        "modified": "2025-06-10T16:12:44.020189",
+        "accessed": "2025-06-10T16:12:44.020189",
+        "source_file": "icdar_train_df_patches_20250521_120324.csv",
+        "model": "clip-vit-large-patch14",
+        "pooling": false,
+        "custom transform": false,
+        "save_h5": false,
+        "truncation": "remove head",
+        "transform_mode": "resize",
+        "description": "\n        testing the vitstr model with the sentence level dataset"
     }
 }
