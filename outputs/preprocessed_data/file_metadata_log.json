@@ -990,5 +990,37 @@
         "truncation": "remove head",
         "transform_mode": "resize",
         "description": "\n        testing the vitstr model with the sentence level dataset"
+    },
+    "train_df_iam_rimes_20250613_161430.csv": {
+        "full_path": "c:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\preprocessed_data\\train_df_iam_rimes_20250613_161430.csv",
+        "size_bytes": 682552,
+        "created": "2025-06-13T16:14:30.588109",
+        "modified": "2025-06-13T16:14:30.599927",
+        "accessed": "2025-06-13T16:14:30.599927",
+        "source_file": "loaded from iam and rimes datasets",
+        "description": "\n        this df keeps the filenames of all the files in the iam and rimes datasets and their source."
+    },
+    "train_df_iam_rimes_20250613_174929.csv": {
+        "full_path": "c:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\preprocessed_data\\train_df_iam_rimes_20250613_174929.csv",
+        "size_bytes": 682352,
+        "created": "2025-06-13T17:49:29.901850",
+        "modified": "2025-06-13T17:49:29.918119",
+        "accessed": "2025-06-13T17:49:29.918119",
+        "source_file": "loaded from iam and rimes datasets",
+        "description": "\n        this df keeps the filenames of all the files in the iam and rimes datasets and their source."
+    },
+    "icdar_train_df_iam_rimes_patches_20250615_170212.csv": {
+        "full_path": "c:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\preprocessed_data\\icdar_train_df_iam_rimes_patches_20250615_170212.csv",
+        "size_bytes": 4992718,
+        "created": "2025-06-15T17:02:12.539864",
+        "modified": "2025-06-15T17:02:12.823977",
+        "accessed": "2025-06-15T17:02:12.823977",
+        "m patches": 5,
+        "source_file": "train_df_iam_rimes_20250613_174929.csv",
+        "gw": 6,
+        "n_cc": 1,
+        "prop": 1,
+        "sort_by": "black_ratio",
+        "description": "\n        creating the df for performing contrastive learning on iam and rimes. I am cropping the first and last quarter of the iam images and \n        dividing the width in gw patches"
     }
 }
