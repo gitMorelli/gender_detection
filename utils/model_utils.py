@@ -360,7 +360,7 @@ def get_clip_vit(name, mode, pretrained, **kwargs):
             self.type_of_output = type_of_output
 
         def forward(self, x):
-            image_features = model.get_image_features(x)
+            image_features = self.model.get_image_features(x)
             # Normalize the features (optional but common)
             image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
             return image_features
