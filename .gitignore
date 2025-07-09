@@ -8,6 +8,7 @@ checkpoints/
 Data/
 outputs/images/
 outputs/models/
+outputs/online_deep_feature_extraction/
 outputs/preprocessed_data/*
 !outputs/preprocessed_data/file_metadata_log.json
 
