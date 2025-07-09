@@ -53,7 +53,7 @@ def get_resnet_transforms(name, use_patches=False, **kwargs):
     """
     mode=kwargs.get('mode',)
     if kwargs.get('custom')==True:
-        if name in ['resnet18','resnet50']:
+        if name in ['resnet18','resnet50','resnet50-contrastive']:
             if use_patches:
                 transform = transforms.Compose([
                     transforms.Resize(256,interpolation=InterpolationMode.BILINEAR),
@@ -73,7 +73,7 @@ def get_resnet_transforms(name, use_patches=False, **kwargs):
         else:
             raise ValueError(f"Model {name} is not supported for custom transforms.")
     else:
-        if name in ['resnet18','resnet50']:
+        if name in ['resnet18','resnet50','resnet50-contrastive']:
             if mode=='resize':
                 transform = transforms.Compose([
                     transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
@@ -332,7 +332,7 @@ def get_clip_vit_transforms(name, **kwargs):
     return processor
 
 def get_transform(name='resnet18',use_patches=True, **kwargs):
-    if name in ['resnet18','resnet50','resnet101','resnet152']:
+    if name in ['resnet18','resnet50','resnet101','resnet152','resnet50-contrastive']:
         return get_resnet_transforms(name,use_patches=use_patches,**kwargs)
     elif name in ['vgg11', 'vgg13', 'vgg16', 'vgg19']:
         return get_vgg_transforms(name, use_patches=use_patches, **kwargs)

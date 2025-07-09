@@ -53,6 +53,23 @@ class WrappedHuggingfaceModel(torch.nn.Module):
         outputs = self.hugging_model(pixel_values=pixel_values)
         return outputs.last_hidden_state
 
+class ContrastiveModel(nn.Module):
+    """ResNet Backbone + Projection Head for SimCLR."""
+    def __init__(self, model, in_features,projection_dim=128,hidden_dim=256):
+        super().__init__()
+        self.encoder = model
+        self.encoder.fc = nn.Identity()  # Remove the classification head
+        self.projection_head = nn.Sequential(
+            nn.Linear(in_features, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, projection_dim)
+        )
+
+    def forward(self, x):
+        features = self.encoder(x)
+        projections = self.projection_head(features)
+        return F.normalize(projections, dim=1)
+
 class Classifier(nn.Module):
     def __init__(self, encoder, num_classes=2):
         super(Classifier, self).__init__()
@@ -124,6 +141,15 @@ def get_resnet(name,mode, pretrained, **kwargs):
     elif name=='resnet18':
         weights = ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
         model = resnet18(weights=weights)
+    elif name=='resnet50-contrastive':
+        weights = ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
+        model = resnet50(weights=weights)
+        in_features = model.fc.in_features
+        contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
+        checkpoint = torch.load('C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\models\\contrastive\\checkpoint_best.pt', map_location='cpu', weights_only=False)
+        #checkpoint = torch.load('C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\models\\contrastive\\checkpoint.pt', map_location='cpu', weights_only=False)
+        contrastive_model.load_state_dict(checkpoint['model_state_dict'])
+        return contrastive_model
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18']")
     if mode=='classification head':
@@ -404,6 +430,27 @@ def get_clip_vit(name, mode, pretrained, **kwargs):
             # Normalize the features (optional but common)
             image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
             return image_features
+    class WrappedVisionModelExpl(torch.nn.Module):
+        def __init__(self, vision_model, type_of_output='cls'):
+            super().__init__()
+            self.vision_model = vision_model
+            self.type_of_output = type_of_output  # Can be 'cls' or 'mean'
+
+        def forward(self, x):
+            # Forward pass through the vision model
+            outputs = self.vision_model(pixel_values=x, output_attentions=True)
+
+            # Choose how to handle the output
+            last_hidden = outputs.last_hidden_state  # (batch_size, seq_len, hidden_dim)
+
+            if self.type_of_output == 'cls':
+                image_features = last_hidden[:, 0]  # CLS token
+            elif self.type_of_output == 'mean':
+                image_features = last_hidden.mean(dim=1)  # Mean pooling
+
+            image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
+
+            return image_features
     if pretrained:
         model = CLIPModel.from_pretrained(f'openai/{name}')
         #model = WrappedHuggingfaceModel(model.vision_model) 
@@ -419,15 +466,16 @@ def get_clip_vit(name, mode, pretrained, **kwargs):
         else:
             print('still no support for pooling or other averaging techniques')
         mlp=CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
-        
     elif mode=='as is':
-        pass
+        return model
     elif mode=='truncated':
         truncation=kwargs.get('truncation', 'remove head')
         if truncation=='remove head':
             return WrappedModel(model,'cls') #add an option for other ways of reading the output
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+    elif mode=='exp':
+        return WrappedVisionModelExpl(model.vision_model, type_of_output=kwargs.get('type_of_output', 'cls')) #add an option for other ways of reading the output
 def get_model(name="resnet50", mode='classification head', pretrained=True, **kwargs):
     ''' 
     - name: the name of the model to download/load 
@@ -435,7 +483,7 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     2) as is (loads the model as is, without any modifications)
     3) truncated (truncates the model to a certain number of layers) so that it returns an hidden representation    - pretrained: whether to load the pretrained weights or not
     - '''
-    if name in ["resnet50",'resnet18']:
+    if name in ["resnet50",'resnet18','resnet50-contrastive']:
         return get_resnet(name,mode, pretrained, **kwargs)
     elif name in ["vgg11", "vgg13", "vgg16", "vgg19"]:
         return get_vgg(name, mode, pretrained, **kwargs)

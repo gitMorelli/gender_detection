@@ -18,6 +18,7 @@ import zarr
 import time
 import yaml
 import argparse
+from torch.amp import GradScaler, autocast
 
 
 class DotDict:
@@ -65,7 +66,10 @@ def compute_output(model, device, transform, t, huggingface, patches):
     else:
         patch = transform(patch)
     patch = patch.to(device)
-    output = model(patch.unsqueeze(0))
+    '''with torch.no_grad(), autocast(device_type='cuda'):
+        output = model(patch.unsqueeze(0))'''
+    with torch.no_grad():
+        output = model(patch.unsqueeze(0))
     return output
 
 class CustomPatchDataset(Dataset):
@@ -600,6 +604,7 @@ def main(args):
         return 0
     
     if batching:
+        model.eval()
         new_features = []
         for i, batch in enumerate(dataloader):
             output = compute_output_gpu(model, device, batch)
