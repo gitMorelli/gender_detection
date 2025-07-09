@@ -14,7 +14,7 @@ import sys
 import argparse
 import time
 from collections import Counter
-import io
+import copy
 
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.pipeline import Pipeline
@@ -34,7 +34,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import yaml
-import warnings
 
 class DotDict:
     def __init__(self, **entries):
@@ -181,7 +180,7 @@ def ensembled_predictions(base_preds,writers,mode='majority_vote',probs=None):
 
     # Step 5: Map writer-level prediction back to each sample
     #final_preds = writers.map(writer_preds)
-    return writer_preds#final_preds.value
+    return writer_preds#final_preds.values
 
 def group_labels(y, writers):
     """
@@ -200,13 +199,13 @@ def compute_accuracies(y_true, y_pred, y_prob, pages, writers):
     grouped_true = group_labels(y_true, pages)
     grouped_pred = ensembled_predictions(y_pred, pages)
     accuracies['ensembled'] = accuracy_score(grouped_true, grouped_pred)
-    
+
     grouped_pred = ensembled_predictions(y_pred, pages, mode='weighted_vote',probs=y_prob)
     accuracies['ensembled_weighted'] = accuracy_score(grouped_true, grouped_pred)
-    
+
     grouped_pred = ensembled_predictions(y_pred, pages, mode='most_probable',probs=y_prob)
     accuracies['ensembled_most_probable'] = accuracy_score(grouped_true, grouped_pred)
-    
+
     grouped_true_writers = group_labels(y_true, writers)
     grouped_pred_writers = ensembled_predictions(y_pred, writers)
     accuracies['ensembled_writers'] = accuracy_score(grouped_true_writers, grouped_pred_writers)
@@ -215,51 +214,52 @@ def compute_accuracies(y_true, y_pred, y_prob, pages, writers):
 
 
 def select_groups(train_FE,select_column='train', train_on_language='arabic', train_on_same='same'):
-        train_FE[select_column] = 1
-        if train_on_language=='arabic':
-            train_FE.loc[train_FE['isEng'] == 1, select_column] = 0 #remove english
-        elif train_on_language=='english':
-            train_FE.loc[train_FE['isEng'] == 0, select_column] = 0 #remove arabic
-        else:
-            pass
-        if train_on_same=='same':
-            train_FE.loc[train_FE['same_text'] == 0, select_column] = 0 #remove different texts
-        elif train_on_same=='different':
-            train_FE.loc[train_FE['same_text'] == 1, select_column] = 0 #remove same texts
-        else:
-            pass
-        return train_FE
+    train_FE[select_column] = 1
+    if train_on_language=='arabic':
+        train_FE.loc[train_FE['isEng'] == 1, select_column] = 0 #remove english
+    elif train_on_language=='english':
+        train_FE.loc[train_FE['isEng'] == 0, select_column] = 0 #remove arabic
+    else:
+        pass
+    if train_on_same=='same':
+        train_FE.loc[train_FE['same_text'] == 0, select_column] = 0 #remove different texts
+    elif train_on_same=='different':
+        train_FE.loc[train_FE['same_text'] == 1, select_column] = 0 #remove same texts
+    else:
+        pass
+    return train_FE
 
 
-def compute_subgroup_accuracies(pipeline, train_df,cols_to_drop,target_label):
+def compute_subgroup_accuracies(pipeline, train_df_list,cols_to_drop_list,target_label):
     subgroup_accuracies = {}
     groups = [('english','different'), ('english','same'), ('arabic','different'), ('arabic','same'),
               ('english','all'), ('arabic','all'), ('all','different'), ('all','same')]
     group_sizes = []
     acc_keys=None
     for group in groups:
-        #print(group)
-        train_df=select_groups(train_df,select_column='train', 
-                            train_on_language=group[0], train_on_same=group[1])
-        X_s = train_df[train_df['train']==1].drop(columns=cols_to_drop)
-        y_s = train_df[train_df['train']==1][target_label]
-        writers_s = train_df[train_df['train']==1]['writer']
-        pages_s = train_df[train_df['train']==1]['page']
-        group_sizes.append(len(X_s))
+        y_pred_pages = []
+        for i,train_df in enumerate(train_df_list):
+            train_df=select_groups(train_df,select_column='train', 
+                                train_on_language=group[0], train_on_same=group[1])
+            X_s = train_df[train_df['train']==1].drop(columns=cols_to_drop_list[i])
+            y_s = train_df[train_df['train']==1][target_label]
+            writers_s = train_df[train_df['train']==1]['writer']
+            pages_s = train_df[train_df['train']==1]['page']
+            group_sizes.append(len(X_s))
 
-        y_prob= pipeline.predict_proba(X_s.values)[:,1]
-        #y_pred = pipeline.predict(X_s.values)
-        y_pred=(y_prob >= 0.5).astype(int)
-        accuracies = compute_accuracies(y_s, y_pred, y_prob, pages_s,writers_s)
-        subgroup_accuracies[f'{group[0]},{group[1]}'] = accuracies
+            y_prob= pipeline[i].predict_proba(X_s.values)[:,1]
+            #y_pred = pipeline.predict(X_s.values)
+            y_pred=(y_prob >= 0.5).astype(int)
+            y_pred_pages.append(ensembled_predictions(y_pred, pages_s, mode='weighted_vote',probs=y_prob))
+        y_grouped = group_labels(y_s, pages_s)
+        y_grouped_pred = (0.5 * y_pred_pages[0] + 0.5 * y_pred_pages[1]).astype(int)
+        accuracy = accuracy_score(y_grouped, y_grouped_pred)
+        subgroup_accuracies[f'{group[0]},{group[1]}'] = accuracy
 
     return subgroup_accuracies
 
 def select_n_patches(train_df, n_patches=10):
-    if 'black_ratio' in train_df.columns:
-        grouped_sorted = train_df.groupby('page', group_keys=False).apply(lambda x: x.sort_values('black_ratio', ascending=False))
-    else:
-        grouped_sorted = train_df.groupby('page', group_keys=False).apply(lambda x: x)
+    grouped_sorted = train_df.groupby('page', group_keys=False).apply(lambda x: x.sort_values('black_ratio', ascending=False))
     grouped_sorted = grouped_sorted.groupby('page', group_keys=False).head(n_patches)
     return grouped_sorted
 
@@ -267,11 +267,8 @@ def main(args):
     """
     Main function to run the feature extraction and classification pipeline.
     """
-    warnings.filterwarnings("ignore")
     print("Running feature extraction script...")
     args = load_config(args.config)
-    script_mode = args.script_mode
-
     output_dir = source_path + "\\outputs\\preprocessed_data\\"
     LOG_FILE = output_dir+"file_metadata_log.json"
     df_log = file_IO.assemble_csv_from_log(LOG_FILE)
@@ -280,14 +277,16 @@ def main(args):
     n_patches = args.n_patches
     n_writers = args.n_writers
     input_file_name=args.input_file_name
-    if script_mode == 'explainability_pipeline':
-        pass
-    else:
-        row=df_log[df_log['experiment']==input_file_name]
-        source_data = row['source_file'].values[0]
-        model_used = row['model'].values[0]
-        row=df_log[df_log['experiment']==source_data]
-        extracted_from = row['type'].values[0]
+    df_log = file_IO.assemble_csv_from_log(LOG_FILE)
+    source_data = []
+    extracted_from = []
+    for file in input_file_name:
+        row=df_log[df_log['experiment']==file]
+        s_d=row['source_file'].values[0]
+        source_data.append(s_d) #they are equal since the models are applied to the same preprocessed data
+        model_used=row['model'].values[0]
+        row=df_log[df_log['experiment']==s_d]
+        extracted_from.append(row['type'].values[0]) # same as above
     #args for training
     selected_model = args.selected_model
     is_kaggle = args.is_kaggle
@@ -305,39 +304,42 @@ def main(args):
     else:
         target_label='isEng'
     
-    if script_mode == 'standalone':
-        input_file=source_path+'\\outputs\\preprocessed_data\\'+input_file_name
-    else:
-        input_file = source_path+'\\outputs\\online_deep_feature_extraction\\'+input_file_name
-    train_FE = pd.read_csv(input_file)
-    if is_kaggle:
-        cols_to_drop = ['writer', 'same_text', 'train','page_id','isEng','train','index','male']
-    else:
+    input_file = [source_path+'\\outputs\\preprocessed_data\\'+input_file_name[0], source_path+'\\outputs\\preprocessed_data\\'+input_file_name[1]]
+    X=[]
+    y=[]
+    writers=[]
+    pages=[]
+    train_FE_selected = []
+    cols_to_drop_list = []
+    for i in range(len(input_file)):
+        train_FE=pd.read_csv(input_file[i])
         cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
-    if script_mode == 'standalone':
         train_FE = file_IO.change_filename_from_to(train_FE, fr="old-laptop", to="new-laptop")
-    train_FE['page'] = train_FE.groupby(['writer', 'isEng', 'same_text']).ngroup()
-    if n_patches > 0:
-        #print(f"Selecting {n_patches} patches per page...")
-        train_FE = select_n_patches(train_FE, n_patches=n_patches).reset_index(drop=True)
-    if n_writers > 0:
-        unique_writers = train_FE['writer'].unique()
-        n_selected = int(len(unique_writers) * n_writers)
-        selected_writers = np.random.choice(unique_writers, n_selected, replace=False)
-        train_FE = train_FE[train_FE['writer'].isin(selected_writers)].reset_index(drop=True)
-    cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
+        if n_patches > 0:
+            #print(f"Selecting {n_patches} patches per page...")
+            train_FE = select_n_patches(train_FE, n_patches=n_patches).reset_index(drop=True)
+        if n_writers > 0:
+            unique_writers = train_FE['writer'].unique()
+            n_selected = int(len(unique_writers) * n_writers)
+            selected_writers = np.random.choice(unique_writers, n_selected, replace=False)
+            train_FE = train_FE[train_FE['writer'].isin(selected_writers)].reset_index(drop=True)
+        cols_to_drop_list.append(cols_to_drop)
 
+        train_FE=select_groups(train_FE,select_column='train', 
+                            train_on_language=train_on_language, train_on_same=train_on_same)
+        train_FE_selected.append(train_FE.copy())
+        if i==0:
+            train_FE_selected[0]['page'] = train_FE_selected[0].groupby(['writer', 'isEng', 'same_text']).ngroup()
+        else:
+            train_FE_selected[i]=train_FE_selected[i].merge(train_FE_selected[0][['writer', 'isEng', 'same_text', 'page']].drop_duplicates(), 
+                                                            on=['writer', 'isEng', 'same_text'], how='left')
+        train_FE = train_FE_selected[i].sort_values('page').reset_index(drop=True)
 
-    train_FE=select_groups(train_FE,select_column='train', 
-                        train_on_language=train_on_language, train_on_same=train_on_same)
-    train_FE = train_FE.sort_values('page').reset_index(drop=True)
-    train_FE_selected = train_FE.copy()
+        X.append(train_FE[train_FE['train']==1].drop(columns=cols_to_drop))
+        y.append(train_FE[train_FE['train']==1][target_label])
 
-    X = train_FE[train_FE['train']==1].drop(columns=cols_to_drop)
-    y = train_FE[train_FE['train']==1][target_label]
-
-    writers = train_FE[train_FE['train']==1]['writer']
-    pages = train_FE[train_FE['train']==1]['page']
+        writers.append(train_FE[train_FE['train']==1]['writer'])
+        pages.append(train_FE[train_FE['train']==1]['page'])
 
     gkf = GroupKFold(n_splits=n_splits)
 
@@ -403,50 +405,71 @@ def main(args):
         )
         feature_extraction_model['torch'] = torch_model_wrapper
 
-    if with_pca:
-        from sklearn.decomposition import PCA
-        pca = PCA(n_components=n_components)  #384
-        pipeline = Pipeline([
-            ('scaler', StandardScaler()),  # Normalize features
-            ('pca', pca),  # Apply PCA
-            (selected_model, feature_extraction_model[selected_model])  # Train GBM classifier
-        ])
-    else:    
-        pipeline = Pipeline([
-            ('scaler', StandardScaler()),  # Normalize features
-            (selected_model, feature_extraction_model[selected_model])  # Train GBM classifier
-        ])
+    pipeline = []
+    for i in range(len(input_file)):
+        model=copy.deepcopy(feature_extraction_model[selected_model])
+        if with_pca:
+            from sklearn.decomposition import PCA
+            pca = PCA(n_components=n_components)  #384
+            pipeline.append(Pipeline([
+                ('scaler', StandardScaler()),  # Normalize features
+                ('pca', pca),  # Apply PCA
+                (selected_model, model)  # Train GBM classifier
+            ]))
+        else:    
+            pipeline.append(Pipeline([
+                ('scaler', StandardScaler()),  # Normalize features
+                (selected_model, model)  # Train GBM classifier
+            ]))
 
     # Measure the start time
     start_time = time.time()
     print(f"Starting model cross-val...")
     cross_val_accuracies = {"IF": [], "OOF": []}
     cross_val_subgroup_accuracies = []
-    for train_idx, val_idx in gkf.split(X, y, groups=writers):
+    for train_idx, val_idx in gkf.split(X[0], y[0], groups=writers[0]):
         #print(train_idx)
-        X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
-        y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
-        X_train, y_train, writers_train, pages_train = shuffle(
-            X_train, y_train, writers.iloc[train_idx], pages.iloc[train_idx], random_state=42
-        )
-        # Fit the model on training data
-        pipeline.fit(X_train.values, y_train)
-        y_prob= pipeline.predict_proba(X_train.values)[:,1]
-        #y_pred = pipeline.predict(X_train.values)
-        y_pred=(y_prob>= 0.5).astype(int)
-        accuracies = compute_accuracies(y_train, y_pred, y_prob,pages_train,writers_train)
-        cross_val_accuracies["IF"].append(accuracies)
-        y_prob= pipeline.predict_proba(X_val.values)[:,1]
-        #y_pred = pipeline.predict(X_val.values)
-        y_pred=(y_prob >= 0.5).astype(int)
-        accuracies = compute_accuracies(y_val, y_pred, y_prob,pages.iloc[val_idx], writers.iloc[val_idx])
-        cross_val_accuracies["OOF"].append(accuracies)
-        # Filter train_FE_selected to only include rows with train==1 and index in val_idx
-        train_FE_temp = train_FE_selected[train_FE_selected['writer'].isin(writers.iloc[val_idx].unique())]
-        cross_val_subgroup_accuracies.append(compute_subgroup_accuracies(pipeline, train_FE_temp, cols_to_drop, target_label))
-        if script_mode == 'explainability_pipeline': # i onli need one fold (simulate grouped train test split) if i am evaluating explainability
-            print("Cross-validation completed for explainability pipeline mode.")
-            break
+        val_writer_ids = writers[0].iloc[val_idx].unique()
+        train_writer_ids = writers[0].iloc[train_idx].unique()
+        for i in range(len(input_file)):
+            X_train, X_val = X[i][writers[i].isin(train_writer_ids)], X[i][writers[i].isin(val_writer_ids)]
+            y_train, y_val = y[i][writers[i].isin(train_writer_ids)], y[i][writers[i].isin(val_writer_ids)]
+            X_train, y_train = shuffle(
+                X_train, y_train, random_state=42
+            )
+
+            # Fit the model on training data
+            pipeline[i].fit(X_train.values, y_train)
+        y_pred_pages = []
+        for i in range(len(input_file)):
+            X_train = X[i][writers[i].isin(train_writer_ids)]
+            y_train = y[i][writers[i].isin(train_writer_ids)]
+            pages_train = pages[i][writers[i].isin(train_writer_ids)]
+            y_prob=pipeline[i].predict_proba(X_train.values)[:,1]
+            y_pred=(y_prob>= 0.5).astype(int)
+            y_pred_pages.append(ensembled_predictions(y_pred, pages_train, mode='weighted_vote',probs=y_prob))
+        y_grouped = group_labels(y_train, pages_train)
+        y_grouped_pred = (0.5 * y_pred_pages[0] + 0.5 * y_pred_pages[1]).astype(int)
+        accuracy = accuracy_score(y_grouped, y_grouped_pred)
+        cross_val_accuracies["IF"].append(accuracy)
+
+        y_pred_pages = []
+        for i in range(len(input_file)):
+            X_val = X[i][writers[i].isin(val_writer_ids)]
+            y_val = y[i][writers[i].isin(val_writer_ids)]
+            pages_val = pages[i][writers[i].isin(val_writer_ids)]
+            y_prob=pipeline[i].predict_proba(X_val.values)[:,1]
+            y_pred=(y_prob>= 0.5).astype(int)
+            y_pred_pages.append(ensembled_predictions(y_pred, pages_val, mode='weighted_vote',probs=y_prob))
+        y_grouped = group_labels(y_val, pages_val)
+        y_grouped_pred = (0.5 * y_pred_pages[0] + 0.5 * y_pred_pages[1]).astype(int)
+        accuracy = accuracy_score(y_grouped, y_grouped_pred)
+        cross_val_accuracies["OOF"].append(accuracy)
+
+        train_FE_temp = []
+        for i in range(len(input_file)):
+            train_FE_temp.append(train_FE_selected[i][train_FE_selected[i]['writer'].isin(val_writer_ids)])
+        cross_val_subgroup_accuracies.append(compute_subgroup_accuracies(pipeline, train_FE_temp,cols_to_drop_list,target_label))
     
     # Measure the end time
     end_time = time.time()
@@ -458,52 +481,41 @@ def main(args):
         pca = pipeline.named_steps['pca']
         print(f"Number of features used after PCA: {pca.n_components_}")
 
-    if script_mode == 'standalone':
-        print('saving to log file...')
-        #experiment = datetime.now().strftime("%Y%m%d_%H%M%S")
-        experiment = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_dir = os.path.join(source_path, "outputs", "logs","feature_extraction")
-        # Example usage:
-        LOG_OUT_FILE = out_dir+f"\\results_{experiment_name}.json"
-        print(f"Log file path: {LOG_OUT_FILE}")
-        file_IO.add_or_update_experiment(
-            f"{args.n_job}_{experiment}", LOG_OUT_FILE,
-            custom_metadata={
-                "type of preprocessing": extracted_from,
-                "original raw file": source_data,
-                "input file": input_file_name,
-                "FE model": model_used,
-                "classifier model": selected_model,
-                "model_params": feature_extraction_model[selected_model].get_params(),
-                "n_splits": n_splits,
-                "train_on_language": train_on_language,
-                "train_on_same": train_on_same,
-                "task": task,
-                "with cross validation": with_cross_validation,
-                "with PCA": with_pca,
-                "n_components": n_components,
-                "training time for cross-validation": time_taken_cross_val,
-                "cross_val_accuracies": cross_val_accuracies,
-                "cross_val_subgroup_accuracies": cross_val_subgroup_accuracies,
-                "is_kaggle": is_kaggle,
-                "test": 'this is a test column',
-                "n_sub_patches": n_patches,
-                "n_writers": n_writers,
-                "description": ''' I am training a classifier on the feature vectors extracted by a deep model
-                I am evaluating the results on subsets of the training data, based on language and same/different text.''' 
-            }
-        )
-    elif script_mode == 'explainability_pipeline':
-        val_writers= writers.iloc[val_idx].unique() 
-        #train_writers = writers.iloc[train_idx].unique()
-        writer_train_df = pd.DataFrame({
-            'writer': writers.unique()
-        })
-        writer_train_df['train'] = writer_train_df['writer'].apply(lambda w: 0 if w in val_writers else 1)
-        writer_train_df.to_csv(input_file.split('.')[0]+'_writers.csv', index=False)
-        # Save the trained pipeline to a file for later use
-        joblib.dump(pipeline, input_file.split('.')[0]+'_pipeline.joblib')
-        print(f"Model pipeline saved to file")
+
+    print('saving to log file...')
+    #experiment = datetime.now().strftime("%Y%m%d_%H%M%S")
+    experiment = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_dir = os.path.join(source_path, "outputs", "logs","feature_extraction")
+    # Example usage:
+    LOG_OUT_FILE = out_dir+f"\\results_{experiment_name}.json"
+    print(f"Log file path: {LOG_OUT_FILE}")
+    file_IO.add_or_update_experiment(
+        f"{args.n_job}_{experiment}", LOG_OUT_FILE,
+        custom_metadata={
+            "type of preprocessing": extracted_from,
+            "original raw file": source_data,
+            "input file": input_file_name,
+            "FE model": model_used, # now this is a tuple (instead of a string as in the standard script)
+            "classifier model": selected_model,
+            "model_params": feature_extraction_model[selected_model].get_params(),
+            "n_splits": n_splits,
+            "train_on_language": train_on_language,
+            "train_on_same": train_on_same,
+            "task": task,
+            "with cross validation": with_cross_validation,
+            "with PCA": with_pca,
+            "n_components": n_components,
+            "training time for cross-validation": time_taken_cross_val,
+            "cross_val_accuracies": cross_val_accuracies,
+            "cross_val_subgroup_accuracies": cross_val_subgroup_accuracies,
+            "is_kaggle": is_kaggle,
+            "test": 'this is a test column',
+            "n_sub_patches": n_patches,
+            "n_writers": n_writers,
+            "description": ''' I am training a classifier on the feature vectors extracted by a deep model
+            I am evaluating the results on subsets of the training data, based on language and same/different text.''' 
+        }
+    )
 
 def parse_args():
     parser = argparse.ArgumentParser(description="ML experiments!")

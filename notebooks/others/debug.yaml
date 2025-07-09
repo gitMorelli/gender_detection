@@ -1,5 +1,5 @@
 # config.yaml
-input_file_name: ['icdar_EXTRACTED_train_df_trocr-base-handwritten_20250523_190523.csv',]
+input_file_name: ['icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250605_133231.csv', 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv']
 selected_model: 'mlp'
 is_kaggle: False
 with_pca: False
@@ -13,5 +13,4 @@ n_job: 0
 n_patches: -1
 n_writers: -1
 experiment_name: 'experiment_1'
-type_of_ensembling: 'averaging'
-script_mode: 'standalone'
+type_of_ensembling: 'classical'

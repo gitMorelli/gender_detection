@@ -2,8 +2,6 @@ import json
 from datetime import datetime
 import os
 import pandas as pd
-import numpy as np
-import scipy.stats as st
 
 
 def get_base_metadata(filepath):
@@ -201,72 +199,3 @@ def assemble_csv_from_log(log_path):
     df.rename(columns={'index': 'experiment'}, inplace=True)
 
     return df
-
-def summarize_cv_results(train_accs, oof_accs, prefix=""):
-    train_accs = np.array(train_accs)
-    oof_accs = np.array(oof_accs)
-
-    def compute_summary(arr):
-        mean = np.mean(arr)
-        variance = np.var(arr, ddof=1)  # Unbiased variance (sample variance)
-        min_val = np.min(arr)
-        max_val = np.max(arr)
-        median = np.median(arr)
-        ci_low, ci_high = st.t.interval(0.95, len(arr)-1, loc=mean, scale=st.sem(arr))
-        return mean, variance, min_val, max_val, median, (ci_low, ci_high)
-
-    train_summary = compute_summary(train_accs)
-    oof_summary = compute_summary(oof_accs)
-
-    generalization_gap = train_summary[0] - oof_summary[0]  # Difference in mean accuracies
-
-    if_name="IF_accuracy_"
-    oof_name="OOF_accuracy_"
-    summary = {
-            f"{prefix}_{if_name}Mean": train_summary[0],
-            f"{prefix}_{if_name}Variance": train_summary[1],
-            f"{prefix}_{if_name}Min": train_summary[2],
-            f"{prefix}_{if_name}Max": train_summary[3],
-            f"{prefix}_{if_name}Median": train_summary[4],
-            f"{prefix}_{if_name}Confidence Interval": train_summary[5],
-            f"{prefix}_{oof_name}Mean": oof_summary[0],
-            f"{prefix}_{oof_name}Variance": oof_summary[1],
-            f"{prefix}_{oof_name}Min": oof_summary[2],
-            f"{prefix}_{oof_name}Max": oof_summary[3],
-            f"{prefix}_{oof_name}Median": oof_summary[4],
-            f"{prefix}_{oof_name}Confidence Interval": oof_summary[5],
-            f"{prefix}_Generalization Gap": generalization_gap
-        }
-
-    return summary
-
-def expand_accuracies(df, type='ensembled',group=None):
-    new_columns = []
-    if group is None:
-        for idx, row in df.iterrows():
-            c_val = row['cross_val_accuracies']
-            IF_values = c_val['IF']
-            #print(IF_values)
-            accuracies_IF = []
-            for value in IF_values: #value is a list of dict
-                accuracies_IF.append(value[type])
-            #print(accuracies_IF)
-            OOF_values = c_val['OOF']
-            accuracies_OOF = []
-            for value in OOF_values:
-                accuracies_OOF.append(value[type])
-            summary=summarize_cv_results(accuracies_IF, accuracies_OOF,prefix=type)
-            dict1 = {**summary}
-            new_columns.append(dict1)
-    else:
-        for idx, row in df.iterrows():
-            c_val = row['cross_val_subgroup_accuracies']
-            summary = {}
-            group_accuracies=[]
-            for fold_accuracies in c_val:
-                group_accuracies.append(fold_accuracies[group][type])
-            summary=summarize_cv_results(group_accuracies, group_accuracies,prefix=group+'_'+type)
-            dict1 = {**summary}
-            new_columns.append(dict1)
-    acc_df = pd.DataFrame(new_columns)
-    return pd.concat([df.reset_index(drop=True), acc_df.reset_index(drop=True)], axis=1)

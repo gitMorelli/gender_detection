@@ -1,7 +1,7 @@
-
 from torchvision.models import efficientnet_v2_s, EfficientNet_V2_S_Weights, alexnet, AlexNet_Weights
 from torchvision.models import resnet50, ResNet50_Weights, resnet18, ResNet18_Weights
-from torchvision.models import vgg16, VGG16_Weights
+from torchvision.models import vgg16, VGG16_Weights, vgg11, VGG11_Weights, vgg13, VGG13_Weights, vgg19, VGG19_Weights
+from torchvision.models import googlenet, GoogLeNet_Weights
 import torch
 from transformers import VisionEncoderDecoderModel, ViTModel
 import torch.nn as nn
@@ -141,36 +141,78 @@ def get_resnet(name,mode, pretrained, **kwargs):
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
     return model
-'''def get_efficientnet(pretrained=True):
-    weights = EfficientNet_V2_S_Weights.IMAGENET1K_V1 if pretrained else None
-    model = efficientnet_v2_s(weights=weights)
-    if num_classes:
-        in_features = model.classifier.in_features
-        model.classifier = torch.nn.Linear(in_features, num_classes)
+
+def get_vgg(name, mode, pretrained, **kwargs):
+    if name == 'vgg11':
+        weights = VGG11_Weights.IMAGENET1K_V1 if pretrained else None
+        model = vgg11(weights=weights)
+    elif name == 'vgg13':
+        weights = VGG13_Weights.IMAGENET1K_V1 if pretrained else None
+        model = vgg13(weights=weights)
+    elif name == 'vgg16':
+        weights = VGG16_Weights.IMAGENET1K_V1 if pretrained else None
+        model = vgg16(weights=weights)
+    elif name == 'vgg19':
+        weights = VGG19_Weights.IMAGENET1K_V1 if pretrained else None
+        model = vgg19(weights=weights)
+    else:
+        raise ValueError(f"Model {name} is not supported. Choose from ['vgg11', 'vgg13', 'vgg16', 'vgg19']")
+    
+    if mode == 'classification head':
+        num_classes = kwargs.get('num_classes', 2)
+        hidden_sizes = kwargs.get('hidden_sizes', [128])
+        in_features = model.classifier[6].in_features
+        mlp = CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+        model.classifier[6] = mlp
+    elif mode == 'as is':
+        pass
+    elif mode == 'truncated':
+        truncation = kwargs.get('truncation', 'remove head')
+        if truncation == 'remove head':
+            model.classifier[6] = torch.nn.Identity()
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
     return model
-def get_alexnet(pretrained=True, num_classes=None):
+
+def get_alexnet(name, mode, pretrained, **kwargs):
     weights = AlexNet_Weights.IMAGENET1K_V1 if pretrained else None
     model = alexnet(weights=weights)
-    if num_classes:
+    
+    if mode == 'classification head':
+        num_classes = kwargs.get('num_classes', 2)
+        hidden_sizes = kwargs.get('hidden_sizes', [128])
         in_features = model.classifier[6].in_features
-        model.classifier[6] = torch.nn.Linear(in_features, num_classes)
-    return model'''
-'''
-def get_vgg16(pretrained=True, num_classes=None):   
-    weights = VGG16_Weights.IMAGENET1K_V1 if pretrained else None
-    model = vgg16(weights=weights)
-    if num_classes:
-        in_features = model.classifier[6].in_features
-        model.classifier[6] = torch.nn.Linear(in_features, num_classes)
+        mlp = CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+        model.classifier[6] = mlp
+    elif mode == 'as is':
+        pass
+    elif mode == 'truncated':
+        truncation = kwargs.get('truncation', 'remove head')
+        if truncation == 'remove head':
+            model.classifier[6] = torch.nn.Identity()
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
     return model
-def get_resnet18(pretrained=True, num_classes=None):
-    weights = ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
-    model = resnet18(weights=weights)
-    if num_classes:
+
+def get_googlenet(name, mode, pretrained, **kwargs):
+    weights = GoogLeNet_Weights.IMAGENET1K_V1 if pretrained else None
+    model = googlenet(weights=weights)
+    
+    if mode == 'classification head':
+        num_classes = kwargs.get('num_classes', 2)
+        hidden_sizes = kwargs.get('hidden_sizes', [128])
         in_features = model.fc.in_features
-        model.fc = torch.nn.Linear(in_features, num_classes)
+        mlp = CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+        model.fc = mlp
+    elif mode == 'as is':
+        pass
+    elif mode == 'truncated':
+        truncation = kwargs.get('truncation', 'remove head')
+        if truncation == 'remove head':
+            model.fc = torch.nn.Identity()
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
     return model
-'''
 def get_trocr(name, mode, pretrained, **kwargs):
     if pretrained:
         model = VisionEncoderDecoderModel.from_pretrained(f'microsoft/{name}')
@@ -349,8 +391,6 @@ def get_layoutlmv3_base(name, mode, pretrained, **kwargs): #need to test
             pass #I simply take the output of the last encoder layer (as in the pretrained model)
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
-            model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
-            model = TruncatedDeiT(model.encoder, num_layers=10, from_above=False, encoder_only=not(pooled))
 def get_clip_vit(name, mode, pretrained, **kwargs):
     from transformers import CLIPModel
     class WrappedModel(torch.nn.Module):
@@ -393,11 +433,16 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     - name: the name of the model to download/load 
     -mode: 1) classification_head (modifies the last layers of the loaded model and appends an mlp classifier to the model)
     2) as is (loads the model as is, without any modifications)
-    3) truncated (truncates the model to a certain number of layers) so that it returns an hidden representation
-    - pretrained: whether to load the pretrained weights or not
+    3) truncated (truncates the model to a certain number of layers) so that it returns an hidden representation    - pretrained: whether to load the pretrained weights or not
     - '''
     if name in ["resnet50",'resnet18']:
         return get_resnet(name,mode, pretrained, **kwargs)
+    elif name in ["vgg11", "vgg13", "vgg16", "vgg19"]:
+        return get_vgg(name, mode, pretrained, **kwargs)
+    elif name == "alexnet":
+        return get_alexnet(name, mode, pretrained, **kwargs)
+    elif name == "googlenet":
+        return get_googlenet(name, mode, pretrained, **kwargs)
     elif name in ["trocr-small-stage1",'trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1','trocr-base-stage1']:
         return get_trocr(name,mode, pretrained, **kwargs)
     elif name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224"]:
@@ -414,9 +459,8 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
         return get_layoutlmv3_base(name, mode, pretrained, **kwargs)
     elif name == "clip-vit-large-patch14":
         return get_clip_vit(name, mode, pretrained, **kwargs)
-    #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)
-    else:
-        raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', trocr family]")
+    #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)    else:
+        raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'trocr family', 'vit family', and others]")
 
 def get_weights(name="resnet50"):
     if name == "efficientnet":
@@ -427,10 +471,18 @@ def get_weights(name="resnet50"):
         return ResNet18_Weights.IMAGENET1K_V1
     elif name == "alexnet":
         return AlexNet_Weights.IMAGENET1K_V1
+    elif name == "vgg11":
+        return VGG11_Weights.IMAGENET1K_V1
+    elif name == "vgg13":
+        return VGG13_Weights.IMAGENET1K_V1
     elif name == "vgg16":
         return VGG16_Weights.IMAGENET1K_V1
+    elif name == "vgg19":
+        return VGG19_Weights.IMAGENET1K_V1
+    elif name == "googlenet":
+        return GoogLeNet_Weights.IMAGENET1K_V1
     else:
-        raise ValueError(f"Model {name} is not supported. Choose from ['efficientnet', 'resnet50', 'resnet18', 'alexnet', 'vgg16']")
+        raise ValueError(f"Model {name} is not supported. Choose from ['efficientnet', 'resnet50', 'resnet18', 'alexnet', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'googlenet']")
 
 def get_trainable_layers(name,depth=0):
     #this gives the number of layers to fine tune according to which part of the model 
@@ -452,15 +504,24 @@ def get_trainable_layers(name,depth=0):
             return 
         elif depth == 2: #last two convolutional layer
             return 
-    elif name=='trocr-small-stage1':
-        if depth == 1:
-            return 16
-        elif depth == 2:
-            return 
-    elif name=='MLP':
+    elif name in ['vgg11', 'vgg13', 'vgg16', 'vgg19']:
+        if depth == 1: #last convolutional layer
+            return 4 #features layers to unfreeze
+        elif depth == 2: #last two convolutional layers
+            return 8
+    elif name == 'alexnet':
+        if depth == 1: #last convolutional layer
+            return 4 #features layers to unfreeze
+        elif depth == 2: #last two convolutional layers
+            return 8
+    elif name == 'googlenet':
+        if depth == 1: #last inception block
+            return 6
+        elif depth == 2: #last two inception blocks
+            return 12
+    elif name == 'MLP':
         return -1
     elif depth == -1:
         return -1
-    #if -1 is returned all layers are trainable
-    else:
-        raise ValueError(f"Model {name} is not supported. Choose from ['resnet18', 'resnet50', 'efficientnet']")
+    #if -1 is returned all layers are trainable    else:
+        raise ValueError(f"Model {name} is not supported. Choose from ['resnet18', 'resnet50', 'efficientnet', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'MLP']")

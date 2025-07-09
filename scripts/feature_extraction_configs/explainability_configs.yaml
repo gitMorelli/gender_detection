@@ -14,4 +14,3 @@ n_patches: -1
 n_writers: -1
 experiment_name: 'experiment_1'
 type_of_ensembling: 'averaging'
-script_mode: 'standalone'

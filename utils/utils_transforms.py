@@ -1,4 +1,3 @@
-
 from torchvision.transforms import InterpolationMode
 from torchvision import datasets, transforms
 from transformers import TrOCRProcessor, ViTImageProcessor
@@ -79,6 +78,123 @@ def get_resnet_transforms(name, use_patches=False, **kwargs):
                 transform = transforms.Compose([
                     transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
                     #transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                ])
+            else:
+                transform = transforms.Compose([
+                    transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ])
+        else:
+            raise ValueError(f"Model {name} is not supported.")
+    return transform
+
+def get_vgg_transforms(name, use_patches=False, **kwargs):
+    """
+    Returns the transformation pipeline for VGG models.
+    """
+    mode = kwargs.get('mode', '')
+    if kwargs.get('custom') == True:
+        if name in ['vgg11', 'vgg13', 'vgg16', 'vgg19']:
+            if use_patches:
+                transform = transforms.Compose([
+                    transforms.Resize(256, interpolation=InterpolationMode.BILINEAR),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                ])
+            else:
+                transform = transforms.Compose([
+                    transforms.Resize(500, interpolation=InterpolationMode.BILINEAR),
+                    transforms.ToTensor(),
+                ])
+        else:
+            raise ValueError(f"Model {name} is not supported for custom transforms.")
+    else:
+        if name in ['vgg11', 'vgg13', 'vgg16', 'vgg19']:
+            if mode == 'resize':
+                transform = transforms.Compose([
+                    transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                ])
+            else:
+                transform = transforms.Compose([
+                    transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ])
+        else:
+            raise ValueError(f"Model {name} is not supported.")
+    return transform
+
+def get_alexnet_transforms(name, use_patches=False, **kwargs):
+    """
+    Returns the transformation pipeline for AlexNet.
+    """
+    mode = kwargs.get('mode', '')
+    if kwargs.get('custom') == True:
+        if name == 'alexnet':
+            if use_patches:
+                transform = transforms.Compose([
+                    transforms.Resize(256, interpolation=InterpolationMode.BILINEAR),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                ])
+            else:
+                transform = transforms.Compose([
+                    transforms.Resize(500, interpolation=InterpolationMode.BILINEAR),
+                    transforms.ToTensor(),
+                ])
+        else:
+            raise ValueError(f"Model {name} is not supported for custom transforms.")
+    else:
+        if name == 'alexnet':
+            if mode == 'resize':
+                transform = transforms.Compose([
+                    transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                ])
+            else:
+                transform = transforms.Compose([
+                    transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ])
+        else:
+            raise ValueError(f"Model {name} is not supported.")
+    return transform
+
+def get_googlenet_transforms(name, use_patches=False, **kwargs):
+    """
+    Returns the transformation pipeline for GoogleNet.
+    """
+    mode = kwargs.get('mode', '')
+    if kwargs.get('custom') == True:
+        if name == 'googlenet':
+            if use_patches:
+                transform = transforms.Compose([
+                    transforms.Resize(256, interpolation=InterpolationMode.BILINEAR),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                ])
+            else:
+                transform = transforms.Compose([
+                    transforms.Resize(500, interpolation=InterpolationMode.BILINEAR),
+                    transforms.ToTensor(),
+                ])
+        else:
+            raise ValueError(f"Model {name} is not supported for custom transforms.")
+    else:
+        if name == 'googlenet':
+            if mode == 'resize':
+                transform = transforms.Compose([
+                    transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
                     transforms.ToTensor(),
                     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                 ])
@@ -218,6 +334,12 @@ def get_clip_vit_transforms(name, **kwargs):
 def get_transform(name='resnet18',use_patches=True, **kwargs):
     if name in ['resnet18','resnet50','resnet101','resnet152']:
         return get_resnet_transforms(name,use_patches=use_patches,**kwargs)
+    elif name in ['vgg11', 'vgg13', 'vgg16', 'vgg19']:
+        return get_vgg_transforms(name, use_patches=use_patches, **kwargs)
+    elif name == 'alexnet':
+        return get_alexnet_transforms(name, use_patches=use_patches, **kwargs)
+    elif name == 'googlenet':
+        return get_googlenet_transforms(name, use_patches=use_patches, **kwargs)
     elif name=='efficientnet':  
         return get_efficient_transforms()
     elif name=='handwriting':
