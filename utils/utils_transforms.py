@@ -331,6 +331,11 @@ def get_clip_vit_transforms(name, **kwargs):
         raise ValueError(f"Model {name} is not supported.")
     return processor
 
+def get_deit_transforms(name='DeiT-Tiny'):
+    from transformers import AutoFeatureExtractor
+    processor = AutoFeatureExtractor.from_pretrained('facebook/deit-tiny-patch16-224')
+    return processor
+
 def get_transform(name='resnet18',use_patches=True, **kwargs):
     if name in ['resnet18','resnet50','resnet101','resnet152','resnet50-contrastive']:
         return get_resnet_transforms(name,use_patches=use_patches,**kwargs)
@@ -364,5 +369,7 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
         return get_layoutlmv3_base_transforms(**kwargs)
     elif name == "clip-vit-large-patch14":
         return get_clip_vit_transforms(name, **kwargs)
+    elif name == "DeiT-Tiny":
+        return get_deit_transforms(name)
     else:
         raise ValueError(f"Unknown model name: {name}. Please provide a valid model name.")

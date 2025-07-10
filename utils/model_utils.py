@@ -417,6 +417,32 @@ def get_layoutlmv3_base(name, mode, pretrained, **kwargs): #need to test
             pass #I simply take the output of the last encoder layer (as in the pretrained model)
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+def get_deit(name, mode, pretrained, **kwargs):
+    from transformers import ViTForImageClassification
+    class WrappedModel(torch.nn.Module):
+        def __init__(self, hugging_model):
+            super().__init__()
+            self.hugging_model = hugging_model
+
+        def forward(self, pixel_values):
+            outputs = self.hugging_model(pixel_values=pixel_values,output_attentions=True)
+            return outputs.hidden_states[-1][:, 0, :]  # Return the CLS token output
+    
+    if pretrained:
+        model = ViTForImageClassification.from_pretrained('facebook/deit-tiny-patch16-224',output_hidden_states=True)
+    else:
+        print("no support for loading model without pretrained weights")
+    if mode == 'classification head':
+        raise ValueError("Classification head is not supported for DeiT models.")
+    elif mode == 'as is':
+        pass
+    elif mode == 'truncated':
+        truncation = kwargs.get('truncation', 'remove head')
+        if truncation == 'remove head':
+            model = WrappedModel(model) 
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+    return model
 def get_clip_vit(name, mode, pretrained, **kwargs):
     from transformers import CLIPModel
     class WrappedModel(torch.nn.Module):
@@ -507,6 +533,8 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
         return get_layoutlmv3_base(name, mode, pretrained, **kwargs)
     elif name == "clip-vit-large-patch14":
         return get_clip_vit(name, mode, pretrained, **kwargs)
+    elif name == "DeiT-Tiny":
+        return get_deit(name, mode, pretrained, **kwargs)
     #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)    else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'trocr family', 'vit family', and others]")
 
@@ -573,3 +601,17 @@ def get_trainable_layers(name,depth=0):
         return -1
     #if -1 is returned all layers are trainable    else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet18', 'resnet50', 'efficientnet', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'MLP']")
+
+def test_output(size,transforms, model,huggingface=False):
+    dummy_input = torch.rand(1, 3, size, size)
+    dummy_input.shape
+    if huggingface:
+        # the transform is actually an huggingface processor in this case
+        inputs = transform(images=dummy_input, return_tensors="pt")
+        # Remove batch dimension from inputs
+        dummy_input = inputs['pixel_values'].squeeze()
+    else:
+        dummy_input = transform(patch)
+    with torch.no_grad():
+        output = model(dummy_input.unsqueeze(0))
+    return output

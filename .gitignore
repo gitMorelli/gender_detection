@@ -9,6 +9,7 @@ Data/
 outputs/images/
 outputs/models/
 outputs/online_deep_feature_extraction/
+outputs/fine_tuning/
 outputs/preprocessed_data/*
 !outputs/preprocessed_data/file_metadata_log.json
 
