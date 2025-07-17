@@ -105,12 +105,30 @@ class FullClassifier(nn.Module):
         return logits
 
 class CustomMLP(nn.Module):
-    def __init__(self, input_size, hidden_sizes, output_size):
+    def __init__(self, input_size, hidden_sizes, output_size, **kwargs):
         super(CustomMLP, self).__init__()
         layers = []
+        if 'activation' in kwargs:
+            activation = kwargs['activation']
         for hidden_size in hidden_sizes:
             layers.append(nn.Linear(input_size, hidden_size))
-            layers.append(nn.ReLU())
+
+            if activation == 'relu':
+                layers.append(nn.ReLU())
+            elif activation == 'gelu':
+                layers.append(nn.GELU())
+            elif activation == 'tanh':
+                layers.append(nn.Tanh())
+            elif activation == 'sigmoid':
+                layers.append(nn.Sigmoid())    
+            
+            if 'dropout' in kwargs:
+                # If dropout is specified, add it
+                if isinstance(kwargs['dropout'], float):
+                    dropout = kwargs['dropout']
+                else:
+                    raise ValueError("Dropout should be a float value.")
+                layers.append(nn.Dropout(dropout))
             input_size = hidden_size
         layers.append(nn.Linear(input_size, output_size))
         self.model = nn.Sequential(*layers)
@@ -538,6 +556,19 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)    else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'trocr family', 'vit family', and others]")
 
+def get_classification_head(name='MLPClassifier1',in_features=512,num_classes=2):
+    if name == 'MLPClassifier1': #1 hidden layer
+        hidden_sizes = [int(in_features / 4)]
+        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,dropout=0.7, activation='relu')
+    elif name == 'MLPClassifier2':
+        hidden_sizes = [512, 256, 128]
+        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+    elif name == 'TransformerClassifier':
+        hidden_sizes = [512, 256]
+        return CustomTransformer(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+    else:
+        raise ValueError(f"Classification head {name} is not supported. Choose from ['MLPClassifier1', 'MLPClassifier2', 'TransformerClassifier']")
+
 def get_weights(name="resnet50"):
     if name == "efficientnet":
         return EfficientNet_V2_S_Weights.IMAGENET1K_V1
@@ -602,16 +633,16 @@ def get_trainable_layers(name,depth=0):
     #if -1 is returned all layers are trainable    else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet18', 'resnet50', 'efficientnet', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'MLP']")
 
-def test_output(size,transforms, model,huggingface=False):
+def test_output(size,transform, model,huggingface=False):
     dummy_input = torch.rand(1, 3, size, size)
     dummy_input.shape
-    if huggingface:
+    '''if huggingface:
         # the transform is actually an huggingface processor in this case
         inputs = transform(images=dummy_input, return_tensors="pt")
         # Remove batch dimension from inputs
-        dummy_input = inputs['pixel_values'].squeeze()
+        patch = inputs['pixel_values'].squeeze()
     else:
-        dummy_input = transform(patch)
+        patch = transform(dummy_input)'''
     with torch.no_grad():
-        output = model(dummy_input.unsqueeze(0))
+        output = model(dummy_input)
     return output

@@ -373,3 +373,23 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
         return get_deit_transforms(name)
     else:
         raise ValueError(f"Unknown model name: {name}. Please provide a valid model name.")
+
+def get_augmentation_transform():
+    color_jitter_strength = 0.3
+    image_size=224
+    # SimCLR data augmentation transform
+    simclr_transform = transforms.Compose([
+        transforms.RandomResizedCrop(size=image_size, scale=(0.6, 1.0)),
+        #transforms.RandomHorizontalFlip(),
+        transforms.RandomApply([
+            transforms.ColorJitter(
+                        brightness=color_jitter_strength,
+                        contrast=color_jitter_strength,
+                        saturation=color_jitter_strength,
+                        hue=0.05)
+                ], p=0.8),
+        transforms.RandomGrayscale(p=0.2),
+        transforms.GaussianBlur(5, sigma=(0.1, 0.5)),  # kernel_size ~ 0.1 * image size
+        transforms.RandomAffine(degrees=3, translate=(0.02, 0.02),shear=3),
+    ])
+    return simclr_transform

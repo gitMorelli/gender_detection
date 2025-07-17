@@ -10,6 +10,7 @@ import math
 import numpy as np
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import LambdaLR
+import io
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, 
                 device, num_epochs=5, checkpoint_path=None,early_stopping_patience=10, scheduler=None
@@ -181,9 +182,10 @@ def get_optimizer(parameters, name='Adam', lr=0.001,**kwargs):
     else:
         raise ValueError(f"Unknown optimizer name: {name}. Please provide a valid optimizer name.")
 
-def get_cosine_schedule_with_warmup(optimizer):
+def get_cosine_schedule_with_warmup(optimizer,**kwargs):
     warmup_epochs = kwargs.get('warmup_epochs', 5)
     total_epochs = kwargs.get('total_epochs', 100)
+    init_epoch = kwargs.get('init_epoch', 0)
     def lr_lambda(current_epoch):
         if current_epoch < warmup_epochs:
             return float(current_epoch) / float(max(1, warmup_epochs))
@@ -191,19 +193,46 @@ def get_cosine_schedule_with_warmup(optimizer):
         return 0.5 * (1. + math.cos(math.pi * progress))
     return LambdaLR(optimizer, lr_lambda)
 
-def get_scheduler(optimizer, name='no_scheduling', **kwargs):
+def get_cosine_schedule_custom(optimizer,start_epoch,**kwargs):
+    total_epochs = kwargs.get('T_max', 100)
+    def lr_lambda(current_epoch):
+        progress = float(current_epoch) / float(max(1, total_epochs - start_epoch))
+        return 0.5 * (1. + math.cos(math.pi * progress))
+    return LambdaLR(optimizer, lr_lambda)
+
+def get_linear(optimizer,start_epoch,**kwargs):
+    warmup_epochs = kwargs.get('warmup_epochs', 5)
+    def lr_lambda(current_epoch):
+        print(f"Current epoch: {current_epoch}, Start epoch: {start_epoch}, Warmup epochs: {warmup_epochs}")
+        return float(current_epoch+1) / float(max(1, warmup_epochs- start_epoch+1))
+    return LambdaLR(optimizer, lr_lambda)
+
+def get_scheduler(optimizer, name='no_scheduling',start_epoch=0, **kwargs):
     if name == 'CosineAnnealingLR':
         T_max = kwargs.get('T_max', 100)
         eta_min = kwargs.get('eta_min', 0)
-        return CosineAnnealingLR(optimizer, T_max=T_max, eta_min=eta_min)
+        for param_group in optimizer.param_groups:
+            param_group.setdefault('initial_lr', param_group['lr'])
+        return CosineAnnealingLR(optimizer, T_max=T_max, eta_min=eta_min,last_epoch=start_epoch-1)
     elif name == 'StepLR':
         return torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
     elif name == 'ReduceLROnPlateau':
         return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
     elif name == "no_scheduling":
-        return None
+        class NoOpScheduler:
+            def step(self, *args, **kwargs):
+                pass
+            def state_dict(self):
+                return {}
+            def load_state_dict(self, state_dict):
+                pass
+        return NoOpScheduler()
     elif name == 'CosineAnnealingWarmRestarts':
         return get_cosine_schedule_with_warmup(optimizer, **kwargs)
+    elif name == 'CosineScheduleCustom':
+        return get_cosine_schedule_custom(optimizer, start_epoch, **kwargs)
+    elif name == 'Linear':
+        return get_linear(optimizer, start_epoch=start_epoch, **kwargs)
     else:
         raise ValueError(f"Unknown scheduler name: {name}. Please provide a valid scheduler name.")
 
@@ -305,8 +334,6 @@ def train_fine(
     train_dataloader,
     val_dataloader,
     device,
-    base_lr,
-    warmup_epochs=10,
     total_epochs=100,
     checkpoint_path='checkpoint.pt',
     plot_every=5,
@@ -319,8 +346,7 @@ def train_fine(
     run_epochs=2,
     save_path=None,
     use_amp=True,
-    scheduler_name=None,
-    optim_name='Adam',
+    optim_config=None,
     **kwargs
 ):
     """
@@ -332,8 +358,9 @@ def train_fine(
     print(f"Model size: {model_size_mb:.2f} MB")
     
     # Initialize components
-    optimizer = get_optimizer(model.parameters(),name=optim_name, lr=base_lr,**kwargs)
-    scheduler = get_scheduler(optimizer, name=scheduler_name, **kwargs) 
+    #optimizer = get_optimizer(model.parameters(),name=optim_name, lr=base_lr,**kwargs)
+    #scheduler = get_scheduler(optimizer, name=scheduler_name, **kwargs) 
+    optimization_manager = OptimizationManager(model, optim_config, **kwargs)
     scaler = GradScaler(device='cuda') if use_amp else None
     
     # Initialize helper classes
@@ -342,14 +369,26 @@ def train_fine(
     checkpoint_manager_best = CheckpointManager(checkpoint_path.replace('.pt', '_best.pt'))
     
     # Load checkpoint if exists
-    start_epoch = checkpoint_manager.load_checkpoint(
-        model, optimizer, scheduler, scaler, metrics, device, use_amp
+    start_epoch,optimizer_dict,scheduler_dict, prev_opt_phase = checkpoint_manager.load_checkpoint(
+        model, scaler, metrics, device, use_amp
     )
+    optimizer = optimization_manager.set_optimizer(start_epoch)
+    scheduler = optimization_manager.set_scheduler(optimizer,start_epoch)
+    if start_epoch > 0:
+        optimizer.load_state_dict(optimizer_dict)
+        scheduler.load_state_dict(scheduler_dict)
     
     # Training loop
     for epoch in range(start_epoch, total_epochs):
         epoch_start_time = time.time()
         
+        opt_phase = optimization_manager.get_phase(epoch)
+        print(f"\nEpoch {epoch} - Optimization Phase: {opt_phase}")
+        if prev_opt_phase != opt_phase:
+            print(f"Switching to optimization phase {opt_phase} at epoch {epoch}")
+            prev_opt_phase = opt_phase
+            optimizer = optimization_manager.set_optimizer(epoch) #not sure if it destroys the loaded optimizer
+            scheduler = optimization_manager.set_scheduler(optimizer,epoch)
         # Start epoch profiling
         # Setup profiler
         profiler = TrainingProfiler(use_profiler, profiler_config)
@@ -400,11 +439,10 @@ def train_fine(
                 model, optimizer, scheduler, scaler, epoch, metrics, use_amp
             )
             print(f"✅ Saved new best model at epoch {epoch+1}")
-        else:
-            checkpoint_manager.save_checkpoint(
-                model, optimizer, scheduler, scaler, epoch, metrics, use_amp
-            )
-            print(f"⏳ No improvement for {metrics.epochs_without_improvement} epoch(s)")
+        checkpoint_manager.save_checkpoint(
+            model, optimizer, scheduler, scaler, epoch, metrics, opt_phase,use_amp
+        )
+        print(f"⏳ No improvement for {metrics.epochs_without_improvement} epoch(s)")
         
         # Early stopping check
         if metrics.should_early_stop(early_stopping_patience):
@@ -424,3 +462,45 @@ def train_fine(
     print("\n📊 Performance Summary:")
     metrics.print_summary()
     #profiler.cleanup()
+
+
+class OptimizationManager:
+    def __init__(self,model, config, **kwargs):
+        self.model = model
+        self.kwargs = kwargs
+        self.optimizer_phases = config.get('optimizer_phases', [])
+        self.phase_layers_to_freeze = config.get('phase_layers_to_freeze', [])
+        self.phase_scheduling = config.get('phase_scheduling', [])
+        self.phase_optimizer = config.get('phase_optimizer', ['Adam'])
+        self.phase_lr = config.get('phase_lr', [0.001])
+        self.phase_scheduler_hyperparams = config.get('phase_scheduler_hyperparams', [{}])
+        self.phase_optimizer_hyperparams = config.get('phase_optimizer_hyperparams', [{}])
+    
+    def get_phase(self,epoch):
+        for i, phase in enumerate(self.optimizer_phases):
+            if phase > epoch:
+                return i
+        return len(self.optimizer_phases) - 1
+
+    def set_optimizer(self,epoch):
+        self.epoch = epoch
+        i = self.get_phase(epoch)
+        self.optimizer_name = self.phase_optimizer[i]
+        self.lr = self.phase_lr[i]
+        self.layers_to_freeze = self.phase_layers_to_freeze[i]
+        for name, param in self.model.named_parameters():
+            if name in self.layers_to_freeze:
+                param.requires_grad = False
+            else:
+                param.requires_grad = True
+        print(f"Setting optimizer for phase {i}: {self.optimizer_name} with learning rate {self.lr}")
+        print(f"Freezing {self.layers_to_freeze} parameters")
+        # Print number of trainable parameters after freezing
+        trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        print(f"Trainable parameters after freezing: {trainable_params:,}")
+        return get_optimizer(self.model.parameters(), name=self.optimizer_name, lr=self.lr, **self.phase_optimizer_hyperparams[i])
+
+    def set_scheduler(self, optimizer,epoch):
+        i = self.get_phase(epoch)
+        self.scheduling = self.phase_scheduling[i]
+        return get_scheduler(optimizer, name=self.scheduling, start_epoch = epoch, **self.phase_scheduler_hyperparams[i])

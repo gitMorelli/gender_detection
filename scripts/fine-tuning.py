@@ -163,6 +163,7 @@ class ZarrImageCropDataset_resize(Dataset):
         row = self.df.iloc[idx]
         file_name = row['file_name']
         x1, y1, x2, y2 = row['x'], row['y'], row['x2'], row['y2']
+        label = row['male']
 
         img_idx = self.file_to_idx[file_name]
         full_img = self.zarr_store['images'][img_idx]  # numpy array HWC
@@ -191,7 +192,7 @@ class ZarrImageCropDataset_resize(Dataset):
             print(f"Time for {name}: {(times[i+1] - times[i]).total_seconds() * 1000:.2f} ms")
         raise RuntimeError("Debug: error raised after timing print statements")'''
 
-        return {'image': patch_tensor}
+        return {'image': patch_tensor,'label': torch.tensor(label, dtype=torch.long)}
 
     def __del__(self):
         self.zarr_store = None  # optional: let GC handle closure
@@ -228,26 +229,21 @@ def main(args):
     num_workers = args.num_workers
     pin_memory = args.pin_memory
     show_image = args.show_image
-    is_progressive = args.is_progressive
     checkpoint_path = args.checkpoint_path
     save_path = args.save_path
     #hyperpar suggests
-    base_lr = args.base_lr
     total_epochs = args.total_epochs    
-    temperature = args.temperature
     log_grad_norm = args.log_grad_norm
     use_profiler = args.use_profiler
     run_epochs = args.run_epochs
     plot_every = args.plot_every
     patience = args.patience
-    warmup_epochs = args.warmup_epochs
     use_amp = args.use_amp  # mixed precision training
     val_percentage = args.val_percentage  # percentage of validation data used for linear evaluation
     n_splits = args.n_splits
     loss_criterion = args.loss_criterion  # loss function to use, e.g., 'cross_entropy', 'nt_xent'
-    scheduler_name = args.scheduler_name  # e.g., 'CosineAnnealingLR', 'StepLR', etc.
     selected_classifier = args.selected_classifier  # 'logreg', 'svm', 'rf', 'gbc', 'mlp', 'dt'
-    optim_name = args.optim_name  # e.g., 'Adam', 'SGD', 'AdamW'
+    optim_config = args.optim_config  # e.g., 'Adam', 'SGD', 'AdamW'
 
     profiler_config = {
         'profile_epochs': list(range(0, total_epochs, 10)),  # Profile every 10 epochs
@@ -286,11 +282,15 @@ def main(args):
             num_classes=2) # Assuming binary classification
     else:
         raise ValueError(f"Unsupported classifier: {selected_classifier}. Supported classifiers: 'logreg'.")
+    output=compute_output(model, 'cpu', transform, train_df.iloc[i], huggingface, patches)
+    print(output)
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Device is: ",device)
 
     #split in train and validation
     train_df['train']=1
+    train_df=train_df[train_df['writer']<=N_max]
     writers = train_df['writer']
     val_writers = set(random.sample(list(writers.unique()), max(1, len(writers.unique()) // n_splits)))
     train_df.loc[train_df['writer'].isin(val_writers), 'train'] = 0
@@ -301,6 +301,10 @@ def main(args):
     writer_train_df['train'] = writer_train_df['writer'].apply(lambda w: 0 if w in val_writers else 1)
     writer_train_df.to_csv(save_path+selected_model+'_'+input_filename+'_writers.csv', index=False)
 
+
+    '''print(len(train_df[train_df['train']==1]), len(train_df[train_df['train']==0]))
+    assert set(train_df[train_df['train'] == 1]['writer']).isdisjoint(set(train_df[train_df['train'] == 0]['writer'])), "Train and validation writers overlap!"
+    return 0'''
     zarr_path = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\train_writers.zarr"
     train_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==1], zarr_path, transform=transform, huggingface=huggingface)
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
@@ -312,7 +316,7 @@ def main(args):
     if show_image:
         # Display one image from the dataloader
         import matplotlib.pyplot as plt
-        batch = next(iter(dataloader))
+        batch = next(iter(train_dataloader))
         img = batch['image'][0]
         # Define unnormalize transform (example for ImageNet)
         mean = torch.tensor([0.485, 0.456, 0.406])
@@ -344,33 +348,26 @@ def main(args):
 
     loss_fn = get_criterion(name=loss_criterion)
 
-    if is_progressive:
-        raise NotImplementedError("Progressive training is not implemented yet.")
-    else:
-        # Call training function
-        train_fine(
-            model=model,
-            train_dataloader=train_dataloader,
-            val_dataloader=val_dataloader,
-            device=device,
-            base_lr=base_lr,
-            total_epochs=total_epochs,
-            loss_fn=loss_fn,
-            use_profiler=use_profiler,
-            profiler_config=profiler_config,
-            save_path=save_path,
-            plot_every=plot_every,
-            early_stopping_patience=patience,
-            warmup_epochs=warmup_epochs,
-            checkpoint_path=checkpoint_path,
-            log_grad_norm=log_grad_norm,
-            run_epochs=run_epochs,
-            use_amp=use_amp,
-            val_percentage=val_percentage,  # Use 10% of validation data for linear evaluation
-            scheduler=scheduler_name,
-            optim_name=optim_name,  # e.g., 'Adam', 'SGD', 'AdamW'
-            # ... other parameters
-        )
+    train_fine(
+        model=model,
+        train_dataloader=train_dataloader,
+        val_dataloader=val_dataloader,
+        device=device,
+        total_epochs=total_epochs,
+        loss_fn=loss_fn,
+        use_profiler=use_profiler,
+        profiler_config=profiler_config,
+        save_path=save_path,
+        plot_every=plot_every,
+        early_stopping_patience=patience,
+        checkpoint_path=checkpoint_path,
+        log_grad_norm=log_grad_norm,
+        run_epochs=run_epochs,
+        use_amp=use_amp,
+        val_percentage=val_percentage,  # Use 10% of validation data for linear evaluation
+        optim_config=optim_config,  # e.g., 'Adam', 'SGD', 'AdamW'
+        # ... other parameters
+    )
         
 
     # Get the current timestamp

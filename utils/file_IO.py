@@ -3,6 +3,9 @@ from datetime import datetime
 import os
 import pandas as pd
 
+def access_or_create_dir(dir_path):
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path,exist_ok=True)
 
 def get_base_metadata(filepath):
     stats = os.stat(filepath)

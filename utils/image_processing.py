@@ -115,6 +115,30 @@ def extract_body(image,r=0.1):
             break
     return (0,start,width,end)
 
+def extract_patches_resolution(image, resolution=224, stride=112,n_cc=1):
+    """Extracts patches of a specified resolution from the image."""
+    image_gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
+    img_height, img_width = image_gray.shape
+    
+    valid_patches = []
+    for y in range(0, img_height - resolution + 1, stride):
+        for x in range(0, img_width - resolution + 1, stride):
+            patch = image_gray[y:y+resolution, x:x+resolution]
+            # Check for text using connected components
+            _, binary = cv2.threshold(patch, 180, 255, cv2.THRESH_BINARY_INV)
+            num_labels, _, stats, _ = cv2.connectedComponentsWithStats(binary)
+            
+            if num_labels > n_cc:  # More than 1 means text is present
+                #patch_rgb = image.crop((x1, y1, x2, y2))  # Extract RGB patch
+                #areas = stats[1:, cv2.CC_STAT_AREA]  # skip background (label 0)
+                black_pixel_count = np.sum(binary == 255)
+                # Optionally: compute percentage of black
+                total_pixels = binary.size
+                black_ratio = black_pixel_count / total_pixels
+                valid_patches.append((x, y, x+resolution, y+resolution,num_labels,black_ratio))
+    
+    return valid_patches
+
 def process_row(row,gw=5,n_cc=10,prop=1):
     image = Image.open(row["file_name"])  # Open the image
     #print(row["file_name"])
@@ -156,4 +180,17 @@ def process_row_body(row,r=0.1):
     new_row = row.copy()
     new_row["x"], new_row["y"], new_row["x2"], new_row["y2"] = x1, y1, x2, y2
     new_rows.append(new_row)
+    return new_rows
+
+def process_row_resolution(row, resolution=224, stride=112, n_cc=1):
+    image = Image.open(row["file_name"])  # Open the image
+    patches = extract_patches_resolution(image,resolution=resolution,stride=stride,n_cc=n_cc)  # Extract patches
+    
+    # Create a new row for each patch
+    new_rows = []
+    for (x, y, x2, y2,n_cc,b_ratio) in patches:
+        new_row = row.copy()
+        new_row["x"], new_row["y"], new_row["x2"], new_row["y2"],new_row["n_cc"],new_row["black_ratio"] = x, y, x2, y2, n_cc, b_ratio
+        new_rows.append(new_row)
+    
     return new_rows

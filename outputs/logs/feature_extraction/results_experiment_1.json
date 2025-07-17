@@ -1,5 +1,5 @@
 {
-    "1_20250627_152419": {
+    "1_20250714_201647": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
@@ -29,7 +29,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 4.310582160949707,
+        "training time for cross-validation": 4.696560621261597,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -402,9 +402,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "2_20250627_152427": {
+    "2_20250714_201655": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
@@ -434,7 +436,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 4.18908166885376,
+        "training time for cross-validation": 4.133166790008545,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -807,9 +809,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "3_20250627_152443": {
+    "3_20250714_201712": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
@@ -843,7 +847,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 12.651912927627563,
+        "training time for cross-validation": 12.777672529220581,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -1216,9 +1220,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "4_20250627_152508": {
+    "4_20250714_201737": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
@@ -1252,7 +1258,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 20.735360145568848,
+        "training time for cross-validation": 21.09535026550293,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -1625,9 +1631,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "5_20250627_152517": {
+    "5_20250714_201746": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
@@ -1665,7 +1673,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 6.00014591217041,
+        "training time for cross-validation": 6.091522455215454,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -2038,9 +2046,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "6_20250627_152528": {
+    "6_20250714_201758": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-stage1_20250516_122528.csv",
@@ -2078,7 +2088,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 7.315860271453857,
+        "training time for cross-validation": 7.447829484939575,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -2451,9 +2461,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "7_20250627_152536": {
+    "7_20250714_201806": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-handwritten_20250516_150814.csv",
@@ -2483,7 +2495,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 4.186238050460815,
+        "training time for cross-validation": 4.230517148971558,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -2856,9 +2868,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "8_20250627_152544": {
+    "8_20250714_201814": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-handwritten_20250516_150814.csv",
@@ -2888,7 +2902,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 4.4880547523498535,
+        "training time for cross-validation": 4.4544665813446045,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -3261,9 +3275,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "9_20250627_152600": {
+    "9_20250714_201829": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-handwritten_20250516_150814.csv",
@@ -3297,7 +3313,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 11.499098300933838,
+        "training time for cross-validation": 11.83618426322937,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -3670,9 +3686,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "10_20250627_152623": {
+    "10_20250714_201853": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-handwritten_20250516_150814.csv",
@@ -3706,7 +3724,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 20.226544618606567,
+        "training time for cross-validation": 20.244916677474976,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -4079,9 +4097,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "11_20250627_152635": {
+    "11_20250714_201903": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-handwritten_20250516_150814.csv",
@@ -4119,7 +4139,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 7.629239559173584,
+        "training time for cross-validation": 6.220506429672241,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -4492,9 +4512,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "12_20250627_152647": {
+    "12_20250714_201914": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-small-handwritten_20250516_150814.csv",
@@ -4532,7 +4554,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 8.459931373596191,
+        "training time for cross-validation": 6.611800193786621,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -4905,9 +4927,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 384,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "13_20250627_152717": {
+    "13_20250714_201934": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_resnet50_20250516_161022.csv",
@@ -4937,7 +4961,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 23.826205253601074,
+        "training time for cross-validation": 15.304681062698364,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -5310,9 +5334,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "14_20250627_152739": {
+    "14_20250714_201952": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_resnet50_20250516_161022.csv",
@@ -5342,7 +5368,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 17.28001308441162,
+        "training time for cross-validation": 12.709373235702515,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -5715,9 +5741,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "15_20250627_152830": {
+    "15_20250714_202032": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_resnet50_20250516_161022.csv",
@@ -5751,7 +5779,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 46.00254678726196,
+        "training time for cross-validation": 35.23334050178528,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -6124,9 +6152,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "16_20250627_153019": {
+    "16_20250714_202152": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_resnet50_20250516_161022.csv",
@@ -6160,7 +6190,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 103.82105493545532,
+        "training time for cross-validation": 75.16118621826172,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -6533,9 +6563,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "17_20250627_153055": {
+    "17_20250714_202220": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_resnet50_20250516_161022.csv",
@@ -6573,7 +6605,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 30.740419387817383,
+        "training time for cross-validation": 23.12330460548401,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -6946,9 +6978,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "18_20250627_153149": {
+    "18_20250714_202258": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_resnet50_20250516_161022.csv",
@@ -6986,7 +7020,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 48.338059186935425,
+        "training time for cross-validation": 32.10488247871399,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -7359,9 +7393,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "19_20250627_153200": {
+    "19_20250714_202308": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vit-base-patch16-224-in21k_20250517_151642.csv",
@@ -7391,7 +7427,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 6.6515374183654785,
+        "training time for cross-validation": 6.587732315063477,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -7764,9 +7800,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "20_20250627_153211": {
+    "20_20250714_202319": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vit-base-patch16-224-in21k_20250517_151642.csv",
@@ -7796,7 +7834,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 6.47894287109375,
+        "training time for cross-validation": 6.710678815841675,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -8169,9 +8207,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "21_20250627_153235": {
+    "21_20250714_202340": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vit-base-patch16-224-in21k_20250517_151642.csv",
@@ -8205,7 +8245,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 19.840214252471924,
+        "training time for cross-validation": 17.365039348602295,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -8578,9 +8618,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "22_20250627_153321": {
+    "22_20250714_202416": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vit-base-patch16-224-in21k_20250517_151642.csv",
@@ -8614,7 +8656,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 41.890522718429565,
+        "training time for cross-validation": 31.65338921546936,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -8987,9 +9029,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "23_20250627_153340": {
+    "23_20250714_202432": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vit-base-patch16-224-in21k_20250517_151642.csv",
@@ -9027,7 +9071,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 14.479713439941406,
+        "training time for cross-validation": 12.496581554412842,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -9400,9 +9444,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "24_20250627_153404": {
+    "24_20250714_202453": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vit-base-patch16-224-in21k_20250517_151642.csv",
@@ -9440,7 +9486,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 19.899126768112183,
+        "training time for cross-validation": 16.11176872253418,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -9813,9 +9859,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "25_20250627_153415": {
+    "25_20250714_202503": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-handwritten_20250517_140220.csv",
@@ -9845,7 +9893,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 7.486905097961426,
+        "training time for cross-validation": 6.210022449493408,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -10218,9 +10266,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "26_20250627_153428": {
+    "26_20250714_202513": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-handwritten_20250517_140220.csv",
@@ -10250,7 +10300,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 7.897112846374512,
+        "training time for cross-validation": 6.872294902801514,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -10623,9 +10673,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "27_20250627_153449": {
+    "27_20250714_202531": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-handwritten_20250517_140220.csv",
@@ -10659,7 +10711,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 17.478851079940796,
+        "training time for cross-validation": 14.028459548950195,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -11032,9 +11084,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "28_20250627_153538": {
+    "28_20250714_202608": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-handwritten_20250517_140220.csv",
@@ -11068,7 +11122,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 44.46753191947937,
+        "training time for cross-validation": 32.49083614349365,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -11441,9 +11495,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "29_20250627_153554": {
+    "29_20250714_202621": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-handwritten_20250517_140220.csv",
@@ -11481,7 +11537,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 11.530532836914062,
+        "training time for cross-validation": 9.300105571746826,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -11854,9 +11910,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "30_20250627_153616": {
+    "30_20250714_202638": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-handwritten_20250517_140220.csv",
@@ -11894,7 +11952,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 17.17932105064392,
+        "training time for cross-validation": 13.436297178268433,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -12267,9 +12325,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "31_20250627_153627": {
+    "31_20250714_202649": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv",
@@ -12299,7 +12359,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 7.454407215118408,
+        "training time for cross-validation": 6.50379490852356,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -12672,9 +12732,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "32_20250627_153639": {
+    "32_20250714_202659": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv",
@@ -12704,7 +12766,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 7.223153114318848,
+        "training time for cross-validation": 6.473222732543945,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -13077,9 +13139,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "33_20250627_153710": {
+    "33_20250714_202724": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv",
@@ -13113,7 +13177,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 26.77732276916504,
+        "training time for cross-validation": 20.586975574493408,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -13486,9 +13550,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "34_20250627_153758": {
+    "34_20250714_202800": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv",
@@ -13522,7 +13588,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 43.677608013153076,
+        "training time for cross-validation": 32.28569746017456,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -13895,9 +13961,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "35_20250627_153817": {
+    "35_20250714_202815": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv",
@@ -13935,7 +14003,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 14.381333589553833,
+        "training time for cross-validation": 10.806385278701782,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -14308,9 +14376,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "36_20250627_153842": {
+    "36_20250714_202833": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv",
@@ -14348,7 +14418,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 20.591429471969604,
+        "training time for cross-validation": 14.64807653427124,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -14721,9 +14791,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "37_20250627_153856": {
+    "37_20250714_202845": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-handwritten_20250517_150651.csv",
@@ -14753,7 +14825,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 9.544219493865967,
+        "training time for cross-validation": 7.708051919937134,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -15126,9 +15198,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "38_20250627_153911": {
+    "38_20250714_202857": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-handwritten_20250517_150651.csv",
@@ -15158,7 +15232,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 10.166750431060791,
+        "training time for cross-validation": 8.042389392852783,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -15531,9 +15605,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "39_20250627_153939": {
+    "39_20250714_202920": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-handwritten_20250517_150651.csv",
@@ -15567,7 +15643,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 24.02669334411621,
+        "training time for cross-validation": 18.58485245704651,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -15940,9 +16016,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "40_20250627_154034": {
+    "40_20250714_203007": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-handwritten_20250517_150651.csv",
@@ -15976,7 +16054,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 50.19530940055847,
+        "training time for cross-validation": 43.57321763038635,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -16349,9 +16427,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "41_20250627_154053": {
+    "41_20250714_203021": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-handwritten_20250517_150651.csv",
@@ -16389,7 +16469,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 14.096637725830078,
+        "training time for cross-validation": 9.478424787521362,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -16762,9 +16842,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "42_20250627_154125": {
+    "42_20250714_203042": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-handwritten_20250517_150651.csv",
@@ -16802,7 +16884,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 27.020986318588257,
+        "training time for cross-validation": 16.761785745620728,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -17175,9 +17257,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "43_20250627_154151": {
+    "43_20250714_203102": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_dresnet50_20250520_143808.csv",
@@ -17207,7 +17291,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 21.557340621948242,
+        "training time for cross-validation": 14.968757390975952,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -17580,9 +17664,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "44_20250627_154222": {
+    "44_20250714_203127": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_dresnet50_20250520_143808.csv",
@@ -17612,7 +17698,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 24.934601068496704,
+        "training time for cross-validation": 19.796687126159668,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -17985,9 +18071,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "45_20250627_154256": {
+    "45_20250714_203153": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_dresnet50_20250520_143808.csv",
@@ -18021,7 +18109,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 28.975761890411377,
+        "training time for cross-validation": 21.6949360370636,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -18394,9 +18482,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "46_20250627_154447": {
+    "46_20250714_203313": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_dresnet50_20250520_143808.csv",
@@ -18430,7 +18520,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 105.20064306259155,
+        "training time for cross-validation": 74.30228853225708,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -18803,9 +18893,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "47_20250627_154519": {
+    "47_20250714_203336": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_dresnet50_20250520_143808.csv",
@@ -18843,7 +18935,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 27.027498483657837,
+        "training time for cross-validation": 18.101447582244873,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -19216,9 +19308,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "48_20250627_154619": {
+    "48_20250714_203428": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_dresnet50_20250520_143808.csv",
@@ -19256,7 +19350,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 54.91002655029297,
+        "training time for cross-validation": 47.07203435897827,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -19629,9 +19723,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 2048,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "49_20250627_154628": {
+    "49_20250714_203439": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_crnn_vgg16_bn_20250520_153435.csv",
@@ -19661,7 +19757,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 5.059199333190918,
+        "training time for cross-validation": 6.083468914031982,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -20034,9 +20130,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 512,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "50_20250627_154637": {
+    "50_20250714_203448": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_crnn_vgg16_bn_20250520_153435.csv",
@@ -20066,7 +20164,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 4.5627281665802,
+        "training time for cross-validation": 4.78928542137146,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -20439,9 +20537,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 512,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "51_20250627_154656": {
+    "51_20250714_203506": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_crnn_vgg16_bn_20250520_153435.csv",
@@ -20475,7 +20575,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 14.757253408432007,
+        "training time for cross-validation": 14.53418517112732,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -20848,9 +20948,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 512,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "52_20250627_154719": {
+    "52_20250714_203529": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_crnn_vgg16_bn_20250520_153435.csv",
@@ -20884,7 +20986,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 19.838470935821533,
+        "training time for cross-validation": 19.191699504852295,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -21257,9 +21359,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 512,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "53_20250627_154729": {
+    "53_20250714_203540": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_crnn_vgg16_bn_20250520_153435.csv",
@@ -21297,7 +21401,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 6.2709126472473145,
+        "training time for cross-validation": 7.565162181854248,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -21670,9 +21774,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 512,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "54_20250627_154740": {
+    "54_20250714_203551": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_crnn_vgg16_bn_20250520_153435.csv",
@@ -21710,7 +21816,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 6.425044536590576,
+        "training time for cross-validation": 7.522740125656128,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -22083,9 +22189,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 512,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "55_20250627_154749": {
+    "55_20250714_203601": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vitstr_base_20250524_001621.csv",
@@ -22115,7 +22223,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 5.541148662567139,
+        "training time for cross-validation": 6.1069114208221436,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -22488,9 +22596,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "56_20250627_154759": {
+    "56_20250714_203613": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vitstr_base_20250524_001621.csv",
@@ -22520,7 +22630,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 6.440445899963379,
+        "training time for cross-validation": 7.2288172245025635,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -22893,9 +23003,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "57_20250627_154816": {
+    "57_20250714_203629": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vitstr_base_20250524_001621.csv",
@@ -22929,7 +23041,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 12.571937322616577,
+        "training time for cross-validation": 12.896775484085083,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -23302,9 +23414,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "58_20250627_154854": {
+    "58_20250714_203707": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vitstr_base_20250524_001621.csv",
@@ -23338,7 +23452,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 34.638901472091675,
+        "training time for cross-validation": 33.63146924972534,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -23711,9 +23825,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "59_20250627_154906": {
+    "59_20250714_203720": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vitstr_base_20250524_001621.csv",
@@ -23751,7 +23867,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 7.3214263916015625,
+        "training time for cross-validation": 8.974128723144531,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -24124,9 +24240,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "60_20250627_154918": {
+    "60_20250714_203735": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vitstr_base_20250524_001621.csv",
@@ -24164,7 +24282,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 8.625102996826172,
+        "training time for cross-validation": 11.03647494316101,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -24537,9 +24655,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "61_20250627_155023": {
+    "61_20250714_203848": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_alexnet_20250625_113432.csv",
@@ -24569,7 +24689,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 59.66833806037903,
+        "training time for cross-validation": 66.24200630187988,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -24942,9 +25062,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "62_20250627_155046": {
+    "62_20250714_203912": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_alexnet_20250625_113432.csv",
@@ -24974,7 +25096,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 17.326239109039307,
+        "training time for cross-validation": 19.312100887298584,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -25347,9 +25469,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "63_20250627_155229": {
+    "63_20250714_204055": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_alexnet_20250625_113432.csv",
@@ -25383,7 +25507,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 97.25121092796326,
+        "training time for cross-validation": 97.45137786865234,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -25756,9 +25880,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "64_20250627_155324": {
+    "64_20250714_204151": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_alexnet_20250625_113432.csv",
@@ -25792,7 +25918,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 50.18353223800659,
+        "training time for cross-validation": 49.80651116371155,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -26165,9 +26291,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "65_20250627_155440": {
+    "65_20250714_204310": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_alexnet_20250625_113432.csv",
@@ -26205,7 +26333,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 70.10136437416077,
+        "training time for cross-validation": 73.91662216186523,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -26578,9 +26706,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "66_20250627_155540": {
+    "66_20250714_204416": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_alexnet_20250625_113432.csv",
@@ -26618,7 +26748,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 54.68027329444885,
+        "training time for cross-validation": 60.6674382686615,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -26991,9 +27121,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "67_20250627_155656": {
+    "67_20250714_204533": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vgg16_20250625_115907.csv",
@@ -27023,7 +27155,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 70.60141634941101,
+        "training time for cross-validation": 70.67633605003357,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -27396,9 +27528,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "68_20250627_155723": {
+    "68_20250714_204559": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vgg16_20250625_115907.csv",
@@ -27428,7 +27562,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 20.460930347442627,
+        "training time for cross-validation": 20.41854214668274,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -27801,9 +27935,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "69_20250627_155913": {
+    "69_20250714_204750": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vgg16_20250625_115907.csv",
@@ -27837,7 +27973,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 104.40364980697632,
+        "training time for cross-validation": 104.90078282356262,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -28210,9 +28346,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "70_20250627_160042": {
+    "70_20250714_204919": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vgg16_20250625_115907.csv",
@@ -28246,7 +28384,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 83.07427382469177,
+        "training time for cross-validation": 83.89926743507385,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -28619,9 +28757,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "71_20250627_160204": {
+    "71_20250714_205041": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vgg16_20250625_115907.csv",
@@ -28659,7 +28799,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 76.6908974647522,
+        "training time for cross-validation": 76.41720366477966,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -29032,9 +29172,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "72_20250627_160258": {
+    "72_20250714_205137": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_vgg16_20250625_115907.csv",
@@ -29072,7 +29214,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 47.706618785858154,
+        "training time for cross-validation": 49.36559867858887,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -29445,9 +29587,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 4096,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "73_20250627_160310": {
+    "73_20250714_205149": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_googlenet_20250625_121909.csv",
@@ -29477,7 +29621,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 7.721311092376709,
+        "training time for cross-validation": 7.921112537384033,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -29850,9 +29994,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "74_20250627_160320": {
+    "74_20250714_205200": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_googlenet_20250625_121909.csv",
@@ -29882,7 +30028,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 6.951045274734497,
+        "training time for cross-validation": 6.966441631317139,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -30255,9 +30401,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "75_20250627_160349": {
+    "75_20250714_205228": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_googlenet_20250625_121909.csv",
@@ -30291,7 +30439,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 24.63188862800598,
+        "training time for cross-validation": 24.835426807403564,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -30664,9 +30812,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "76_20250627_160435": {
+    "76_20250714_205314": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_googlenet_20250625_121909.csv",
@@ -30700,7 +30850,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 42.432929039001465,
+        "training time for cross-validation": 41.40729236602783,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -31073,9 +31223,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "77_20250627_160453": {
+    "77_20250714_205332": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_googlenet_20250625_121909.csv",
@@ -31113,7 +31265,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 13.358073234558105,
+        "training time for cross-validation": 13.438420057296753,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -31486,9 +31638,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "78_20250627_160515": {
+    "78_20250714_205354": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_googlenet_20250625_121909.csv",
@@ -31526,7 +31680,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 17.98314881324768,
+        "training time for cross-validation": 18.682543992996216,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -31899,9 +32053,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "79_20250627_160527": {
+    "79_20250714_205406": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-stage1_20250625_124335.csv",
@@ -31931,7 +32087,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 7.6695380210876465,
+        "training time for cross-validation": 7.556080102920532,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -32304,9 +32460,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "80_20250627_160538": {
+    "80_20250714_205418": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-stage1_20250625_124335.csv",
@@ -32336,7 +32494,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 7.659698486328125,
+        "training time for cross-validation": 7.6825737953186035,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -32709,9 +32867,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "81_20250627_160601": {
+    "81_20250714_205440": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-stage1_20250625_124335.csv",
@@ -32745,7 +32905,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 18.445308685302734,
+        "training time for cross-validation": 18.691274404525757,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -33118,9 +33278,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "82_20250627_160647": {
+    "82_20250714_205525": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-stage1_20250625_124335.csv",
@@ -33154,7 +33316,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 41.32403588294983,
+        "training time for cross-validation": 40.84483337402344,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -33527,9 +33689,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "83_20250627_160702": {
+    "83_20250714_205541": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-stage1_20250625_124335.csv",
@@ -33567,7 +33731,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 11.581073522567749,
+        "training time for cross-validation": 11.479289054870605,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -33940,9 +34104,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "84_20250627_160728": {
+    "84_20250714_205608": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-large-stage1_20250625_124335.csv",
@@ -33980,7 +34146,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 21.867385864257812,
+        "training time for cross-validation": 22.56904149055481,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -34353,9 +34519,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 1024,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "85_20250627_160738": {
+    "85_20250714_205618": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-stage1_20250625_130920.csv",
@@ -34385,7 +34553,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 6.173922300338745,
+        "training time for cross-validation": 6.1351659297943115,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -34758,9 +34926,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "86_20250627_160748": {
+    "86_20250714_205628": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-stage1_20250625_130920.csv",
@@ -34790,7 +34960,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 6.152098178863525,
+        "training time for cross-validation": 6.1698362827301025,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -35163,9 +35333,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "87_20250627_160808": {
+    "87_20250714_205648": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-stage1_20250625_130920.csv",
@@ -35199,7 +35371,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 15.89306116104126,
+        "training time for cross-validation": 15.826874256134033,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -35572,9 +35744,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "88_20250627_160844": {
+    "88_20250714_205723": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-stage1_20250625_130920.csv",
@@ -35608,7 +35782,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 31.709429025650024,
+        "training time for cross-validation": 31.599154233932495,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -35981,9 +36155,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "89_20250627_160858": {
+    "89_20250714_205738": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-stage1_20250625_130920.csv",
@@ -36021,7 +36197,7 @@
         "with cross validation": true,
         "with PCA": true,
         "n_components": 0.95,
-        "training time for cross-validation": 10.511468887329102,
+        "training time for cross-validation": 10.319438934326172,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -36394,9 +36570,11 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     },
-    "90_20250627_160915": {
+    "90_20250714_205755": {
         "type of preprocessing": "standard patches",
         "original raw file": "icdar_train_df_patches_20250515_164130.csv",
         "input file": "icdar_EXTRACTED_train_df_trocr-base-stage1_20250625_130920.csv",
@@ -36434,7 +36612,7 @@
         "with cross validation": true,
         "with PCA": false,
         "n_components": 0.95,
-        "training time for cross-validation": 12.870566368103027,
+        "training time for cross-validation": 13.660323143005371,
         "cross_val_accuracies": {
             "IF": [
                 {
@@ -36807,6 +36985,8 @@
         "test": "this is a test column",
         "n_sub_patches": -1,
         "n_writers": -1,
-        "description": " I am training a classifier on the feature vectors extracted by a deep model\n            I am evaluating the results on subsets of the training data, based on language and same/different text."
+        "patch_mode": -1,
+        "representation size": 768,
+        "description": " I am training a classifier on the feature vectors extracted by a deep model\n                I am evaluating the results on subsets of the training data, based on language and same/different text."
     }
 }

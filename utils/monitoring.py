@@ -180,7 +180,7 @@ class TrainingMetrics:
         axes[0, 1].set_title("Validation Loss")
 
         # Learning rate and grad norm
-        axes[0, 2].plot(self.learning_rates, label="Learning Rate", color='orange')
+        axes[0, 2].plot(self.learning_rates, label="Learning Rate", color='orange',linestyle='None', marker='o')
         axes[0, 2].set_xlabel("Epoch")
         axes[0, 2].set_ylabel("LR")
         axes[0, 2].legend()
@@ -232,7 +232,7 @@ class CheckpointManager:
     def __init__(self, checkpoint_path):
         self.checkpoint_path = checkpoint_path
     
-    def save_checkpoint(self, model, optimizer, scheduler, scaler, epoch, metrics, use_amp=True):
+    def save_checkpoint(self, model, optimizer, scheduler, scaler, epoch, metrics, opt_phase,use_amp=True):
         """Save training checkpoint"""
         checkpoint = {
             'epoch': epoch + 1,
@@ -247,6 +247,7 @@ class CheckpointManager:
             'grad_norms': metrics.grad_norms,
             'memory_stats': metrics.memory_stats,
             'timing_stats': metrics.timing_stats,
+            'opt_phase': opt_phase,
         }
         
         if use_amp and scaler:
@@ -254,18 +255,18 @@ class CheckpointManager:
             
         torch.save(checkpoint, self.checkpoint_path)
     
-    def load_checkpoint(self, model, optimizer, scheduler, scaler, metrics, device, use_amp=True):
+    def load_checkpoint(self, model, scaler, metrics, device, use_amp=True):
         """Load training checkpoint and return start epoch"""
         if not os.path.exists(self.checkpoint_path):
             print(f"📂 No checkpoint found at {self.checkpoint_path}. Starting fresh training.")
-            return 0 
+            return 0, None, None, 0 
         
         print(f"🔄 Resuming from checkpoint: {self.checkpoint_path}")
         checkpoint = torch.load(self.checkpoint_path, map_location=device, weights_only=False)
         
         model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        #scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         
         if use_amp and scaler and 'scaler_state_dict' in checkpoint:
             scaler.load_state_dict(checkpoint['scaler_state_dict'])
@@ -280,4 +281,4 @@ class CheckpointManager:
         metrics.timing_stats = checkpoint.get('timing_stats', [])
         metrics.best_val_loss = checkpoint.get('best_val_loss', float('inf'))
         
-        return checkpoint['epoch']
+        return checkpoint['epoch'],checkpoint['optimizer_state_dict'],checkpoint['scheduler_state_dict'],checkpoint['opt_phase']

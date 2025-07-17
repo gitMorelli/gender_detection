@@ -80,8 +80,8 @@ def generate_experiments(config_path, experiment_csv,experiment):
     df = pd.read_pickle(experiment_csv)  # Use read_csv if the file is in CSV format
     args = load_config(config_path)
     args.experiment_name = experiment
-    if int(experiment.split('_')[1]) <=11:
-        try_files = df[experiment].dropna().tolist()
+    #if int(experiment.split('_')[1]) <=11:
+    try_files = df[experiment].dropna().tolist()
 
     try_args = []
     i = 0
@@ -103,7 +103,7 @@ def generate_experiments(config_path, experiment_csv,experiment):
     elif experiment == 'experiment_2':
         for file in try_files:
             i += 1
-            arg.n_patches = 5
+            args.n_patches = 5
             args.input_file_name = file
             args.n_job=i
             try_args.append(copy.deepcopy(args))
@@ -115,13 +115,16 @@ def generate_experiments(config_path, experiment_csv,experiment):
             try_args.append(copy.deepcopy(args))
     elif experiment == 'experiment_4':
         try_n_patches = [list(range(1, 15 + 1)),list(range(1, 15 + 1)),list(range(1, 50 + 1))]
-        for j,file in enumerate(try_files):
-            for n_patches in try_n_patches[j]:
-                i += 1
-                args.input_file_name = file
-                args.n_job=i
-                args.n_patches = n_patches
-                try_args.append(copy.deepcopy(args))
+        try_models = ['logreg','mlp']
+        for model in try_models:
+            for j,file in enumerate(try_files):
+                for n_patches in try_n_patches[j]:
+                    i += 1
+                    args.input_file_name = file
+                    args.n_job=i
+                    args.n_patches = n_patches
+                    args.selected_model = model
+                    try_args.append(copy.deepcopy(args))
     elif experiment == 'experiment_5':
         #linear
         n_test=20
@@ -217,20 +220,37 @@ def generate_experiments(config_path, experiment_csv,experiment):
                     args.n_job=i
                     try_args.append(copy.deepcopy(args))
     elif experiment == 'experiment_12': #combining features on different datasets experiments
+        try_models = ['logreg', 'mlp']
+        try_combine = ['max', 'average']
+        args.with_pca = False
+        for file in try_files:
+            for model in try_models:
+                for combine in try_combine:
+                    i += 1
+                    args.selected_model = model
+                    args.input_file_name = file
+                    args.n_job=i
+                    args.patch_merging = combine
+                    try_args.append(copy.deepcopy(args))
+    '''elif experiment == 'experiment_12': #combining features on different datasets experiments
         args.selected_model = 'mlp'
         args.with_pca = False
         args.script_mode = 'explainability_pipeline'
         args.input_file_name = 'icdar_EXTRACTED_train_df_clip-vit-large-patch14_20250517_144404.csv'
         args.n_job = 1
-        try_args.append(copy.deepcopy(args))
+        try_args.append(copy.deepcopy(args))'''
     return try_args, i, script_name
 
 if __name__ == "__main__":
     output_dir = os.path.join("..", "outputs", "preprocessed_data")
     #experiment_csv = os.path.join(output_dir, "experiment_table.csv")
     #experiment_csv = os.path.join(output_dir, "experiment_table.pkl")  # Change to 'experiment_table.csv' if needed
-    experiment_csv = os.path.join(output_dir, "experiment_table_20250702_193304.pkl")  # Change to 'experiment_table.csv' if needed
-    experiments = [f'experiment_{i}' for i in range(12,13)]  # Change to 'experiment_2' if needed
+    #experiment_csv = os.path.join(output_dir, "experiment_table_20250702_193304.pkl")  # Change to 'experiment_table.csv' if needed
+    #20250711_154537
+    #experiment_csv = os.path.join(output_dir, "experiment_table_20250711_154537.pkl")
+    experiment_csv = os.path.join(output_dir, "experiment_table_20250715_154509.pkl")
+    #experiments = [f'experiment_{i}' for i in range(4,5)]  # Change to 'experiment_2' if needed
+    experiments = ['experiment_2','experiment_6']
     print(experiments)
     config_path = 'feature_extraction_configs/exp_patch_overfitting1.yaml'
 

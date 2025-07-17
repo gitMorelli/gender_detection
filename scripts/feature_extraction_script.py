@@ -271,6 +271,7 @@ def main(args):
     print("Running feature extraction script...")
     args = load_config(args.config)
     script_mode = args.script_mode
+    patch_mode = args.patch_merging
 
     output_dir = source_path + "\\outputs\\preprocessed_data\\"
     LOG_FILE = output_dir+"file_metadata_log.json"
@@ -326,6 +327,18 @@ def main(args):
         selected_writers = np.random.choice(unique_writers, n_selected, replace=False)
         train_FE = train_FE[train_FE['writer'].isin(selected_writers)].reset_index(drop=True)
     cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
+    cols_to_keep = [c for c in train_FE.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]
+
+    if patch_mode == 'average':
+        agg_dict = {col: 'mean' for col in cols_to_keep}
+        agg_dict.update({col: 'first' for col in cols_to_drop})
+        # Group by 'page' and average the feature columns
+        train_FE = train_FE.groupby('page',as_index=False).agg(agg_dict)
+    elif patch_mode == 'max':
+        agg_dict = {col: 'max' for col in cols_to_keep}
+        agg_dict.update({col: 'first' for col in cols_to_drop})
+        # Group by 'page' and average the feature columns
+        train_FE = train_FE.groupby('page',as_index=False).agg(agg_dict)
 
 
     train_FE=select_groups(train_FE,select_column='train', 
@@ -334,6 +347,7 @@ def main(args):
     train_FE_selected = train_FE.copy()
 
     X = train_FE[train_FE['train']==1].drop(columns=cols_to_drop)
+    repr_size = X.shape[1]
     y = train_FE[train_FE['train']==1][target_label]
 
     writers = train_FE[train_FE['train']==1]['writer']
@@ -489,6 +503,8 @@ def main(args):
                 "test": 'this is a test column',
                 "n_sub_patches": n_patches,
                 "n_writers": n_writers,
+                "patch_mode": patch_mode,
+                "representation size": repr_size,
                 "description": ''' I am training a classifier on the feature vectors extracted by a deep model
                 I am evaluating the results on subsets of the training data, based on language and same/different text.''' 
             }
