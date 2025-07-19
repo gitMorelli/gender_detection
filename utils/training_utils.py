@@ -285,7 +285,7 @@ def perform_training_step(model, batch, optimizer, scaler, loss_fn, device,
             with profiler.record_function("optimizer_step"):
                 optimizer.step()
     
-    return loss.detach().item(), grad_norm
+    return loss.detach().item(), grad_norm, z_i.detach(), labels.detach()
 
 def train_epoch(model, train_dataloader, optimizer, scheduler, scaler, loss_fn, 
                 device, epoch, total_epochs, use_amp, log_grad_norm, profiler, metrics):
@@ -293,6 +293,8 @@ def train_epoch(model, train_dataloader, optimizer, scheduler, scaler, loss_fn,
     model.train()
     epoch_train_loss = 0
     epoch_grad_norms = []
+    correct = 0
+    total = 0
     
     # Memory tracking at epoch start
     memory_before = 0
@@ -305,10 +307,14 @@ def train_epoch(model, train_dataloader, optimizer, scheduler, scaler, loss_fn,
     for idx, batch in loop:
         batch_start_time = time.time()
         
-        loss, grad_norm = perform_training_step(
+        loss, grad_norm, outputs, labels = perform_training_step(
             model, batch, optimizer, scaler, loss_fn, device, 
             use_amp, log_grad_norm, profiler
         )
+
+        preds = torch.argmax(outputs, dim=1)
+        correct += (preds == labels).sum().item()
+        total += labels.size(0)
         
         epoch_train_loss += loss
         if log_grad_norm:
@@ -326,8 +332,9 @@ def train_epoch(model, train_dataloader, optimizer, scheduler, scaler, loss_fn,
     
     avg_train_loss = epoch_train_loss / len(train_dataloader)
     avg_grad_norm = np.mean(epoch_grad_norms) if epoch_grad_norms else 0
+    train_accuracy = correct / total if total > 0 else 0.0
     
-    return avg_train_loss, avg_grad_norm, memory_before
+    return avg_train_loss, avg_grad_norm, memory_before, train_accuracy
 
 def train_fine(
     model,
@@ -396,7 +403,7 @@ def train_fine(
         profiler.start_epoch_profiling(epoch)
         
         # Training phase
-        avg_train_loss, avg_grad_norm, memory_before = train_epoch(
+        avg_train_loss, avg_grad_norm, memory_before, train_accuracy = train_epoch(
             model, train_dataloader, optimizer, scheduler, scaler, loss_fn,
             device, epoch, total_epochs, use_amp, log_grad_norm, profiler, metrics
         )
@@ -429,7 +436,7 @@ def train_fine(
         scheduler.step()
         
         # Enhanced logging
-        print(f"Epoch {epoch+1} Train Loss: {avg_train_loss:.4f} | Val Acc: {val_acc:.4f} | "
+        print(f"Epoch {epoch+1}| Train Accuracy {train_accuracy:.4f}| Train Loss: {avg_train_loss:.4f} | Val Acc: {val_acc:.4f} | "
               f"Val Loss: {val_loss:.4f} | LR: {current_lr:.6f} | Avg Grad Norm: {avg_grad_norm:.4f} | "
               f"Epoch Time: {epoch_time:.2f}s | Val Time: {val_time:.2f}s")
         
@@ -504,3 +511,11 @@ class OptimizationManager:
         i = self.get_phase(epoch)
         self.scheduling = self.phase_scheduling[i]
         return get_scheduler(optimizer, name=self.scheduling, start_epoch = epoch, **self.phase_scheduler_hyperparams[i])
+
+
+def get_progressive_training_steps(selected_model):
+    if selected_model == 'resnet18':
+        steps=['layer4','layer3','layer2','layer1']
+    elif selected_model == 'DeiT-Tiny':
+        steps=[f'layer.{i}'for i in range(11,-1,-1)]
+    return steps

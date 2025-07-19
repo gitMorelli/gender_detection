@@ -202,3 +202,4 @@ def assemble_csv_from_log(log_path):
     df.rename(columns={'index': 'experiment'}, inplace=True)
 
     return df
+

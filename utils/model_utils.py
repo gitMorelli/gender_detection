@@ -152,6 +152,40 @@ class CustomTransformer(nn.Module):
         x = self.output_layer(x)
         return x
 
+class CustomLogreg(nn.Module):
+    def __init__(self, input_size, output_size):
+        super(CustomLogreg, self).__init__()
+        self.linear = nn.Linear(input_size, output_size)
+
+    def forward(self, x):
+        return self.linear(x)
+
+class JoinedModels(nn.Module):
+    def __init__(self, vision_model, classifier):
+        super().__init__()
+        self.vision_model = vision_model
+        self.classifier = classifier
+
+    def forward(self, x):
+        features = self.vision_model(x)  # image -> features
+        logits = self.classifier(features)  # features -> prediction
+        return logits
+class SKLearnLogRegWrapper(nn.Module):
+    def __init__(self, sklearn_model):
+        super().__init__()
+        coef = torch.tensor(sklearn_model.coef_, dtype=torch.float32)
+        intercept = torch.tensor(sklearn_model.intercept_, dtype=torch.float32)
+        self.linear = nn.Linear(coef.shape[1], coef.shape[0])
+        with torch.no_grad():
+            self.linear.weight.copy_(coef)
+            self.linear.bias.copy_(intercept)
+
+    def forward(self, x):
+        logits = self.linear(x)
+        p1 = torch.sigmoid(logits)
+        p0 = 1 - p1
+        return torch.cat([p0, p1], dim=1)  # Shape: [B, 2]
+
 def get_resnet(name,mode, pretrained, **kwargs):
     if name=='resnet50':
         weights = ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
@@ -566,8 +600,68 @@ def get_classification_head(name='MLPClassifier1',in_features=512,num_classes=2)
     elif name == 'TransformerClassifier':
         hidden_sizes = [512, 256]
         return CustomTransformer(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+    elif name == 'logreg':
+        return CustomLogreg(input_size=in_features, output_size=num_classes)
     else:
         raise ValueError(f"Classification head {name} is not supported. Choose from ['MLPClassifier1', 'MLPClassifier2', 'TransformerClassifier']")
+
+def get_sklearn_model(name='logreg', **kwargs):
+    if name=='svm':
+        from sklearn.svm import SVC
+        return SVC(kernel='rbf', C=0.1, gamma='scale', probability=True, random_state=42)
+    elif name=='logreg':
+        from sklearn.linear_model import LogisticRegression
+        return LogisticRegression(max_iter=1000, random_state=42)
+    elif name=='gbm':
+        # Define the models
+        from sklearn.ensemble import GradientBoostingClassifier
+        return GradientBoostingClassifier(
+            n_estimators=100, #100 is standard 
+            learning_rate=0.1,  
+            max_depth=3,  
+            random_state=42
+        )
+    elif name=='lgbm':
+        import lightgbm as lgb
+        from lightgbm import early_stopping, log_evaluation
+        return lgb.LGBMClassifier(
+            n_estimators=1000,
+            learning_rate=0.05,
+            max_depth=5,
+            num_leaves=20,
+            min_child_samples=30,#Minimum number of data samples per leaf
+            subsample=0.8, #Randomness in row 
+            colsample_bytree=0.8, #and feature sampling respectively.
+            reg_alpha=1.0, # L1 regularization
+            reg_lambda=1.0, # L2 regularization
+            random_state=42,
+            n_jobs=-1,
+            min_split_gain=0.01,  # Minimum gain to make a split
+        )
+    elif name=='xgb':
+        from xgboost import XGBClassifier
+        return XGBClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
+    #rf = RandomForestClassifier(n_estimators=100, max_depth=None, random_state=42)
+    elif name=='rf':
+        from sklearn.ensemble import RandomForestClassifier
+        return RandomForestClassifier(
+            n_estimators=200,            # More trees = more stable
+            max_depth=10,                # Limits tree depth (main regularizer)
+            min_samples_split=10,        # Minimum samples to split a node
+            min_samples_leaf=5,          # Minimum samples at a leaf node
+            max_features='sqrt',         # Random feature selection at each split
+            bootstrap=True,              # Use bootstrapped samples (default)
+            oob_score=True,              # Out-of-bag error estimate
+            random_state=42,
+            n_jobs=-1
+        )
+    elif name=='mlp':
+        from sklearn.neural_network import MLPClassifier
+        return MLPClassifier(hidden_layer_sizes=(128), activation='relu', solver='adam',
+                            max_iter=200, random_state=42, early_stopping=True, validation_fraction=0.1, n_iter_no_change=10)
+    elif name=='dt':
+        from sklearn.tree import DecisionTreeClassifier
+        return DecisionTreeClassifier(max_depth=3, min_samples_split=5, min_samples_leaf=2, ccp_alpha=0.01, random_state=42)
 
 def get_weights(name="resnet50"):
     if name == "efficientnet":

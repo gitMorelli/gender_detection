@@ -24,25 +24,6 @@ import numpy as np
 import torch.nn as nn
 
 
-class DotDict:
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
-
-    def __setitem__(self, key, value):
-        setattr(self, key, value)
-
-    def __getitem__(self, key):
-        return getattr(self, key)
-
-    def __repr__(self):
-        return f"{self.__dict__}"
-def load_config(path):
-    with open(path, 'r') as f:
-        config=yaml.safe_load(f)
-        args = DotDict()
-        for key, value in config.items():
-            args[key] = value
-        return args
 def compute_output_gpu(model, device, batch):
     model.eval()
     with torch.no_grad():
@@ -75,138 +56,6 @@ def compute_output(model, device, transform, t, huggingface, patches):
         output = model(patch.unsqueeze(0))
     return output
 
-class ZarrImageCropDataset_resize_workers(Dataset):
-    def __init__(self, df, zarr_path, transform=None, huggingface=False):
-        """
-        df: DataFrame with columns ['file_name', 'x', 'y', 'x2', 'y2']
-        zarr_path: path to directory-based Zarr store
-        transform: Optional transform applied to the cropped patch
-        """
-        self.df = df.reset_index(drop=True)
-        self.zarr_path = zarr_path
-        self.transform = transform
-        self.huggingface = huggingface
-
-        # Do NOT open Zarr store or load filenames here!
-        self.zarr_store = None
-        self.file_to_idx = None
-
-    def _init_zarr(self):
-        """Helper to lazily open the zarr store and load filename mapping."""
-        if self.zarr_store is None:
-            self.zarr_store = zarr.open(self.zarr_path, mode='r')
-            filenames = list(self.zarr_store['filenames'][:])
-            # decode bytes if needed (sometimes filenames are bytes)
-            self.file_to_idx = {
-                fn.decode('utf-8') if isinstance(fn, bytes) else fn: i
-                for i, fn in enumerate(filenames)
-            }
-
-    def __len__(self):
-        return len(self.df)
-
-    def __getitem__(self, idx):
-        self._init_zarr()
-
-        row = self.df.iloc[idx]
-        file_name = row['file_name']
-        x1, y1, x2, y2 = row['x'], row['y'], row['x2'], row['y2']
-
-        img_idx = self.file_to_idx[file_name]
-        full_img = self.zarr_store['images'][img_idx]  # numpy array HWC
-
-        patch = full_img[y1:y2, x1:x2, :]
-        patch = Image.fromarray(patch)
-
-        if self.huggingface:
-            inputs = self.transform(images=patch, return_tensors="pt")
-            patch_tensor = inputs['pixel_values'][0]  # shape: (C, H, W)
-        elif self.transform:
-            patch_tensor = self.transform(patch)
-        else:
-            patch_tensor = patch
-
-        return {'image': patch_tensor}
-
-    def __del__(self):
-        self.zarr_store = None  # Allow GC to clean up
-class ZarrImageCropDataset_resize(Dataset):
-    def __init__(self, df, zarr_path, transform=None, huggingface=False):
-        """
-        df: DataFrame with columns ['file_name', 'x', 'y', 'x2', 'y2']
-        zarr_path: path to directory-based Zarr store
-        transform: Optional transform applied to the cropped patch
-        """
-        self.df = df.reset_index(drop=True)
-        self.zarr_path = zarr_path
-        self.transform = transform
-        self.huggingface = huggingface
-        self.zarr_store = None  # will be lazily opened
-
-        # Load filenames and create mapping: file_name -> index
-        z = zarr.open(self.zarr_path, mode='r')
-        filenames = list(z['filenames'][:])
-        self.file_to_idx = {fn: i for i, fn in enumerate(filenames)}
-
-    def __len__(self):
-        return len(self.df)
-
-    def __getitem__(self, idx):
-        '''times = []
-        time_names = ['opening zarr', 'reading image', 'cropping patch', 'converting to PIL', 'transforming patch']
-        times.append(datetime.now())'''
-
-        if self.zarr_store is None:
-            self.zarr_store = zarr.open(self.zarr_path, mode='r')
-        #times.append(datetime.now())
-
-        row = self.df.iloc[idx]
-        file_name = row['file_name']
-        x1, y1, x2, y2 = row['x'], row['y'], row['x2'], row['y2']
-        label = row['male']
-
-        img_idx = self.file_to_idx[file_name]
-        full_img = self.zarr_store['images'][img_idx]  # numpy array HWC
-        #times.append(datetime.now())
-
-        patch = full_img[y1:y2, x1:x2, :]
-        #times.append(datetime.now())
-
-        patch = Image.fromarray(patch)
-        if hasattr(patch, "size"):
-            width, height = patch.size
-            if width == 0 or height == 0:
-                raise ValueError(f"Invalid patch size: {patch.size} at index {idx}; x1={x1}, y1={y1}, x2={x2}, y2={y2} in file {file_name}")
-        #times.append(datetime.now())
-
-        if self.huggingface:
-            inputs = self.transform(images=patch, return_tensors="pt")
-            patch_tensor = inputs['pixel_values'][0]  # shape: (C, H, W)
-        elif self.transform:
-            patch_tensor = self.transform(patch)
-        else:
-            patch_tensor = patch
-        #times.append(datetime.now())
-
-        '''for i, name in enumerate(time_names):
-            print(f"Time for {name}: {(times[i+1] - times[i]).total_seconds() * 1000:.2f} ms")
-        raise RuntimeError("Debug: error raised after timing print statements")'''
-
-        return {'image': patch_tensor,'label': torch.tensor(label, dtype=torch.long)}
-
-    def __del__(self):
-        self.zarr_store = None  # optional: let GC handle closure
-
-class FeatureExtractorWithLogReg(nn.Module):
-    def __init__(self, backbone, in_features, num_classes):
-        super().__init__()
-        self.backbone = backbone
-        self.classifier = nn.Linear(in_features, num_classes)
-
-    def forward(self, x):
-        features = self.backbone(x)
-        return self.classifier(features)
-
 
 def main(args):
     #parameters
@@ -214,12 +63,14 @@ def main(args):
     N_max = args.N_max
     patches = args.patches
     input_filename = args.input_filename
+    val_filename = args.val_filename
     huggingface = args.huggingface
     pooling = args.pooling  # if true in transformer models use pooling, if false only the cls token
     custom_transform = args.custom_transform
     transform_mode = args.transform_mode
     save_h5 = args.save_h5
     selected_model = args.selected_model  # googlenet, alexnet
+    selected_classifier = args.selected_classifier  # 'logreg', 'svm', 'rf', 'gbc', 'mlp', 'dt'
     truncation = args.truncation
     running = args.running
     saved = args.saved
@@ -244,6 +95,7 @@ def main(args):
     loss_criterion = args.loss_criterion  # loss function to use, e.g., 'cross_entropy', 'nt_xent'
     selected_classifier = args.selected_classifier  # 'logreg', 'svm', 'rf', 'gbc', 'mlp', 'dt'
     optim_config = args.optim_config  # e.g., 'Adam', 'SGD', 'AdamW'
+    use_augmentation = args.use_augmentation  # Set to True for data augmentation
 
     profiler_config = {
         'profile_epochs': list(range(0, total_epochs, 10)),  # Profile every 10 epochs
@@ -275,13 +127,8 @@ def main(args):
     output=compute_output(model, 'cpu', transform, train_df.iloc[i], huggingface, patches)
     print("Output shape: ", output.shape)
     in_features = output.shape[1]  # Number of features from the model output
-    if selected_classifier == 'logreg':
-        model = FeatureExtractorWithLogReg(
-            backbone=model,
-            in_features=in_features,
-            num_classes=2) # Assuming binary classification
-    else:
-        raise ValueError(f"Unsupported classifier: {selected_classifier}. Supported classifiers: 'logreg'.")
+    classificaton_head = model_utils.get_classification_head(selected_classifier,in_features)
+    model = model_utils.JoinedModels(model, classificaton_head)
     output=compute_output(model, 'cpu', transform, train_df.iloc[i], huggingface, patches)
     print(output)
     
@@ -292,57 +139,38 @@ def main(args):
     train_df['train']=1
     train_df=train_df[train_df['writer']<=N_max]
     writers = train_df['writer']
-    val_writers = set(random.sample(list(writers.unique()), max(1, len(writers.unique()) // n_splits)))
-    train_df.loc[train_df['writer'].isin(val_writers), 'train'] = 0
-    print("val writers are: ", val_writers)
-    writer_train_df = pd.DataFrame({
-        'writer': writers.unique()
-    })
-    writer_train_df['train'] = writer_train_df['writer'].apply(lambda w: 0 if w in val_writers else 1)
-    writer_train_df.to_csv(save_path+selected_model+'_'+input_filename+'_writers.csv', index=False)
+    if val_filename is not None:
+        val_df = pd.read_csv(f"{source_path}\\outputs\\preprocessed_data\\{val_filename}")
+        val_df=file_IO.change_filename_from_to(train_df, fr=saved, to=running)
+        val_df['train'] = 0
+    else:
+        val_writers = set(random.sample(list(writers.unique()), max(1, len(writers.unique()) // n_splits)))
+        train_df.loc[train_df['writer'].isin(val_writers), 'train'] = 0
+        print("val writers are: ", val_writers)
+        writer_train_df = pd.DataFrame({
+            'writer': writers.unique()
+        })
+        writer_train_df['train'] = writer_train_df['writer'].apply(lambda w: 0 if w in val_writers else 1)
+        writer_train_df.to_csv(save_path+selected_model+'_'+input_filename+'_writers.csv', index=False)
+        val_df = train_df[train_df['train'] == 0]
 
 
     '''print(len(train_df[train_df['train']==1]), len(train_df[train_df['train']==0]))
     assert set(train_df[train_df['train'] == 1]['writer']).isdisjoint(set(train_df[train_df['train'] == 0]['writer'])), "Train and validation writers overlap!"
     return 0'''
     zarr_path = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\train_writers.zarr"
-    train_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==1], zarr_path, transform=transform, huggingface=huggingface)
+    train_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==1], zarr_path, transform=transform, 
+                                                huggingface=huggingface, use_augmentation=use_augmentation)
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,pin_memory=pin_memory)
-    val_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==0], zarr_path, transform=transform, huggingface=huggingface)
+    val_dataset = ZarrImageCropDataset_resize(val_df, zarr_path, transform=transform, 
+                                              huggingface=huggingface, use_augmentation=False)
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,pin_memory=pin_memory)
     
     if show_image:
-        # Display one image from the dataloader
-        import matplotlib.pyplot as plt
-        batch = next(iter(train_dataloader))
-        img = batch['image'][0]
-        # Define unnormalize transform (example for ImageNet)
-        mean = torch.tensor([0.485, 0.456, 0.406])
-        std = torch.tensor([0.229, 0.224, 0.225])
-
-        if isinstance(img, torch.Tensor):
-            if img.dim() == 4:
-                img = img[0]
-            img = img.detach().cpu()
-
-            # Unnormalize
-            if img.shape[0] == 3:
-                img = img * std[:, None, None] + mean[:, None, None]  # Unnormalize only RGB images
-
-            if img.shape[0] == 1:
-                img = img.squeeze(0)
-            elif img.shape[0] == 3:
-                img = img.permute(1, 2, 0)
-
-            img = img.clamp(0, 1).numpy()  # Clamp values to valid range
-        plt.imshow(img)
-        plt.axis('off')
-        plt.show()
-        # Save the image to file
-        plt.imsave(f"{source_path}/outputs/online_deep_feature_extraction/sample_image.png", img)
-        return 0
+        display_debug_images(train_dataloader,save_path, save_name='train')
+        display_debug_images(train_dataloader,save_path, save_name='val')
     
     print(f"[GPU Memory] Allocated: {torch.cuda.memory_allocated() / 1e6:.2f} MB | Reserved: {torch.cuda.memory_reserved() / 1e6:.2f} MB")
 
@@ -390,5 +218,10 @@ if __name__ == "__main__":
     import utils.utils_transforms as u_transforms
     import utils.model_utils as model_utils
     from utils.training_utils import train_fine, get_criterion
+    from utils.visualization import display_debug_images
+    from utils.script_launching import load_config
+    from utils.script_launching import DotDict
+    from utils.train_on_rep_utils import select_n_patches
+    from utils.dataframes import ZarrImageCropDataset_resize
     args = parse_args()
     main(args)

@@ -70,7 +70,7 @@ def run_experiment_threaded(try_args, script_name):
         yaml.dump(try_args.__dict__, tmp)
         tmp_path = tmp.name
 
-    print(f"Starting experiment: file={try_args.input_filename}, model={try_args.selected_model}")
+    print(f"Starting experiment:")
 
     process = subprocess.Popen(
         ['python', script_name, '--config', tmp_path],
