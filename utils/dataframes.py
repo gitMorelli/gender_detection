@@ -11,6 +11,7 @@ from collections import OrderedDict, defaultdict
 import threading
 import zarr
 import utils.utils_transforms as u_transforms
+import pandas as pd
 
 def pad_collate_fn(batch):
     """
@@ -695,3 +696,58 @@ class FastOnTheFlyDataset(Dataset):
         }
         
         return crop
+
+def merge_dfs(train_1, train_2, mode):
+    print('merging dfs train_1 and train_2 with lengths:', len(train_1), len(train_2))
+    if mode=='concat':
+        # Concatenate both datasets to build a unified group mapping
+        combined = pd.concat([train_1[['writer', 'isEng', 'same_text']],
+                            train_2[['writer', 'isEng', 'same_text']]]).drop_duplicates()
+        # Create consistent group ids
+        combined['page'] = combined.groupby(['writer', 'isEng', 'same_text']).ngroup()
+        # Merge group ids back to each original DataFrame
+        train_1 = train_1.merge(combined, on=['writer', 'isEng', 'same_text'], how='left')
+        train_2 = train_2.merge(combined, on=['writer', 'isEng', 'same_text'], how='left')
+        cols_to_drop_1 = [c for c in train_1.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
+        cols_to_drop_2 = [c for c in train_2.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
+        common_cols = list(set(cols_to_drop_1) & set(cols_to_drop_2))
+        # Remove 'page' from common_cols if present
+        if 'page' in common_cols:
+            common_cols.remove('page')
+        train_2.drop(columns=common_cols, inplace=True, errors='ignore')
+        num_pages = combined['page'].nunique()
+        patch_1_per_page = int(len(train_1) / num_pages)
+        patch_2_per_page = int(len(train_2) / num_pages)
+        # Repeat train_2 so it matches the number of patches per page in train_1
+        repeat_factor = patch_1_per_page // patch_2_per_page
+        if repeat_factor > 1:
+            train_2 = pd.concat([train_2] * repeat_factor, ignore_index=True)
+        # Add a 'patch_num' column to train_1: unique number per row within each 'page' group
+        train_1['patch_num'] = train_1.groupby('page').cumcount()
+        train_2['patch_num'] = train_2.groupby('page').cumcount()
+        train_1['patch_num'] = train_1['patch_num'] % patch_2_per_page
+        merged_df = pd.merge(train_1, train_2, on=['page','patch_num'], suffixes=('_1', '_2'))
+        print(f'Merged DataFrame length: {len(merged_df)}')
+    else:
+        raise ValueError("Invalid mode. Use 'concat' to merge DataFrames.")
+    return merged_df
+
+def aggregate_dfs(train_FE, mode=None):
+    print('aggregating patches, length before:', len(train_FE))
+    cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
+    cols_to_keep = [c for c in train_FE.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]
+
+    if mode == 'average':
+        agg_dict = {col: 'mean' for col in cols_to_keep}
+        agg_dict.update({col: 'first' for col in cols_to_drop})
+        # Group by 'page' and average the feature columns
+        train_FE = train_FE.groupby('page',as_index=False).agg(agg_dict)
+    elif mode == 'max':
+        agg_dict = {col: 'max' for col in cols_to_keep}
+        agg_dict.update({col: 'first' for col in cols_to_drop})
+        # Group by 'page' and average the feature columns
+        train_FE = train_FE.groupby('page',as_index=False).agg(agg_dict)
+    elif mode == None:
+        pass
+    print('length after:', len(train_FE))
+    return train_FE

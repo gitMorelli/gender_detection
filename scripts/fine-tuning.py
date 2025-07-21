@@ -96,6 +96,7 @@ def main(args):
     selected_classifier = args.selected_classifier  # 'logreg', 'svm', 'rf', 'gbc', 'mlp', 'dt'
     optim_config = args.optim_config  # e.g., 'Adam', 'SGD', 'AdamW'
     use_augmentation = args.use_augmentation  # Set to True for data augmentation
+    n_patches = args.n_patches
 
     profiler_config = {
         'profile_epochs': list(range(0, total_epochs, 10)),  # Profile every 10 epochs
@@ -123,6 +124,11 @@ def main(args):
     # Define model
     train_df = pd.read_csv(f"{source_path}\\outputs\\preprocessed_data\\{input_filename}")
     train_df=file_IO.change_filename_from_to(train_df, fr=saved, to=running)
+    train_df['page'] = train_df.groupby(['writer', 'isEng', 'same_text']).ngroup()
+    if n_patches > 0:
+        #print(f"Selecting {n_patches} patches per page...")
+        train_df = select_n_patches(train_df, n_patches=n_patches).reset_index(drop=True)
+
     i=0
     output=compute_output(model, 'cpu', transform, train_df.iloc[i], huggingface, patches)
     print("Output shape: ", output.shape)
@@ -139,10 +145,16 @@ def main(args):
     train_df['train']=1
     train_df=train_df[train_df['writer']<=N_max]
     writers = train_df['writer']
+    zarr_path_train = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\train_writers.zarr"
     if val_filename is not None:
         val_df = pd.read_csv(f"{source_path}\\outputs\\preprocessed_data\\{val_filename}")
-        val_df=file_IO.change_filename_from_to(train_df, fr=saved, to=running)
+        val_df=file_IO.change_filename_from_to(val_df, fr=saved, to=running)
+        val_df['page'] = val_df.groupby(['writer', 'isEng', 'same_text']).ngroup()
+        if n_patches > 0:
+            #print(f"Selecting {n_patches} patches per page...")
+            val_df = select_n_patches(val_df, n_patches=n_patches).reset_index(drop=True)
         val_df['train'] = 0
+        zarr_path_val = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\test_public_writers.zarr"
     else:
         val_writers = set(random.sample(list(writers.unique()), max(1, len(writers.unique()) // n_splits)))
         train_df.loc[train_df['writer'].isin(val_writers), 'train'] = 0
@@ -153,24 +165,26 @@ def main(args):
         writer_train_df['train'] = writer_train_df['writer'].apply(lambda w: 0 if w in val_writers else 1)
         writer_train_df.to_csv(save_path+selected_model+'_'+input_filename+'_writers.csv', index=False)
         val_df = train_df[train_df['train'] == 0]
+        zarr_path_val = zarr_path_train  # Use the same zarr path for validation if not provided
 
 
     '''print(len(train_df[train_df['train']==1]), len(train_df[train_df['train']==0]))
     assert set(train_df[train_df['train'] == 1]['writer']).isdisjoint(set(train_df[train_df['train'] == 0]['writer'])), "Train and validation writers overlap!"
     return 0'''
-    zarr_path = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\train_writers.zarr"
-    train_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==1], zarr_path, transform=transform, 
+    train_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==1], zarr_path_train, transform=transform, 
                                                 huggingface=huggingface, use_augmentation=use_augmentation)
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,pin_memory=pin_memory)
-    val_dataset = ZarrImageCropDataset_resize(val_df, zarr_path, transform=transform, 
+    val_dataset = ZarrImageCropDataset_resize(val_df, zarr_path_val, transform=transform, 
                                               huggingface=huggingface, use_augmentation=False)
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,pin_memory=pin_memory)
     
     if show_image:
+        print("Saving debug images...")
         display_debug_images(train_dataloader,save_path, save_name='train')
-        display_debug_images(train_dataloader,save_path, save_name='val')
+        display_debug_images(val_dataloader,save_path, save_name='val')
+        print("Debug images saved.")
     
     print(f"[GPU Memory] Allocated: {torch.cuda.memory_allocated() / 1e6:.2f} MB | Reserved: {torch.cuda.memory_reserved() / 1e6:.2f} MB")
 

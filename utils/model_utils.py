@@ -6,7 +6,7 @@ import torch
 from transformers import VisionEncoderDecoderModel, ViTModel
 import torch.nn as nn
 import torch.nn.functional as F
-
+source_path = 'C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection'
 # Define a custom truncated model
 class TruncatedDeiT(nn.Module):
     def __init__(self, full_model, num_layers=10, from_above=True, encoder_only=False):
@@ -198,7 +198,7 @@ def get_resnet(name,mode, pretrained, **kwargs):
         model = resnet50(weights=weights)
         in_features = model.fc.in_features
         contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
-        checkpoint = torch.load('C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\models\\contrastive\\checkpoint_best.pt', map_location='cpu', weights_only=False)
+        checkpoint = torch.load(source_path+'\\outputs\\models\\contrastive\\checkpoint_best.pt', map_location='cpu', weights_only=False)
         #checkpoint = torch.load('C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\models\\contrastive\\checkpoint.pt', map_location='cpu', weights_only=False)
         contrastive_model.load_state_dict(checkpoint['model_state_dict'])
         return contrastive_model
@@ -554,6 +554,7 @@ def get_clip_vit(name, mode, pretrained, **kwargs):
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
     elif mode=='exp':
         return WrappedVisionModelExpl(model.vision_model, type_of_output=kwargs.get('type_of_output', 'cls')) #add an option for other ways of reading the output
+
 def get_model(name="resnet50", mode='classification head', pretrained=True, **kwargs):
     ''' 
     - name: the name of the model to download/load 
@@ -562,33 +563,37 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     3) truncated (truncates the model to a certain number of layers) so that it returns an hidden representation    - pretrained: whether to load the pretrained weights or not
     - '''
     if name in ["resnet50",'resnet18','resnet50-contrastive']:
-        return get_resnet(name,mode, pretrained, **kwargs)
+        model = get_resnet(name,mode, pretrained, **kwargs)
     elif name in ["vgg11", "vgg13", "vgg16", "vgg19"]:
-        return get_vgg(name, mode, pretrained, **kwargs)
+        model = get_vgg(name, mode, pretrained, **kwargs)
     elif name == "alexnet":
-        return get_alexnet(name, mode, pretrained, **kwargs)
+        model = get_alexnet(name, mode, pretrained, **kwargs)
     elif name == "googlenet":
-        return get_googlenet(name, mode, pretrained, **kwargs)
+        model = get_googlenet(name, mode, pretrained, **kwargs)
     elif name in ["trocr-small-stage1",'trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1','trocr-base-stage1']:
-        return get_trocr(name,mode, pretrained, **kwargs)
+        model = get_trocr(name,mode, pretrained, **kwargs)
     elif name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224"]:
-        return get_vit(name, mode, pretrained, **kwargs)
+        model = get_vit(name, mode, pretrained, **kwargs)
     elif name == "dresnet50":
-        return get_dbnet(name, mode, pretrained, **kwargs)
+        model = get_dbnet(name, mode, pretrained, **kwargs)
     elif name == "vitstr_base":
-        return get_vitstr_base(name, mode, pretrained, **kwargs)
+        model = get_vitstr_base(name, mode, pretrained, **kwargs)
     elif name == "sar_resnet31":
-        return get_sar_resnet31(name, mode, pretrained, **kwargs)
+        model = get_sar_resnet31(name, mode, pretrained, **kwargs)
     elif name == "crnn_vgg16_bn":
-        return get_crnn_vgg16_bn(name, mode, pretrained, **kwargs)
+        model = get_crnn_vgg16_bn(name, mode, pretrained, **kwargs)
     elif name == "layoutlmv3_base":
-        return get_layoutlmv3_base(name, mode, pretrained, **kwargs)
+        model = get_layoutlmv3_base(name, mode, pretrained, **kwargs)
     elif name == "clip-vit-large-patch14":
-        return get_clip_vit(name, mode, pretrained, **kwargs)
+        model = get_clip_vit(name, mode, pretrained, **kwargs)
     elif name == "DeiT-Tiny":
-        return get_deit(name, mode, pretrained, **kwargs)
-    #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)    else:
+        model = get_deit(name, mode, pretrained, **kwargs)
+    #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)    
+    else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'trocr family', 'vit family', and others]")
+    if 'pretrained_modality' in kwargs:
+        model = get_custom_pretrained_weights(name,model,**kwargs)
+    return model
 
 def get_classification_head(name='MLPClassifier1',in_features=512,num_classes=2):
     if name == 'MLPClassifier1': #1 hidden layer
@@ -740,3 +745,13 @@ def test_output(size,transform, model,huggingface=False):
     with torch.no_grad():
         output = model(dummy_input)
     return output
+
+def get_custom_pretrained_weights(name,model,**kwargs):
+    pretrained_modality = kwargs['pretrained_modality']
+    if kwargs["mode"] == 'truncated' and kwargs["truncation"] == 'remove head':
+        path=source_path+f'\\outputs\\online_deep_feature_extraction\\{name}\\{pretrained_modality}\\checkpoint_best_backbone.pth'
+        state_dict = torch.load(path, map_location="cpu")
+        model.load_state_dict(state_dict)
+    else:
+        raise ValueError("Pretrained modality is only supported for truncated models with 'remove head'.")
+    return model

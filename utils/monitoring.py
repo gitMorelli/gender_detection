@@ -229,8 +229,9 @@ class TrainingMetrics:
 class CheckpointManager:
     """Handles saving and loading of training checkpoints"""
     
-    def __init__(self, checkpoint_path):
+    def __init__(self, checkpoint_path, save_backbone=False):
         self.checkpoint_path = checkpoint_path
+        self.save_backbone = save_backbone
     
     def save_checkpoint(self, model, optimizer, scheduler, scaler, epoch, metrics, opt_phase,use_amp=True):
         """Save training checkpoint"""
@@ -254,7 +255,9 @@ class CheckpointManager:
             checkpoint['scaler_state_dict'] = scaler.state_dict()
             
         torch.save(checkpoint, self.checkpoint_path)
-    
+        if self.save_backbone:
+            temp_path= self.checkpoint_path.replace('.pt', '_backbone.pth')
+            torch.save(model.vision_model.state_dict(), temp_path)
     def load_checkpoint(self, model, scaler, metrics, device, use_amp=True):
         """Load training checkpoint and return start epoch"""
         if not os.path.exists(self.checkpoint_path):

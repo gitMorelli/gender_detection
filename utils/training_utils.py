@@ -373,7 +373,7 @@ def train_fine(
     # Initialize helper classes
     metrics = TrainingMetrics()
     checkpoint_manager = CheckpointManager(checkpoint_path)
-    checkpoint_manager_best = CheckpointManager(checkpoint_path.replace('.pt', '_best.pt'))
+    checkpoint_manager_best = CheckpointManager(checkpoint_path.replace('.pt', '_best.pt'),save_backbone=True)
     
     # Load checkpoint if exists
     start_epoch,optimizer_dict,scheduler_dict, prev_opt_phase = checkpoint_manager.load_checkpoint(

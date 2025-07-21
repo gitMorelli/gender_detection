@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 import os
 import pandas as pd
+import glob
 
 def access_or_create_dir(dir_path):
     if not os.path.exists(dir_path):
@@ -203,3 +204,12 @@ def assemble_csv_from_log(log_path):
 
     return df
 
+def save_args(args, filepath):
+    filepath = os.path.join(filepath, "args.txt")  # or any filename you prefer
+    with open(filepath, 'w') as f:
+        for key, value in args.__dict__.items():
+            f.write(f"{key} = {value}\n")
+
+def get_csv_filename(folder):
+    files = glob.glob(os.path.join(folder, "*.csv"))
+    return os.path.basename(files[0]) if files else None

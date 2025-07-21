@@ -289,22 +289,25 @@ def display_vis_on_background(visualizations,df,selected_metric='weighted_vote',
             f.write(txt_info)
 
 def display_debug_images(dataloader,path,save_name):
-    # Display one image from the dataloader
+    # Display one batch of images from the dataloader in a grid
     for batch in dataloader:
         images = batch['image']
-        n_samples = len(images)
-        # Plot n_samples images in a grid
-        _, axes = plt.subplots(1, n_samples, figsize=(4 * n_samples, 4))
-        if n_samples == 1:
-            axes = [axes]
+        n_samples = min(8, len(images))
+        n_cols = 4
+        n_rows = (n_samples + n_cols - 1) // n_cols
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(4 * n_cols, 4 * n_rows))
+        axes = axes.flatten()
         for i in range(n_samples):
             img = images[i].permute(1, 2, 0).cpu().numpy()
             img = (img - img.min()) / (img.max() - img.min())
             img = Image.fromarray((img * 255).astype('uint8'))
             axes[i].imshow(img)
             axes[i].axis('off')
+        # Hide any unused subplots
+        for j in range(n_samples, len(axes)):
+            axes[j].axis('off')
         plt.tight_layout()
-        plt.savefig(os.path.join(path,f"{save_name}_sample_image.png"))
+        plt.savefig(os.path.join(path, f"{save_name}_sample_image.png"))
         plt.close()
         break
     return 0

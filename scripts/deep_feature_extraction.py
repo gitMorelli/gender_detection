@@ -121,35 +121,9 @@ def main(args):
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,pin_memory=pin_memory)
     
     if show_image:
-        # Display one image from the dataloader
-        import matplotlib.pyplot as plt
-        batch = next(iter(dataloader))
-        img = batch['image'][0]
-        # Define unnormalize transform (example for ImageNet)
-        mean = torch.tensor([0.485, 0.456, 0.406])
-        std = torch.tensor([0.229, 0.224, 0.225])
-
-        if isinstance(img, torch.Tensor):
-            if img.dim() == 4:
-                img = img[0]
-            img = img.detach().cpu()
-
-            # Unnormalize
-            if img.shape[0] == 3:
-                img = img * std[:, None, None] + mean[:, None, None]  # Unnormalize only RGB images
-
-            if img.shape[0] == 1:
-                img = img.squeeze(0)
-            elif img.shape[0] == 3:
-                img = img.permute(1, 2, 0)
-
-            img = img.clamp(0, 1).numpy()  # Clamp values to valid range
-        plt.imshow(img)
-        plt.axis('off')
-        plt.show()
-        # Save the image to file
-        plt.imsave(f"{source_path}/outputs/online_deep_feature_extraction/sample_image.png", img)
-        return 0
+        print("Saving debug images...")
+        display_debug_images(dataloader,save_dir, save_name='train')
+        print("Debug images saved.")
     
     if not(data_augmentation):
         num_views=1
@@ -290,5 +264,6 @@ if __name__ == "__main__":
     from utils.script_launching import load_config
     from utils.script_launching import DotDict
     from utils.dataframes import ZarrImageCropDataset_resize
+    from utils.visualization import display_debug_images
     args = parse_args()
     main(args)
