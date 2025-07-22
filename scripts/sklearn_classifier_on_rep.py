@@ -48,6 +48,11 @@ def main(args):
     train_on_same = args.train_on_same
     n_splits = args.n_splits
     save_path = args.save_path
+    extra_view=args.extra_view
+    extra_integration_mode = args.extra_integration_mode
+    extra_train_filename = args.extra_train_filename
+    extra_val_filename = args.extra_val_filename
+    aggregation_mode = args.aggregation_mode
 
     if task == 'language detection' and train_on_language != 'all':
         raise ValueError("For language detection, 'train_on' must be 'all'.")
@@ -59,6 +64,15 @@ def main(args):
     train_FE = pd.read_csv(train_filename)
     if validation_mode=='val_only':
         val_df = pd.read_csv(val_filename)
+        if extra_view:
+            train_df_extra = pd.read_csv(extra_train_filename)
+            val_df_extra = pd.read_csv(extra_val_filename)
+            train_FE = dataframes.merge_dfs(train_FE, train_df_extra, mode=extra_integration_mode)
+            val_df = dataframes.merge_dfs(val_df, val_df_extra, mode=extra_integration_mode)
+
+        train_FE = dataframes.aggregate_dfs(train_FE,mode=aggregation_mode)
+        val_df = dataframes.aggregate_dfs(val_df,mode=aggregation_mode)
+
         train_FE = pd.concat([train_FE, val_df], ignore_index=True)
     
     if is_kaggle:
@@ -75,17 +89,6 @@ def main(args):
         train_FE = train_FE[train_FE['writer'].isin(selected_writers)].reset_index(drop=True)
     cols_to_drop = [c for c in train_FE.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
     cols_to_keep = [c for c in train_FE.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]
-
-    if patch_mode == 'average':
-        agg_dict = {col: 'mean' for col in cols_to_keep}
-        agg_dict.update({col: 'first' for col in cols_to_drop})
-        # Group by 'page' and average the feature columns
-        train_FE = train_FE.groupby('page',as_index=False).agg(agg_dict)
-    elif patch_mode == 'max':
-        agg_dict = {col: 'max' for col in cols_to_keep}
-        agg_dict.update({col: 'first' for col in cols_to_drop})
-        # Group by 'page' and average the feature columns
-        train_FE = train_FE.groupby('page',as_index=False).agg(agg_dict)
 
 
     train_FE=select_groups(train_FE,select_column='train', 
@@ -204,5 +207,6 @@ if __name__ == "__main__":
     from utils.train_on_rep_utils import select_n_patches
     from utils.evaluation_utils import ensembled_predictions, compute_accuracies, group_labels, select_groups, compute_subgroup_accuracies
     from utils.model_utils import get_sklearn_model
+    import utils.dataframes as dataframes
     args = parse_args()
     main(args)

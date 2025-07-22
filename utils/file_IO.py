@@ -213,3 +213,39 @@ def save_args(args, filepath):
 def get_csv_filename(folder):
     files = glob.glob(os.path.join(folder, "*.csv"))
     return os.path.basename(files[0]) if files else None
+
+def load_input_files(source_path,selected_FE,kind,suffix):
+    input_dir=source_path+f'\\outputs\\online_deep_feature_extraction\\{selected_FE}\\representation_extraction\\extracted_representation'
+    if kind == 'patches_224':
+        source_file_train='icdar_train_df_patches_20250716_113702'
+        source_file_val='icdar_train_df_patches_20250716_120511'
+        train_filename = input_dir+f'\\train{suffix}\\{selected_FE}_features_{source_file_train}.csv'
+        val_filename = input_dir+f'\\val\\{selected_FE}_features_{source_file_val}.csv'
+    if kind == 'body':
+        extra_file_train = 'icdar_train_df_body_20250523_181312'
+        extra_file_val = 'icdar_train_df_body_20250716_123551' 
+        train_filename = input_dir+'\\extra_view'+f'\\train{suffix}\\{selected_FE}_features_{extra_file_train}.csv' 
+        val_filename = input_dir+'\\extra_view'+f'\\val\\{selected_FE}_features_{extra_file_val}.csv' 
+    return train_filename, val_filename
+def load_preprocessed_files(kind, mode):
+    if kind == 'patches_224':
+        if mode == 'train':
+            output = 'icdar_train_df_patches_20250716_113702.csv'
+        elif mode == 'val':
+            output = 'icdar_train_df_patches_20250716_120511.csv'
+        elif mode == 'test':
+            output = 'icdar_train_df_patches_20250716_115204.csv'
+    elif kind == 'body':
+        if mode == 'train':
+            output = 'icdar_train_df_body_20250523_181312.csv'
+        elif mode == 'val':
+            output = 'icdar_train_df_body_20250716_123551.csv'
+    elif kind == 'words_sentences':
+        if mode == 'train':
+            output = 'icdar_train_df_words_sentences_20250522_230307.csv'
+    elif kind == 'patches_standard':
+        if mode == 'train':
+            output = 'icdar_train_df_patches_20250515_164130.csv'
+    return output
+
+
