@@ -108,11 +108,14 @@ class CustomMLP(nn.Module):
     def __init__(self, input_size, hidden_sizes, output_size, **kwargs):
         super(CustomMLP, self).__init__()
         layers = []
-        if 'activation' in kwargs:
-            activation = kwargs['activation']
+        activation = kwargs.get('activation', 'relu')
+        dropout = kwargs.get('dropout', None)
+        batchnorm = kwargs.get('batchnorm', False)
+
         for hidden_size in hidden_sizes:
             layers.append(nn.Linear(input_size, hidden_size))
-
+            if batchnorm:
+                layers.append(nn.BatchNorm1d(hidden_size))
             if activation == 'relu':
                 layers.append(nn.ReLU())
             elif activation == 'gelu':
@@ -120,15 +123,12 @@ class CustomMLP(nn.Module):
             elif activation == 'tanh':
                 layers.append(nn.Tanh())
             elif activation == 'sigmoid':
-                layers.append(nn.Sigmoid())    
-            
-            if 'dropout' in kwargs:
-                # If dropout is specified, add it
-                if isinstance(kwargs['dropout'], float):
-                    dropout = kwargs['dropout']
+                layers.append(nn.Sigmoid())
+            if dropout is not None:
+                if isinstance(dropout, float):
+                    layers.append(nn.Dropout(dropout))
                 else:
                     raise ValueError("Dropout should be a float value.")
-                layers.append(nn.Dropout(dropout))
             input_size = hidden_size
         layers.append(nn.Linear(input_size, output_size))
         self.model = nn.Sequential(*layers)
@@ -151,6 +151,23 @@ class CustomTransformer(nn.Module):
         x = self.transformer(x)
         x = self.output_layer(x)
         return x
+
+class Custom1DCNN(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        super(Custom1DCNN, self).__init__()
+        layers = []
+        in_channels = 1  # Assuming input is a single channel (e.g., grayscale)
+        for hidden_size in hidden_sizes:
+            layers.append(nn.Conv1d(in_channels, hidden_size, kernel_size=3, padding=1))
+            layers.append(nn.ReLU())
+            layers.append(nn.MaxPool1d(kernel_size=2))
+            in_channels = hidden_size
+        layers.append(nn.Flatten())
+        layers.append(nn.Linear(in_channels * (input_size // (2 ** len(hidden_sizes))), output_size))
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x.unsqueeze(1))  # Add channel dimension
 
 class CustomLogreg(nn.Module):
     def __init__(self, input_size, output_size):
@@ -193,17 +210,16 @@ def get_resnet(name,mode, pretrained, **kwargs):
     elif name=='resnet18':
         weights = ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
         model = resnet18(weights=weights)
-    elif name=='resnet50-contrastive':
-        weights = ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
-        model = resnet50(weights=weights)
-        in_features = model.fc.in_features
+    else:
+        raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18']")
+    contrastive = kwargs.get('contrastive', False)
+    if contrastive:
+        in_features = model.fc.in_features 
         contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
-        checkpoint = torch.load(source_path+'\\outputs\\models\\contrastive\\checkpoint_best.pt', map_location='cpu', weights_only=False)
+        checkpoint = torch.load(source_path+f'\\outputs\\online_deep_feature_extraction\\{name}\\checkpoint_best.pt', map_location='cpu', weights_only=False)
         #checkpoint = torch.load('C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\models\\contrastive\\checkpoint.pt', map_location='cpu', weights_only=False)
         contrastive_model.load_state_dict(checkpoint['model_state_dict'])
         return contrastive_model
-    else:
-        raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18']")
     if mode=='classification head':
         num_classes=kwargs.get('num_classes', 2)
         hidden_sizes=kwargs.get('hidden_sizes', [128])
@@ -562,7 +578,7 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     2) as is (loads the model as is, without any modifications)
     3) truncated (truncates the model to a certain number of layers) so that it returns an hidden representation    - pretrained: whether to load the pretrained weights or not
     - '''
-    if name in ["resnet50",'resnet18','resnet50-contrastive']:
+    if name in ["resnet50",'resnet18']:
         model = get_resnet(name,mode, pretrained, **kwargs)
     elif name in ["vgg11", "vgg13", "vgg16", "vgg19"]:
         model = get_vgg(name, mode, pretrained, **kwargs)
@@ -595,16 +611,31 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
         model = get_custom_pretrained_weights(name,model,**kwargs)
     return model
 
-def get_classification_head(name='MLPClassifier1',in_features=512,num_classes=2):
+def get_classification_head(name='MLPClassifier1',in_features=512,num_classes=2,**kwargs):
+    dropout = kwargs.get('dropout', None)
+    activation = kwargs.get('activation', 'relu')
+    n_neurons = kwargs.get('n_neurons', 128)
     if name == 'MLPClassifier1': #1 hidden layer
-        hidden_sizes = [int(in_features / 4)]
-        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,dropout=0.7, activation='relu')
+        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons]) 
+        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,dropout=dropout, activation=activation)
+    if name == 'MLPClassifier1-BatchNorm': #1 hidden layer
+        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons]) 
+        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes, activation='relu',batchnorm=True)
     elif name == 'MLPClassifier2':
-        hidden_sizes = [512, 256, 128]
-        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons,n_neurons]) 
+        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,dropout=0.8, activation='relu')
+    elif name == 'MLPClassifier2-BatchNorm':
+        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons,n_neurons])
+        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes, dropout=0.2 ,activation='relu',batchnorm=True)
+    elif name == 'MLPClassifier3':
+        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons,n_neurons,n_neurons])
+        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,dropout=0.5, activation='relu')
     elif name == 'TransformerClassifier':
-        hidden_sizes = [512, 256]
+        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons,n_neurons])
         return CustomTransformer(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
+    elif name == '1DCNNClassifier':
+        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons])
+        return Custom1DCNN(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
     elif name == 'logreg':
         return CustomLogreg(input_size=in_features, output_size=num_classes)
     else:

@@ -7,6 +7,7 @@ from PIL import Image
 from PIL import ImageDraw, ImageFont
 import zarr
 import utils.utils_transforms as u_transforms
+import numpy as np
 
 class ZarrVisualizer():
     def __init__(self, selected, zarr_path,selected_metric, save_path, transform=None, huggingface=False, use_augmentation=False):
@@ -70,10 +71,13 @@ class ZarrVisualizer():
                 image_list.append(patch)
             # Create a grid of images
             n = len(image_list)
-            cols = 4
-            rows = (n + cols - 1) // cols  # Round up to the nearest whole number
-            fig, axes = plt.subplots(rows, cols, figsize=(15, 4 * rows))
-            axes = axes.flatten() if rows > 1 else [axes]
+            cols = int(np.ceil(np.sqrt(n)))
+            rows = int(np.ceil(n / cols))
+            fig, axes = plt.subplots(rows, cols, figsize=(cols * 5.12, rows * 5.12))
+            if isinstance(axes, np.ndarray):
+                axes = axes.flatten()
+            else:
+                axes = [axes]
             for i, img in enumerate(image_list):
                 axes[i].imshow(img)
                 axes[i].axis('off')
@@ -85,7 +89,7 @@ class ZarrVisualizer():
             if self.save_path:
                 plt.savefig(os.path.join(self.save_path, mode,f"page_{page}.png"))
                 txt_info = (
-                    f"Page: {page}; IsMale: {group['male'].iloc[0]}; Predicted page value: {group[self.selected_metric].iloc[0]}; Explanation for: Predicted_value\n"
+                    f"Writer: {group['writer'].iloc[0]},IsEng: {group['isEng'].iloc[0]};Page: {page}; IsMale: {group['male'].iloc[0]}; Predicted page value: {group[self.selected_metric].iloc[0]}; Explanation for: Predicted_value\n"
                     f"{self.types[0]} = {group[grouping[0]].iloc[0]}; {self.types[1]} = {group[grouping[1]].iloc[0]}; {self.types[2]} = {group[grouping[2]].iloc[0]}"
                 )
                 with open(self.save_path + f"{mode}\\page_{page}_info.txt", "w", encoding="utf-8") as f:
@@ -192,26 +196,37 @@ def plot_loss(train_losses, val_losses):
     plt.legend()
     plt.show()
 
-def display_gradcam_vis(visualizations,df,ind,selected_metric='weighted_vote'):
-    pages = df['page'].unique()
-    page = pages[ind]
-    group = df[df['page'] == page]
-    types = ['sure', 'unsure', 'ok']
-    grouping = [selected_metric + '_' + g for g in types] 
-    n = len(visualizations[ind])
-    plt.figure(figsize=(4 * n, 4))
-    for i, visualization in enumerate(visualizations[ind]):
-        plt.subplot(1, n, i + 1)
-        plt.imshow(visualization)
-        #print(group[selected_metric].iloc[0])
-        plt.suptitle(f"Page: {page}; IsMale: {group['male'].iloc[i]}; Predicted page value: {group[selected_metric].iloc[i]}; Explanation for: Predicted_value\n"
-                  f"{types[0]} = {group[grouping[0]].iloc[i]}; {types[1]} = {group[grouping[1]].iloc[i]}; {types[2]} = {group[grouping[2]].iloc[i]}")
-        plt.title(f"Predicted value: {group['y_pred'].iloc[i]};")
-        #plt.xlabel(f"{types[0]} = {group[grouping[0]].iloc[i]}; {types[1]} = {group[grouping[1]].iloc[i]}; {types[2]} = {group[grouping[2]].iloc[i]}", fontsize=16, y=1.05)
-        
-        plt.axis('off')
-    plt.tight_layout()
-    plt.show()
+def display_gradcam_vis(visualizations,df,selected_metric='weighted_vote', save_path=None):
+    for ind in range(len(visualizations)):
+        pages = df['page'].unique()
+        page = pages[ind]
+        group = df[df['page'] == page]
+        types = ['sure', 'unsure', 'ok']
+        grouping = [selected_metric + '_' + g for g in types] 
+        n = len(visualizations[ind])
+        cols = int(np.ceil(np.sqrt(n)))
+        rows = int(np.ceil(n / cols))
+        fig, axes = plt.subplots(rows, cols, figsize=(cols * 5.12, rows * 5.12))
+        if isinstance(axes, np.ndarray):
+            axes = axes.flatten()
+        else:
+            axes = [axes]
+        for i, img in enumerate(visualizations[ind]):
+            axes[i].imshow(img)
+            axes[i].axis('off')
+            axes[i].set_title(f"Pred: {group['y_pred'].iloc[i]}; Prob: {group['y_prob'].iloc[i]}")
+            #i can use i because I have sorted the group before iterating
+        for j in range(i + 1, len(axes)):
+            axes[j].axis('off')
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_path,f"no_back_page_{page}.png"))
+        txt_info = (
+            f"Writer: {group['writer'].iloc[0]},IsEng: {group['isEng'].iloc[0]};Page: {page}; IsMale: {group['male'].iloc[0]}; Predicted page value: {group[selected_metric].iloc[0]}; Explanation for: Predicted_value\n"
+            f"{types[0]} = {group[grouping[0]].iloc[0]}; {types[1]} = {group[grouping[1]].iloc[0]}; {types[2]} = {group[grouping[2]].iloc[0]}"
+        )
+        with open(save_path + f"\\no_back_page_{page}_info.txt", "w", encoding="utf-8") as f:
+            f.write(txt_info)
+    
 
 def display_vis_on_background(visualizations,df,selected_metric='weighted_vote',blank_background=False,save_path=None):
     for ind in range(len(visualizations)):
@@ -247,6 +262,7 @@ def display_vis_on_background(visualizations,df,selected_metric='weighted_vote',
 
             if i==0:
                 width, height = overlay.size
+                print(width, height)
                 x_scale = (x2 - x1) / width
                 y_scale = (y2 - y1) / height
                 # Calculate new size
@@ -282,7 +298,7 @@ def display_vis_on_background(visualizations,df,selected_metric='weighted_vote',
         # Save or show the result
         background.save(save_path+f"\\page_{page}.png")
         txt_info = (
-            f"Page: {page}; IsMale: {group['male'].iloc[i]}; Predicted page value: {group[selected_metric].iloc[i]}; Explanation for: Predicted_value\n"
+            f"Writer: {group['writer'].iloc[0]},IsEng: {group['isEng'].iloc[0]}, Page: {page}; IsMale: {group['male'].iloc[i]}; Predicted page value: {group[selected_metric].iloc[i]}; Explanation for: Predicted_value\n"
             f"{types[0]} = {group[grouping[0]].iloc[i]}; {types[1]} = {group[grouping[1]].iloc[i]}; {types[2]} = {group[grouping[2]].iloc[i]}"
         )
         with open(save_path + f"\\page_{page}_info.txt", "w", encoding="utf-8") as f:

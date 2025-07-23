@@ -113,6 +113,7 @@ class TrainingMetrics:
     
     def reset(self):
         self.train_losses = []
+        self.train_accuracies = []
         self.val_losses = []
         self.val_accuracies = []
         self.learning_rates = []
@@ -122,10 +123,11 @@ class TrainingMetrics:
         self.best_val_loss = float('inf')
         self.epochs_without_improvement = 0
     
-    def update_train_metrics(self, loss, lr, grad_norm=0):
+    def update_train_metrics(self, loss, lr, acc ,grad_norm=0):
         self.train_losses.append(loss)
         self.learning_rates.append(lr)
         self.grad_norms.append(grad_norm)
+        self.train_accuracies.append(acc)
     
     def update_val_metrics(self, loss, accuracy):
         self.val_losses.append(loss)

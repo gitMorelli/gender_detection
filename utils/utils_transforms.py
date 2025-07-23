@@ -393,3 +393,40 @@ def get_augmentation_transform():
         transforms.RandomAffine(degrees=3, translate=(0.02, 0.02),shear=3),
     ])
     return simclr_transform
+
+def get_contrastive_transform(name):
+    normalize = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], 
+            std=[0.229, 0.224, 0.225]
+        )
+    image_size=224
+    if name=='sim-clr':
+        color_jitter_strength = 0.3
+        # SimCLR data augmentation transform
+        transform = transforms.Compose([
+            transforms.RandomResizedCrop(size=image_size, scale=(0.6, 1.0)),
+            #transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([
+                transforms.ColorJitter(
+                            brightness=color_jitter_strength,
+                            contrast=color_jitter_strength,
+                            saturation=color_jitter_strength,
+                            hue=0.05)
+                    ], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.GaussianBlur(5, sigma=(0.1, 0.5)),  # kernel_size ~ 0.1 * image size
+            transforms.RandomAffine(degrees=3, translate=(0.02, 0.02),shear=3),
+            transforms.ToTensor(),
+            normalize
+        ])
+    elif name=='simple':
+        color_jitter = transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)
+        transform = transforms.Compose([
+            transforms.RandomResizedCrop(size=image_size, scale=(0.5, 1.0), interpolation=InterpolationMode.BILINEAR),
+            #transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([color_jitter], p=0.8),
+            transforms.RandomApply([transforms.GaussianBlur(kernel_size=3)], p=0.5),
+            transforms.ToTensor(),
+            normalize
+        ])
+    return transform

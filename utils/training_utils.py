@@ -11,6 +11,10 @@ import numpy as np
 from torch.cuda.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import LambdaLR
 import io
+from torch.optim.optimizer import Optimizer
+import os
+import torch.nn as nn
+
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, 
                 device, num_epochs=5, checkpoint_path=None,early_stopping_patience=10, scheduler=None
@@ -158,6 +162,72 @@ def fine_tune_last_n_layers(model, n):
 
     return model
 
+class NTXentLoss_chat(nn.Module):
+    def __init__(self, temperature=0.5):
+        super().__init__()
+        self.temperature = temperature
+
+    def forward(self, z_i, z_j):
+        batch_size = z_i.size(0)
+        z = torch.cat([z_i, z_j], dim=0)  # [2N, D]
+
+        # Cosine similarity matrix
+        sim = F.cosine_similarity(z.unsqueeze(1), z.unsqueeze(0), dim=2)  # [2N, 2N]
+        sim = sim / self.temperature
+
+        # Mask out self-similarities
+        mask = torch.eye(2 * batch_size, device=z.device).bool()
+        sim.masked_fill_(mask, -float('inf'))
+
+        # Positive indices: for i in [0, 2N), positive pair is at i + N (mod 2N)
+        pos_idx = torch.arange(2 * batch_size, device=z.device)
+        pos_pair_idx = (pos_idx + batch_size) % (2 * batch_size)
+
+        # Compute loss
+        loss = F.cross_entropy(sim, pos_pair_idx)
+        return loss
+
+class NTXentLoss(nn.Module):
+    """Normalized Temperature-scaled Cross Entropy Loss (SimCLR)."""
+    def __init__(self, temperature=0.5, verbose=False):
+        super().__init__()
+        self.temperature = temperature
+        self.criterion = nn.CrossEntropyLoss()
+        self.verbose = verbose
+
+    def forward(self, z_i, z_j):
+        verbose = self.verbose
+        batch_size = z_i.shape[0]
+        z = torch.cat([z_i, z_j], dim=0)  # Stack positive pairs
+        similarity_matrix = torch.matmul(z, z.T)  # Cosine similarity
+        #I don't normalize because the model already does it in the forward pass
+        
+        # Remove self-similarity
+        mask = torch.eye(2 * batch_size, dtype=torch.bool, device=z.device)
+        similarity_matrix = similarity_matrix[~mask].view(2 * batch_size, -1)
+        if verbose:
+            print("similarity_matrix: ",similarity_matrix.shape)
+            print(similarity_matrix)
+        
+        # Compute positive pairs similarity
+        '''
+        positives = torch.cat([torch.diag(similarity_matrix, batch_size-1), 
+                               torch.diag(similarity_matrix, -batch_size+1)], dim=0)
+        '''
+        
+        # Compute NT-Xent loss
+        #labels = torch.arange(2 * batch_size, device=z.device)
+        labels = torch.cat([torch.arange(batch_size-1,2*batch_size-1, device=z.device),
+                            torch.arange(batch_size, device=z.device)], dim=0)
+        if verbose:
+            print("labels: ",labels.shape)
+            print(labels)
+        
+        # Each row should have the highest score at its label index to be used by the crossentropy loss
+        loss = self.criterion(similarity_matrix / self.temperature, labels)
+        #labels should be the class indexes. The first argument are the logits.
+        return loss
+
 def get_criterion(name='CrossEntropyLoss'):
     if name == 'CrossEntropyLoss':
         return torch.nn.CrossEntropyLoss()
@@ -165,8 +235,50 @@ def get_criterion(name='CrossEntropyLoss'):
         return torch.nn.BCEWithLogitsLoss()
     elif name == 'MSELoss':
         return torch.nn.MSELoss()
+    elif name == 'NTXentLoss':
+        return NTXentLoss_chat()
     else:
         raise ValueError(f"Unknown criterion name: {name}. Please provide a valid criterion name.")
+
+class LARS(Optimizer):
+    def __init__(self, params, lr, weight_decay=1e-6, momentum=0.9, eta=0.001, eps=1e-9):
+        defaults = dict(lr=lr, weight_decay=weight_decay, momentum=momentum,
+                        eta=eta, eps=eps)
+        super(LARS, self).__init__(params, defaults)
+
+    def step(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                if p.grad is None:
+                    continue
+
+                dp = p.grad.data
+
+                if group['weight_decay'] != 0:
+                    dp = dp.add(group['weight_decay'], p.data)
+
+                param_norm = torch.norm(p.data)
+                grad_norm = torch.norm(dp)
+                one = torch.ones_like(param_norm)
+
+                q = torch.where(param_norm > 0,
+                                torch.where(grad_norm > 0,
+                                            (group['eta'] * param_norm / (grad_norm + group['eps'])),
+                                            one),
+                                one)
+
+                dp = dp.mul(q)
+
+                if group.get('momentum', 0) > 0:
+                    param_state = self.state[p]
+                    if 'momentum_buffer' not in param_state:
+                        buf = param_state['momentum_buffer'] = torch.clone(dp).detach()
+                    else:
+                        buf = param_state['momentum_buffer']
+                        buf.mul_(group['momentum']).add_(dp)
+                    dp = buf
+
+                p.data.add_(-group['lr'], dp)
 
 def get_optimizer(parameters, name='Adam', lr=0.001,**kwargs):
     if name == 'Adam':
@@ -215,9 +327,11 @@ def get_scheduler(optimizer, name='no_scheduling',start_epoch=0, **kwargs):
             param_group.setdefault('initial_lr', param_group['lr'])
         return CosineAnnealingLR(optimizer, T_max=T_max, eta_min=eta_min,last_epoch=start_epoch-1)
     elif name == 'StepLR':
-        return torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+        step_size= kwargs.get('step_size', 30)
+        return torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.1)
     elif name == 'ReduceLROnPlateau':
-        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
+        patience = kwargs.get('patience', 10)
+        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=patience, verbose=True)
     elif name == "no_scheduling":
         class NoOpScheduler:
             def step(self, *args, **kwargs):
@@ -227,12 +341,37 @@ def get_scheduler(optimizer, name='no_scheduling',start_epoch=0, **kwargs):
             def load_state_dict(self, state_dict):
                 pass
         return NoOpScheduler()
-    elif name == 'CosineAnnealingWarmRestarts':
+    elif name == 'CosineAnnealingWarmup':
         return get_cosine_schedule_with_warmup(optimizer, **kwargs)
     elif name == 'CosineScheduleCustom':
         return get_cosine_schedule_custom(optimizer, start_epoch, **kwargs)
     elif name == 'Linear':
         return get_linear(optimizer, start_epoch=start_epoch, **kwargs)
+    elif name == 'CyclicalLR':
+        base_lr = kwargs.get('base_lr', 0.001)
+        max_lr = kwargs.get('max_lr', 0.01)
+        step_size_up = kwargs.get('step_size_up', 2000)
+        step_size_down = kwargs.get('step_size_down', 2000)
+        mode = kwargs.get('mode', 'triangular') #"exp_range", "triangular2"
+        return torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=base_lr, max_lr=max_lr, 
+                                                  step_size_up=step_size_up, step_size_down=step_size_down, 
+                                                  mode=mode, cycle_momentum=False)
+    elif name == 'OneCycleLR':
+        max_lr = kwargs.get('max_lr', 0.01)
+        #total_steps = kwargs.get('total_epochs', 1000)
+        epochs = kwargs.get('total_epochs', 100)
+        steps_per_epoch = kwargs.get('steps_per_epoch', 705)
+        pct_start = kwargs.get('pct_start', 0.3)
+        anneal_strategy = kwargs.get('anneal_strategy', 'cos')
+        return torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=max_lr, epochs=epochs, steps_per_epoch=steps_per_epoch, 
+                                                   pct_start=pct_start, anneal_strategy=anneal_strategy)
+    elif name == 'CosineAnnealingWarmRestarts':
+        T_0 = kwargs.get('T_0', 10)
+        T_mult = kwargs.get('T_mult', 1)
+        eta_min = kwargs.get('eta_min', 0)
+        for param_group in optimizer.param_groups:
+            param_group.setdefault('initial_lr', param_group['lr'])
+        return torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=T_0, T_mult=T_mult, eta_min=eta_min, last_epoch=start_epoch-1)
     else:
         raise ValueError(f"Unknown scheduler name: {name}. Please provide a valid scheduler name.")
 
@@ -288,7 +427,7 @@ def perform_training_step(model, batch, optimizer, scaler, loss_fn, device,
     return loss.detach().item(), grad_norm, z_i.detach(), labels.detach()
 
 def train_epoch(model, train_dataloader, optimizer, scheduler, scaler, loss_fn, 
-                device, epoch, total_epochs, use_amp, log_grad_norm, profiler, metrics):
+                device, epoch, total_epochs, use_amp, log_grad_norm, profiler, metrics, step_at_epoch=False, contrastive_mode=False):
     """Train for one epoch"""
     model.train()
     epoch_train_loss = 0
@@ -309,18 +448,22 @@ def train_epoch(model, train_dataloader, optimizer, scheduler, scaler, loss_fn,
         
         loss, grad_norm, outputs, labels = perform_training_step(
             model, batch, optimizer, scaler, loss_fn, device, 
-            use_amp, log_grad_norm, profiler
+            use_amp, log_grad_norm, profiler, contrastive_mode=contrastive_mode
         )
 
-        preds = torch.argmax(outputs, dim=1)
-        correct += (preds == labels).sum().item()
-        total += labels.size(0)
+        if contrastive_mode:
+            preds = torch.argmax(outputs, dim=1)
+            correct += (preds == labels).sum().item()
+            total += labels.size(0)
+
         
         epoch_train_loss += loss
         if log_grad_norm:
             epoch_grad_norms.append(grad_norm)
         
         profiler.step()
+        if step_at_epoch:
+            scheduler.step() 
         
         # Detailed timing and memory tracking for first few batches
         if idx < 5 or (idx % 100 == 0):
@@ -332,7 +475,10 @@ def train_epoch(model, train_dataloader, optimizer, scheduler, scaler, loss_fn,
     
     avg_train_loss = epoch_train_loss / len(train_dataloader)
     avg_grad_norm = np.mean(epoch_grad_norms) if epoch_grad_norms else 0
-    train_accuracy = correct / total if total > 0 else 0.0
+    if contrastive_mode==False:
+        train_accuracy = correct / total if total > 0 else 0.0
+    else: 
+        train_accuracy = 0.0
     
     return avg_train_loss, avg_grad_norm, memory_before, train_accuracy
 
@@ -354,6 +500,9 @@ def train_fine(
     save_path=None,
     use_amp=True,
     optim_config=None,
+    save_backbone=False,
+    step_at_epoch=False,
+    contrastive_mode=False,
     **kwargs
 ):
     """
@@ -373,7 +522,7 @@ def train_fine(
     # Initialize helper classes
     metrics = TrainingMetrics()
     checkpoint_manager = CheckpointManager(checkpoint_path)
-    checkpoint_manager_best = CheckpointManager(checkpoint_path.replace('.pt', '_best.pt'),save_backbone=True)
+    checkpoint_manager_best = CheckpointManager(checkpoint_path.replace('.pt', '_best.pt'),save_backbone=save_backbone)
     
     # Load checkpoint if exists
     start_epoch,optimizer_dict,scheduler_dict, prev_opt_phase = checkpoint_manager.load_checkpoint(
@@ -405,7 +554,7 @@ def train_fine(
         # Training phase
         avg_train_loss, avg_grad_norm, memory_before, train_accuracy = train_epoch(
             model, train_dataloader, optimizer, scheduler, scaler, loss_fn,
-            device, epoch, total_epochs, use_amp, log_grad_norm, profiler, metrics
+            device, epoch, total_epochs, use_amp, log_grad_norm, profiler, metrics, step_at_epoch=step_at_epoch, contrastive_mode=contrastive_mode
         )
         
         # Stop training profiler
@@ -415,7 +564,7 @@ def train_fine(
         val_start_time = time.time()
         
         val_loss, val_acc = perform_validation(
-            model, val_dataloader, device, val_percentage, epoch, total_epochs, use_amp, loss_fn
+            model, val_dataloader, device, val_percentage, epoch, total_epochs, use_amp, loss_fn, contrastive_mode=contrastive_mode
         )
         
         val_time = time.time() - val_start_time
@@ -423,7 +572,7 @@ def train_fine(
         
         # Update metrics
         current_lr = optimizer.param_groups[0]['lr']
-        metrics.update_train_metrics(avg_train_loss, current_lr, avg_grad_norm)
+        metrics.update_train_metrics(avg_train_loss, current_lr, train_accuracy ,avg_grad_norm)
         metrics.update_val_metrics(val_loss, val_acc)
         
         # Memory tracking
@@ -433,7 +582,11 @@ def train_fine(
             metrics.update_memory_stats(epoch, memory_before, memory_after, epoch_time, val_time)
         
         # Step scheduler
-        scheduler.step()
+        if step_at_epoch==False:
+            if optimization_manager.scheduling=='ReduceLROnPlateau':
+                scheduler.step(val_loss)
+            else:
+                scheduler.step()
         
         # Enhanced logging
         print(f"Epoch {epoch+1}| Train Accuracy {train_accuracy:.4f}| Train Loss: {avg_train_loss:.4f} | Val Acc: {val_acc:.4f} | "
@@ -458,7 +611,9 @@ def train_fine(
         
         # Plot metrics
         if (epoch + 1) % plot_every == 0 or (epoch + 1) == total_epochs:
-            metrics.plot_metrics(epoch, save_path)
+            checkpoint_folder = os.path.dirname(checkpoint_path)
+            #print(f"Checkpoint folder: {checkpoint_folder}")
+            metrics.plot_metrics(epoch, checkpoint_folder)
         
         # Check if we've run enough epochs
         if epoch >= start_epoch + run_epochs-1:
@@ -469,6 +624,20 @@ def train_fine(
     print("\n📊 Performance Summary:")
     metrics.print_summary()
     #profiler.cleanup()
+    best_ind = len(metrics.val_losses)-metrics.epochs_without_improvement-1 
+    best_model_performance = {
+        'best_val_loss': metrics.best_val_loss,
+        'best_val_acc': metrics.val_accuracies[best_ind],
+        'best_epoch': best_ind,
+        'best_train_loss': metrics.train_losses[best_ind],
+        'best_train_acc': metrics.train_accuracies[best_ind],
+        'last_epoch': len(metrics.val_losses)-1,
+        'last_val_loss': metrics.val_losses[-1],
+        'last_val_acc': metrics.val_accuracies[-1],
+        'last_train_loss': metrics.train_losses[-1],
+        'last_train_acc': metrics.train_accuracies[-1],
+    }
+    return best_model_performance 
 
 
 class OptimizationManager:

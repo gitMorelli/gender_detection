@@ -101,7 +101,15 @@ def gradcam_on_batch(model, input_tensor, labels, target_layers, reshape_transfo
         # Visualize each image in the batch
         visualizations = []
         for i in range(len(labels)):
-            rgb_image = torch.clamp(input_tensor[i].permute(1, 2, 0), 0, 1).cpu().detach().numpy().astype(np.float32)
+            #rgb_image = torch.clamp(input_tensor[i].permute(1, 2, 0), 0, 1).cpu().detach().numpy().astype(np.float32)
+            image = input_tensor[i].permute(1, 2, 0)  # CHW -> HWC
+            min_val = image.min()
+            max_val = image.max()
+            if max_val > min_val:
+                rgb_image = ((image - min_val) / (max_val - min_val)).cpu().detach().numpy().astype(np.float32)
+            else:
+                rgb_image = torch.zeros_like(image).cpu().detach().numpy().astype(np.float32)  # fallback if image is constant
+
             grayscale_cam = grayscale_cams[i]
             visualization = show_cam_on_image(rgb_image, grayscale_cam, use_rgb=True)
             visualizations.append(visualization)

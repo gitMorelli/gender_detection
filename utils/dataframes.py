@@ -697,6 +697,112 @@ class FastOnTheFlyDataset(Dataset):
         
         return crop
 
+class ContrastivePatchDataset(Dataset):
+    def __init__(self, df,transform):
+        """
+        Args:
+            image_dirs (list of str): List of directories to load images from.
+            labels_df (DataFrame): DataFrame containing labeled images.
+            transform (callable, optional): Optional transform to be applied on an image.
+        """
+        self.image_files = df['file_name'].tolist()
+        self.x1 = df['x'].tolist()
+        self.y1 = df['y'].tolist()
+        self.x2 = df['x2'].tolist()
+        self.y2 = df['y2'].tolist()
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, idx):
+        img_path = self.image_files[idx]
+        x1=self.x1[idx]
+        y1=self.y1[idx]
+        x2=self.x2[idx]
+        y2=self.y2[idx]
+        image = Image.open(img_path).convert("RGB")
+        patch = image.crop((x1, y1, x2, y2))
+
+        if self.transform:
+            patch1 = self.transform(patch)
+            patch2 = self.transform(patch)
+
+        return {
+            'image1': patch1,
+            'image2': patch2,
+        }
+
+class ZarrContrastive(Dataset):
+    def __init__(self, df, zarr_path, transform=None, huggingface=False, contrastive_transform=None):
+        """
+        df: DataFrame with columns ['file_name', 'x', 'y', 'x2', 'y2']
+        zarr_path: path to directory-based Zarr store
+        transform: Optional transform applied to the cropped patch
+        """
+        self.df = df.reset_index(drop=True)
+        self.zarr_path = zarr_path
+        self.transform = transform
+        self.huggingface = huggingface
+        self.zarr_store = None  # will be lazily opened
+        self.contrastive_transform = contrastive_transform
+
+        # Load filenames and create mapping: file_name -> index
+        z = zarr.open(self.zarr_path, mode='r')
+        filenames = list(z['filenames'][:])
+        self.file_to_idx = {fn: i for i, fn in enumerate(filenames)}
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        '''times = []
+        time_names = ['opening zarr', 'reading image', 'cropping patch', 'converting to PIL', 'transforming patch']
+        times.append(datetime.now())'''
+
+        if self.zarr_store is None:
+            self.zarr_store = zarr.open(self.zarr_path, mode='r')
+        #times.append(datetime.now())
+
+        row = self.df.iloc[idx]
+        file_name = row['file_name']
+        x1, y1, x2, y2 = row['x'], row['y'], row['x2'], row['y2']
+        label = row['male']
+
+        img_idx = self.file_to_idx[file_name]
+        full_img = self.zarr_store['images'][img_idx]  # numpy array HWC
+        #times.append(datetime.now())
+
+        patch = full_img[y1:y2, x1:x2, :]
+        #times.append(datetime.now())
+
+        patch = Image.fromarray(patch)
+        if hasattr(patch, "size"):
+            width, height = patch.size
+            if width == 0 or height == 0:
+                raise ValueError(f"Invalid patch size: {patch.size} at index {idx}; x1={x1}, y1={y1}, x2={x2}, y2={y2} in file {file_name}")
+        #times.append(datetime.now())
+        patches=[]
+        for i in range(2):
+            patch = self.contrastive_transform(patch)
+            if self.huggingface:
+                inputs = self.transform(images=patch, return_tensors="pt")
+                patch_tensor = inputs['pixel_values'][0]  # shape: (C, H, W)
+            elif self.transform:
+                patch_tensor = self.transform(patch)
+            else:
+                patch_tensor = patch
+            patches.append(patch_tensor)
+        #times.append(datetime.now())
+
+        return {
+            'image1': patches[0],
+            'image2': patches[1],
+        }
+
+    def __del__(self):
+        self.zarr_store = None  # optional: let GC handle closure
+
 def merge_dfs(train_1, train_2, mode):
     print('merging dfs train_1 and train_2 with lengths:', len(train_1), len(train_2))
     if mode=='concat':

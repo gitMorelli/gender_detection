@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 import pandas as pd
 import glob
+import shutil
 
 def access_or_create_dir(dir_path):
     if not os.path.exists(dir_path):
@@ -248,4 +249,43 @@ def load_preprocessed_files(kind, mode):
             output = 'icdar_train_df_patches_20250515_164130.csv'
     return output
 
+def clear_folder(folder_path):
+    """
+    Deletes all files and subdirectories in the specified folder.
+    """
+    if not os.path.exists(folder_path):
+        print(f"Folder not found: {folder_path}")
+        return
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(f"Failed to delete {file_path}. Reason: {e}")
 
+def init_expl_dirs(search_dir,clear=False):
+    explanation_dir = search_dir + 'explanations'
+    cam_dir = explanation_dir + '\\cam'
+    attention_dir = explanation_dir + '\\attention'
+    original_dir = search_dir + 'original'
+    transformed_dir = search_dir + 'preprocessed'
+    augmented_dir = search_dir + 'augmentation'
+    dirs= [explanation_dir, cam_dir, attention_dir, original_dir, transformed_dir, augmented_dir]
+    for dir in dirs:
+        if clear:
+            access_or_create_dir(dir)
+            clear_folder(dir)
+        else:
+            access_or_create_dir(dir)
+    return explanation_dir, cam_dir, attention_dir, original_dir, transformed_dir, augmented_dir
+
+'''def dumb_init(search_dir,clear=False):
+    explanation_dir = search_dir + 'explanations'
+    string = '\\cam\\attention'
+    for i in range(10):
+        explanation_dir += string
+        os.makedirs(explanation_dir, exist_ok=True)
+        os.chmod(explanation_dir, 0o555)  if i%3==0 else os.chmod(explanation_dir, 0o755)'''

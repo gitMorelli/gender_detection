@@ -291,6 +291,7 @@ def select_instances(train_df, selected_metric='majority_vote'):
 
         percentile_25 = grouped[metric + '_uncertainty'].quantile(0.25) #threshold for unsure
         percentile_75 = grouped[metric + '_uncertainty'].quantile(0.75) #threshold for sure
+        #print(f"Percentiles for {metric}: 25th = {percentile_25}, 75th = {percentile_75}")
         grouped[metric+'_selected'] = 0
         grouped[metric+'_sure'] = (grouped[metric+'_uncertainty'] >= percentile_75).astype(int)
         grouped[metric+'_unsure'] = (grouped[metric+'_uncertainty'] <= percentile_25).astype(int)
