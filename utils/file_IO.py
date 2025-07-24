@@ -236,6 +236,8 @@ def load_preprocessed_files(kind, mode):
             output = 'icdar_train_df_patches_20250716_120511.csv'
         elif mode == 'test':
             output = 'icdar_train_df_patches_20250716_115204.csv'
+        elif mode == 'contrastive':
+            output = 'icdar_train_df_iam_rimes_patches_20250724_200130.csv'
     elif kind == 'body':
         if mode == 'train':
             output = 'icdar_train_df_body_20250523_181312.csv'

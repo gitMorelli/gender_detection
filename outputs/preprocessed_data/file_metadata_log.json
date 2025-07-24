@@ -1477,5 +1477,21 @@
         "truncation": "remove head",
         "transform_mode": "resize",
         "description": " "
+    },
+    "icdar_train_df_iam_rimes_patches_20250724_200130.csv": {
+        "full_path": "c:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\preprocessed_data\\icdar_train_df_iam_rimes_patches_20250724_200130.csv",
+        "size_bytes": 50007218,
+        "created": "2025-07-24T20:01:30.698394",
+        "modified": "2025-07-24T20:01:32.068492",
+        "accessed": "2025-07-24T20:01:32.068492",
+        "m patches": 50,
+        "source_file": "train_df_iam_rimes_20250613_174929.csv",
+        "gw": 6,
+        "n_cc": 1,
+        "prop": 1,
+        "sort_by": "black_ratio",
+        "resolution": 224,
+        "stride": 112,
+        "description": "\n        creating the df for performing contrastive learning on iam and rimes. I am cropping the first and last quarter of the iam images and \n        dividing the width in gw patches"
     }
 }

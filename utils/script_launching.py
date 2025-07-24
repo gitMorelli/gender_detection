@@ -90,4 +90,5 @@ def run_experiment_threaded(try_args, script_name):
     stderr_thread.join()
 
     print(f"Experiment finished with return code: {process.returncode}")
-    return
+
+    return 

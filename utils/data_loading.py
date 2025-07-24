@@ -52,7 +52,7 @@ def get_dataloaders(transform, batch_size=16, N_max=282,file_name='icdar_train_d
 
     return train_dataloader, val_dataloader
 
-def load_classification_head(selected_FE,selected_classifier,classifier_type,validation_mode,train_filename,source_path):
+def load_classification_head(selected_FE,selected_classifier,classifier_type,validation_mode,train_filename,source_path,**kwargs):
 
     train_df = pd.read_csv(train_filename)
     cols_to_keep = [c for c in train_df.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]
@@ -72,7 +72,7 @@ def load_classification_head(selected_FE,selected_classifier,classifier_type,val
         search_dir = base_dir+f'torch_model_trained_on_rep/{selected_classifier}/'
         checkpoint_path = os.path.join(search_dir, 'checkpoint_best.pt')
         #print('checkpoint_path:', checkpoint_path)
-        model = model_utils.get_classification_head(name=selected_classifier, in_features=in_features, num_classes=2)
+        model = model_utils.get_classification_head(name=selected_classifier, in_features=in_features, num_classes=2,**kwargs)
         checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'), weights_only=False)
         model.load_state_dict(checkpoint['model_state_dict'])
         return model, train_df

@@ -304,10 +304,15 @@ def display_vis_on_background(visualizations,df,selected_metric='weighted_vote',
         with open(save_path + f"\\page_{page}_info.txt", "w", encoding="utf-8") as f:
             f.write(txt_info)
 
-def display_debug_images(dataloader,path,save_name):
+def display_debug_images(dataloader,path,save_name, contrastive_mode=False):
     # Display one batch of images from the dataloader in a grid
     for batch in dataloader:
-        images = batch['image']
+        if contrastive_mode:
+            # For contrastive mode, we assume the batch contains 'image1' and 'image2'
+            images = batch['image1']
+        else:
+            # For standard mode, we assume the batch contains 'image'
+            images = batch['image']
         n_samples = min(8, len(images))
         n_cols = 4
         n_rows = (n_samples + n_cols - 1) // n_cols

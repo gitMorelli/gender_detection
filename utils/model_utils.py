@@ -124,6 +124,8 @@ class CustomMLP(nn.Module):
                 layers.append(nn.Tanh())
             elif activation == 'sigmoid':
                 layers.append(nn.Sigmoid())
+            elif activation == 'leaky_relu':
+                layers.append(nn.LeakyReLU())
             if dropout is not None:
                 if isinstance(dropout, float):
                     layers.append(nn.Dropout(dropout))
@@ -213,12 +215,14 @@ def get_resnet(name,mode, pretrained, **kwargs):
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18']")
     contrastive = kwargs.get('contrastive', False)
-    if contrastive:
+    if contrastive or load_contrastive:
         in_features = model.fc.in_features 
         contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
-        checkpoint = torch.load(source_path+f'\\outputs\\online_deep_feature_extraction\\{name}\\checkpoint_best.pt', map_location='cpu', weights_only=False)
-        #checkpoint = torch.load('C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\models\\contrastive\\checkpoint.pt', map_location='cpu', weights_only=False)
-        contrastive_model.load_state_dict(checkpoint['model_state_dict'])
+        load_contrastive = kwargs.get('load_contrastive', False)
+        if load_contrastive:
+            checkpoint = torch.load(source_path+f'\\outputs\\online_deep_feature_extraction\\{name}\\checkpoint_best.pt', map_location='cpu', weights_only=False)
+            #checkpoint = torch.load('C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\models\\contrastive\\checkpoint.pt', map_location='cpu', weights_only=False)
+            contrastive_model.load_state_dict(checkpoint['model_state_dict'])
         return contrastive_model
     if mode=='classification head':
         num_classes=kwargs.get('num_classes', 2)
@@ -786,3 +790,15 @@ def get_custom_pretrained_weights(name,model,**kwargs):
     else:
         raise ValueError("Pretrained modality is only supported for truncated models with 'remove head'.")
     return model
+
+def get_param_names(model, type_of_model):
+    if type_of_model == 'contrastive':
+        backbone_name = 'encoder.'
+        classifier_name = 'projection_head.'
+    else:
+        backbone_name = 'backbone.'
+        classifier_name = 'classifier.'
+    all_param_names = [name for name, _ in model.named_parameters()]
+    backbone_param_names = [name for name, _ in model.named_parameters() if name.startswith(backbone_name)]
+    classifier_param_names = [name for name, _ in model.named_parameters() if name.startswith(classifier_name)]
+    return all_param_names, backbone_param_names, classifier_param_names

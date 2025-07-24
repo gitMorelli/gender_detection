@@ -331,7 +331,7 @@ def get_scheduler(optimizer, name='no_scheduling',start_epoch=0, **kwargs):
         return torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.1)
     elif name == 'ReduceLROnPlateau':
         patience = kwargs.get('patience', 10)
-        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=patience, verbose=True)
+        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=patience)
     elif name == "no_scheduling":
         class NoOpScheduler:
             def step(self, *args, **kwargs):
@@ -348,8 +348,8 @@ def get_scheduler(optimizer, name='no_scheduling',start_epoch=0, **kwargs):
     elif name == 'Linear':
         return get_linear(optimizer, start_epoch=start_epoch, **kwargs)
     elif name == 'CyclicalLR':
-        base_lr = kwargs.get('base_lr', 0.001)
-        max_lr = kwargs.get('max_lr', 0.01)
+        base_lr = kwargs.get('base_lr_cycle', 0.001)
+        max_lr = kwargs.get('max_lr_cycle', 0.01)
         step_size_up = kwargs.get('step_size_up', 2000)
         step_size_down = kwargs.get('step_size_down', 2000)
         mode = kwargs.get('mode', 'triangular') #"exp_range", "triangular2"
@@ -383,10 +383,13 @@ def get_model_size_mb(model):
     return size_mb
 
 def perform_training_step(model, batch, optimizer, scaler, loss_fn, device, 
-                         use_amp, log_grad_norm, profiler):
+                         use_amp, log_grad_norm, profiler, contrastive_mode=False):
     """Perform a single training step"""
-    x_i = batch['image'].to(device)
-    labels = batch['label'].to(device)
+    if contrastive_mode:
+        x_i, x_j = batch['image1'].to(device), batch['image2'].to(device)
+    else:
+        x_i = batch['image'].to(device)
+        labels = batch['label'].to(device)
     optimizer.zero_grad(set_to_none=True)
     
     grad_norm = 0
@@ -395,8 +398,12 @@ def perform_training_step(model, batch, optimizer, scaler, loss_fn, device,
         if use_amp:
             with autocast(device_type='cuda'):
                 with profiler.record_function("forward_pass"):
-                    z_i = model(x_i)
-                    loss = loss_fn(z_i, labels)
+                    if contrastive_mode:
+                        z_i, z_j = model(x_i), model(x_j)
+                        loss = loss_fn(z_i, z_j)
+                    else:
+                        z_i = model(x_i)
+                        loss = loss_fn(z_i, labels)
                 
                 with profiler.record_function("backward_pass"):
                     scaler.scale(loss).backward()
@@ -405,14 +412,20 @@ def perform_training_step(model, batch, optimizer, scaler, loss_fn, device,
                     with profiler.record_function("gradient_clipping"):
                         scaler.unscale_(optimizer)
                         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0).item()
+                else:
+                    grad_norm=get_grad_norm(model, norm_type=2)
 
                 with profiler.record_function("optimizer_step"):
                     scaler.step(optimizer)
                     scaler.update()
         else:
             with profiler.record_function("forward_pass"):
-                z_i = model(x_i)
-                loss = loss_fn(z_i, labels)
+                if contrastive_mode:
+                    z_i, z_j = model(x_i), model(x_j)
+                    loss = loss_fn(z_i, z_j)
+                else:
+                    z_i = model(x_i)
+                    loss = loss_fn(z_i, labels)
             
             with profiler.record_function("backward_pass"):
                 loss.backward()
@@ -420,11 +433,16 @@ def perform_training_step(model, batch, optimizer, scaler, loss_fn, device,
             if log_grad_norm:
                 with profiler.record_function("gradient_clipping"):
                     grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0).item()
+            else:
+                grad_norm = get_grad_norm(model, norm_type=2)
 
             with profiler.record_function("optimizer_step"):
                 optimizer.step()
-    
-    return loss.detach().item(), grad_norm, z_i.detach(), labels.detach()
+    if contrastive_mode:
+        return loss.detach().item(), grad_norm, z_i.detach(), None
+    else:
+        return loss.detach().item(), grad_norm, z_i.detach(), labels.detach()
+
 
 def train_epoch(model, train_dataloader, optimizer, scheduler, scaler, loss_fn, 
                 device, epoch, total_epochs, use_amp, log_grad_norm, profiler, metrics, step_at_epoch=False, contrastive_mode=False):
@@ -451,15 +469,14 @@ def train_epoch(model, train_dataloader, optimizer, scheduler, scaler, loss_fn,
             use_amp, log_grad_norm, profiler, contrastive_mode=contrastive_mode
         )
 
-        if contrastive_mode:
+        if contrastive_mode==False:
             preds = torch.argmax(outputs, dim=1)
             correct += (preds == labels).sum().item()
             total += labels.size(0)
 
         
         epoch_train_loss += loss
-        if log_grad_norm:
-            epoch_grad_norms.append(grad_norm)
+        epoch_grad_norms.append(grad_norm)
         
         profiler.step()
         if step_at_epoch:
@@ -563,9 +580,12 @@ def train_fine(
         # Validation phase
         val_start_time = time.time()
         
-        val_loss, val_acc = perform_validation(
-            model, val_dataloader, device, val_percentage, epoch, total_epochs, use_amp, loss_fn, contrastive_mode=contrastive_mode
-        )
+        if contrastive_mode:
+            val_loss, val_acc = perform_validation_contrastive(model, val_dataloader, device, val_percentage, 
+                                                               epoch, total_epochs, use_amp, loss_fn)
+        else:
+            val_loss, val_acc = perform_validation(model, val_dataloader, device, val_percentage, 
+                                                   epoch, total_epochs, use_amp, loss_fn)
         
         val_time = time.time() - val_start_time
         epoch_time = time.time() - epoch_start_time
@@ -682,9 +702,378 @@ class OptimizationManager:
         return get_scheduler(optimizer, name=self.scheduling, start_epoch = epoch, **self.phase_scheduler_hyperparams[i])
 
 
-def get_progressive_training_steps(selected_model):
+def get_progressive_training_steps(selected_model,contrastive_mode=False):
     if selected_model == 'resnet18':
         steps=['layer4','layer3','layer2','layer1']
     elif selected_model == 'DeiT-Tiny':
         steps=[f'layer.{i}'for i in range(11,-1,-1)]
-    return steps
+    if contrastive_mode:
+        return ['projection_head'] + steps
+    else:
+        return steps
+
+def get_grad_norm(model, norm_type=2):
+    total_norm = 0.0
+    parameters = [p for p in model.parameters() if p.grad is not None]
+
+    for p in parameters:
+        param_norm = p.grad.data.norm(norm_type)
+        total_norm += param_norm.item() ** norm_type
+
+    total_norm = total_norm ** (1. / norm_type)
+    return total_norm
+
+
+class BaseSearchConfig:
+    def get_params(self, type_of_training, type_of_model):
+        raise NotImplementedError
+
+
+class GridSearchConfig(BaseSearchConfig):
+    def get_params(self, type_of_training, type_of_model):
+        configs = {
+            'progressive': {
+                'CNN': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_classific_head': [0.001, 0.01, 0.1],
+                    'lr_backbone_initial': [1e-4,0.001, 0.01, 0.1],
+                    'lr_backbone_scaling':[0.01,0.1,0.5],
+                    'pretrain_head_epochs': [3,5],
+                    'step_phase': [4,8,16],
+                    'weight_decay': [1e-5, 1e-4,1e-3],
+                    'scheduler': ['no_scheduling'], #fisso
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                },
+                'Transformer': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_classific_head': [0.001, 0.01, 0.1],
+                    'lr_backbone_initial': [1e-5,1e-4,0.001, 0.01],
+                    'lr_backbone_scaling':[0.01,0.1,0.5],
+                    'pretrain_head_epochs': [3,5],
+                    'step_phase': [4,8,16],
+                    'weight_decay': [1e-2,0.5],
+                    'scheduler': ['no_scheduling'], #fisso
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                }
+            },
+            'fine_tune': {
+                'CNN': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_classific_head': [0.001, 0.01, 0.1],
+                    'lr_backbone_initial': [1e-4,0.001, 0.01, 0.1],
+                    'pretrain_head_epochs': [3,5],
+                    'weight_decay': [1e-5, 1e-4,1e-3],
+                    'scheduler_head': ['no_scheduling','CosineAnnealingLR'], 
+                    'scheduler': ['no_scheduling','OneCycleLR','CosineAnnealingLR'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                },
+                'Transformer': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_classific_head': [0.001, 0.01, 0.1],
+                    'lr_backbone_initial': [1e-5,1e-4,0.001, 0.01],
+                    'pretrain_head_epochs': [3,5],
+                    'step_phase': [4,8,16],
+                    'weight_decay': [1e-2,0.5],
+                    'scheduler_head': ['no_scheduling','CosineAnnealingLR'], 
+                    'scheduler': ['no_scheduling'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                }
+            },
+            'from_scratch': {
+                'CNN': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_initial': [1e-4,0.001, 0.01, 0.1],
+                    'weight_decay': [1e-5, 1e-4,1e-3],
+                    'scheduler': ['no_scheduling','OneCycleLR','CosineAnnealingLR'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                },
+                'Transformer': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_initial': [1e-4,0.001, 0.01, 0.1],
+                    'weight_decay': [1e-5, 1e-4,1e-3],
+                    'scheduler': ['no_scheduling','OneCycleLR','CosineAnnealingLR'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                }
+            },
+        }
+
+        try:
+            return configs[type_of_training][type_of_model]
+        except KeyError as e:
+            raise ValueError(f"Invalid GridSearch config: {e}")
+
+
+class RandomSearchConfig(BaseSearchConfig):
+    def get_params(self, type_of_training, type_of_model):
+        configs = {
+            'progressive': {
+                'CNN': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_classific_head': [0.001, 0.01, 0.1],
+                    'lr_backbone_initial': [1e-4,0.001, 0.01, 0.1],
+                    'lr_backbone_scaling':[0.01,0.1,0.5],
+                    'pretrain_head_epochs': [3,5],
+                    'step_phase': [4,8,16],
+                    'weight_decay': [1e-5, 1e-4,1e-3],
+                    'scheduler': ['no_scheduling'], #fisso
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                },
+                'Transformer': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_classific_head': [0.001, 0.01, 0.1],
+                    'lr_backbone_initial': [1e-5,1e-4,0.001, 0.01],
+                    'lr_backbone_scaling':[0.01,0.1,0.5],
+                    'pretrain_head_epochs': [3,5],
+                    'step_phase': [4,8,16],
+                    'weight_decay': [1e-2,0.5],
+                    'scheduler': ['no_scheduling'], #fisso
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                }
+            },
+            'fine_tune': {
+                'CNN': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_classific_head': [0.001, 0.01, 0.1],
+                    'lr_backbone_initial': [1e-4,0.001, 0.01, 0.1],
+                    'pretrain_head_epochs': [3,5],
+                    'weight_decay': [1e-5, 1e-4,1e-3],
+                    'scheduler_head': ['no_scheduling','CosineAnnealingLR'], 
+                    'scheduler': ['no_scheduling','OneCycleLR','CosineAnnealingLR'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                },
+                'Transformer': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_classific_head': [0.001, 0.01, 0.1],
+                    'lr_backbone_initial': [1e-5,1e-4,0.001, 0.01],
+                    'pretrain_head_epochs': [3,5],
+                    'step_phase': [4,8,16],
+                    'weight_decay': [1e-2,0.5],
+                    'scheduler_head': ['no_scheduling','CosineAnnealingLR'], 
+                    'scheduler': ['no_scheduling'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                }
+            },
+            'from_scratch': {
+                'CNN': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_initial': [1e-4,0.001, 0.01, 0.1],
+                    'weight_decay': [1e-5, 1e-4,1e-3],
+                    'scheduler': ['no_scheduling','OneCycleLR','CosineAnnealingLR'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                },
+                'Transformer': {
+                    'head_model': ['MLPClassifier1','MLPClassifier2'],
+                    'optimizer': ['AdamW','Adam','SGD'],
+                    'lr_initial': [1e-4,0.001, 0.01, 0.1],
+                    'weight_decay': [1e-5, 1e-4,1e-3],
+                    'scheduler': ['no_scheduling','OneCycleLR','CosineAnnealingLR'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2, 0.4],
+                    'n_neurons': [128, 256],
+                }
+            },
+        }
+
+        try:
+            return configs[type_of_training][type_of_model]
+        except KeyError as e:
+            raise ValueError(f"Invalid RandomSearch config: {e}")
+
+class SingleSearchConfig(BaseSearchConfig):
+    def get_params(self, type_of_training, type_of_model):
+        configs = {
+            'progressive': {
+                'CNN': {
+                    'head_model': ['MLPClassifier1'],
+                    'optimizer': ['AdamW'],
+                    'lr_classific_head': [0.001],
+                    'lr_backbone_initial': [1e-4],
+                    'lr_backbone_scaling':[0.1],
+                    'pretrain_head_epochs': [3],
+                    'step_phase': [8],
+                    'weight_decay': [1e-4],
+                    'scheduler': ['no_scheduling'], #fisso
+                    'log_grad_norm': [False],
+                    'dropout': [0.2],
+                    'n_neurons': [128],
+                },
+                'Transformer': {
+                    'head_model': ['MLPClassifier1'],
+                    'optimizer': ['AdamW'],
+                    'lr_classific_head': [0.001],
+                    'lr_backbone_initial': [1e-4],
+                    'lr_backbone_scaling':[0.1],
+                    'pretrain_head_epochs': [3],
+                    'step_phase': [8],
+                    'weight_decay': [1e-4],
+                    'scheduler': ['no_scheduling'], #fisso
+                    'log_grad_norm': [False],
+                    'dropout': [0.2],
+                    'n_neurons': [128],
+                },
+            },
+            'fine_tune': {
+                'CNN': {
+                    'head_model': ['MLPClassifier1'],
+                    'optimizer': ['AdamW'],
+                    'lr_classific_head': [0.001],
+                    'lr_backbone_initial': [1e-4],
+                    'pretrain_head_epochs': [3],
+                    'weight_decay': [1e-5],
+                    'scheduler_head': ['no_scheduling'], 
+                    'scheduler': ['no_scheduling'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2],
+                    'n_neurons': [128],
+                },
+                'Transformer': {
+                    'head_model': ['MLPClassifier1'],
+                    'optimizer': ['AdamW'],
+                    'lr_classific_head': [0.001],
+                    'lr_backbone_initial': [1e-4],
+                    'pretrain_head_epochs': [3],
+                    'weight_decay': [1e-5],
+                    'scheduler_head': ['no_scheduling'], 
+                    'scheduler': ['no_scheduling'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2],
+                    'n_neurons': [128],
+                }
+            },
+            'from_scratch': {
+                'CNN': {
+                    'head_model': ['MLPClassifier1'],
+                    'optimizer': ['AdamW'],
+                    'lr_initial': [1e-4],
+                    'weight_decay': [1e-5],
+                    'scheduler': ['no_scheduling'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2],
+                    'n_neurons': [128],
+                },
+                'Transformer': {
+                    'head_model': ['MLPClassifier1'],
+                    'optimizer': ['AdamW'],
+                    'lr_initial': [1e-4],
+                    'weight_decay': [1e-5],
+                    'scheduler': ['no_scheduling'], 
+                    'log_grad_norm': [False],
+                    'dropout': [0.2],
+                    'n_neurons': [128],
+                }
+            },
+        }
+
+        try:
+            return configs[type_of_training][type_of_model]
+        except KeyError as e:
+            raise ValueError(f"Invalid SingleSearch config: {e}")
+
+class SearchConfigFactory:
+    def __init__(self):
+        self._registry = {
+            'grid_search': GridSearchConfig(),
+            'random_search': RandomSearchConfig(),
+            'single_search': SingleSearchConfig(),
+        }
+
+    def get_config(self, type_of_search):
+        try:
+            return self._registry[type_of_search]
+        except KeyError:
+            raise ValueError(f"Unknown search type: {type_of_search}")
+
+
+def get_search_params(type_of_search='grid_search', type_of_training='progressive', type_of_model='CNN'):
+    factory = SearchConfigFactory()
+    config = factory.get_config(type_of_search)
+    return config.get_params(type_of_training, type_of_model)
+
+def set_search_params(params,type_of_training,total_epochs,steps,backbone_param_names):
+    """Set search parameters based on the type of training"""
+    if type_of_training == 'progressive':
+        #for progressive fine tuning
+        optimizer_phases = [params['pretrain_head_epochs']]
+        phase_layers_to_freeze = [backbone_param_names]
+        phase_lr = [params['lr_classific_head']]
+        step_phase = params['step_phase']
+        lr_backbone_initial = params['lr_backbone_initial']
+        lr_backbone_scaling = params['lr_backbone_scaling']
+        for i,name in enumerate(steps):
+            optimizer_phases.append(optimizer_phases[i]+step_phase) 
+            phase_layers=phase_layers_to_freeze[i]
+            phase_layers_to_freeze.append([l for l in phase_layers if not(name in l)])
+            if i == 0:
+                phase_lr.append(lr_backbone_initial)
+            else:
+                phase_lr.append(phase_lr[i] * lr_backbone_scaling)  # Decrease learning rate for each phase
+        phase_lr += [phase_lr[-1] * lr_backbone_scaling]  # Final phase learning rate
+        optimizer_name = params['optimizer']
+        weight_decay = params['weight_decay'] 
+        optim_config = {
+                'optimizer_phases':optimizer_phases+[total_epochs],  # Example: [10, 10, 80] for 100 epochs
+                'phase_layers_to_freeze':phase_layers_to_freeze+[[]],
+                'phase_scheduling': [params['scheduler'] for _ in range(len(optimizer_phases)+1)],
+                'phase_optimizer':[optimizer_name for _ in range(len(optimizer_phases)+1)],  # Example: ['AdamW', 'SGD', 'AdamW'] for different phases
+                'phase_lr': phase_lr,
+                'phase_optimizer_hyperparams': [{'weight_decay':weight_decay} for _ in range(len(optimizer_phases)+1) for _ in range(len(optimizer_phases)+1)],
+                'phase_scheduler_hyperparams': [{} for _ in range(len(optimizer_phases)+1)],
+            }
+    elif type_of_training == 'fine_tune':
+        optimizer_phases = [params['pretrain_head_epochs'], total_epochs]  # Example: [1, 4, 95] for 100 epochs
+        optim_config = {
+            'optimizer_phases':optimizer_phases,  # Example: [10, 10, 80] for 100 epochs
+            'phase_layers_to_freeze':[backbone_param_names,[]],
+            'phase_scheduling': [params['scheduler_head'],params['scheduler']],
+            'phase_optimizer':[params['optimizer'],params['optimizer']],  # Example: ['AdamW', 'SGD', 'AdamW'] for different phases
+            'phase_lr': [params['lr_classific_head'], params['lr_backbone_initial']],
+            'phase_optimizer_hyperparams': [{'weight_decay': weight_decay}for i in range(2)],
+            'phase_scheduler_hyperparams': [{'warmup_epochs': optimizer_phases[0], 'T_max': total_epochs} for i in range(2)],
+        }
+    elif type_of_training == 'from_scratch':
+        optimizer_phases = [total_epochs]  # Example: [1, 4, 95] for 100 epochs
+        optim_config = {
+            'optimizer_phases':optimizer_phases,  # Example: [10, 10, 80] for 100 epochs
+            'phase_layers_to_freeze':[[]],
+            'phase_scheduling': [params['scheduler']],
+            'phase_optimizer':[params['optimizer']],  # Example: ['AdamW', 'SGD', 'AdamW'] for different phases
+            'phase_lr': [params['lr_initial']],
+            'phase_optimizer_hyperparams': [{'weight_decay': weight_decay}],
+            'phase_scheduler_hyperparams': [{'warmup_epochs': optimizer_phases[0], 'T_max': total_epochs}],
+        }
+    else:
+        raise ValueError(f"Unknown training type: {type_of_training}")
+    return optim_config

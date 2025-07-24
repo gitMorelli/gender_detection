@@ -8,6 +8,8 @@ import numpy as np
 from collections import Counter
 from sklearn.metrics import accuracy_score
 import torch.nn.functional as F
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import log_loss
 
 list_of_metrics = ['majority_vote', 'weighted_vote', 'most_probable']
 
@@ -77,6 +79,57 @@ def perform_validation(model, val_dataloader, device, val_percentage, epoch, tot
     val_acc = correct / total if total > 0 else 0
     
 
+    return val_loss, val_acc
+
+def perform_validation_contrastive(model, val_dataloader, device, val_percentage, epoch, total_epochs, use_amp):
+    """Perform validation using linear evaluation"""
+    model.eval()
+    reps, labels_list = [], []
+    
+    val_dataset = val_dataloader.dataset
+    n_val = max(1, int(len(val_dataset) * val_percentage))
+    subset_indices = random.sample(range(len(val_dataset)), n_val)
+
+    subset = Subset(val_dataset, subset_indices)
+    selected_val_batches = DataLoader(
+        subset,
+        batch_size=val_dataloader.batch_size,
+        shuffle=False,
+        num_workers=val_dataloader.num_workers,
+        pin_memory=val_dataloader.pin_memory,
+    )
+    
+    # Extract representations
+    if use_amp:
+        with torch.no_grad(), autocast(device_type='cuda'):
+            for batch in tqdm(selected_val_batches, desc=f"Epoch {epoch+1}/{total_epochs} [Val]"):
+                x, labels = batch['image'].to(device), batch['label'].to(device)
+                z = model(x)
+                reps.append(z.cpu().numpy())
+                labels_list.append(labels.cpu().numpy())
+    else:
+        with torch.no_grad():
+            for batch in tqdm(selected_val_batches, desc=f"Epoch {epoch+1}/{total_epochs} [Val]"):
+                x, labels = batch['image'].to(device), batch['label'].to(device)
+                z = model(x)
+                reps.append(z.cpu().numpy())
+                labels_list.append(labels.cpu().numpy())
+    
+    # Linear evaluation
+    reps = np.concatenate(reps, axis=0)
+    labels_all = np.concatenate(labels_list, axis=0)
+
+    clf = LogisticRegression(max_iter=1000, solver='lbfgs', multi_class='auto')
+    clf.fit(reps, labels_all)
+    y_proba = clf.predict_proba(reps)
+    val_loss = log_loss(labels_all, y_proba)
+    
+    if y_proba.shape[1] == 2:
+        y_pred = (y_proba[:, 1] >= 0.5).astype(int)
+    else:
+        raise ValueError("Multiclass classification is not supported in this implementation.")
+    val_acc = np.mean(y_pred == labels_all)
+    
     return val_loss, val_acc
 
 def ensembled_predictions(base_preds,writers,mode='majority_vote',probs=None):

@@ -22,6 +22,7 @@ from torch.amp import GradScaler, autocast
 import random
 import numpy as np
 import torch.nn as nn
+import json
 
 
 def compute_output_gpu(model, device, batch):
@@ -97,6 +98,9 @@ def main(args):
     optim_config = args.optim_config  # e.g., 'Adam', 'SGD', 'AdamW'
     use_augmentation = args.use_augmentation  # Set to True for data augmentation
     n_patches = args.n_patches
+    contrastive_mode = args.contrastive_mode  # Set to True for contrastive learning
+    load_contrastive = args.load_contrastive  # Set to True if loading a trained contrastive model for fine tuning
+    nn_parameters = args.nn_parameters
 
     profiler_config = {
         'profile_epochs': list(range(0, total_epochs, 10)),  # Profile every 10 epochs
@@ -119,12 +123,17 @@ def main(args):
 
     #Initialization
     transform = u_transforms.get_transform(selected_model, use_patches=patches, custom=custom_transform, mode=transform_mode)
-    model = model_utils.get_model(name=selected_model, mode=model_mode, pretrained=True, truncation=truncation)
+    model = model_utils.get_model(name=selected_model, mode=model_mode, 
+                                  pretrained=True, truncation=truncation, 
+                                  contrastive=contrastive_mode, load_contrastive=load_contrastive)
 
     # Define model
     train_df = pd.read_csv(f"{source_path}\\outputs\\preprocessed_data\\{input_filename}")
     train_df=file_IO.change_filename_from_to(train_df, fr=saved, to=running)
-    train_df['page'] = train_df.groupby(['writer', 'isEng', 'same_text']).ngroup()
+    if contrastive_mode:
+        train_df['page'] = train_df.groupby(['file_name']).ngroup()
+    else:
+        train_df['page'] = train_df.groupby(['writer', 'isEng', 'same_text']).ngroup()
     if n_patches > 0:
         #print(f"Selecting {n_patches} patches per page...")
         train_df = select_n_patches(train_df, n_patches=n_patches).reset_index(drop=True)
@@ -133,9 +142,12 @@ def main(args):
     output=compute_output(model, 'cpu', transform, train_df.iloc[i], huggingface, patches)
     print("Output shape: ", output.shape)
     in_features = output.shape[1]  # Number of features from the model output
-    classificaton_head = model_utils.get_classification_head(selected_classifier,in_features)
-    model = model_utils.JoinedModels(model, classificaton_head)
-    output=compute_output(model, 'cpu', transform, train_df.iloc[i], huggingface, patches)
+    if contrastive_mode == False:
+        classificaton_head = model_utils.get_classification_head(name=selected_classifier, in_features=in_features, num_classes=2,
+                                                dropout=nn_parameters['dropout'], n_neurons=nn_parameters['n_neurons'],
+                                                activation=nn_parameters['activation'])
+        model = model_utils.JoinedModels(model, classificaton_head)
+        output=compute_output(model, 'cpu', transform, train_df.iloc[i], huggingface, patches)
     print(output)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -143,9 +155,17 @@ def main(args):
 
     #split in train and validation
     train_df['train']=1
-    train_df=train_df[train_df['writer']<=N_max]
-    writers = train_df['writer']
-    zarr_path_train = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\train_writers.zarr"
+    if contrastive_mode:
+        if N_max == -1:
+            N_max = len(train_df)
+        train_df=train_df.iloc[:N_max]
+        zarr_path_train = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\contrastive.zarr"
+    else:
+        if N_max == -1:
+            N_max = train_df['writer'].max()
+        train_df=train_df[train_df['writer']<=N_max]
+        writers = train_df['writer']
+        zarr_path_train = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\train_writers.zarr"
     if val_filename is not None:
         val_df = pd.read_csv(f"{source_path}\\outputs\\preprocessed_data\\{val_filename}")
         val_df=file_IO.change_filename_from_to(val_df, fr=saved, to=running)
@@ -171,8 +191,13 @@ def main(args):
     '''print(len(train_df[train_df['train']==1]), len(train_df[train_df['train']==0]))
     assert set(train_df[train_df['train'] == 1]['writer']).isdisjoint(set(train_df[train_df['train'] == 0]['writer'])), "Train and validation writers overlap!"
     return 0'''
-    train_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==1], zarr_path_train, transform=transform, 
-                                                huggingface=huggingface, use_augmentation=use_augmentation)
+    if contrastive_mode:
+        contrastive_transform = u_transforms.get_contrastive_transform('sim-clr')
+        train_dataset = ZarrContrastive(train_df[train_df['train']==1], zarr_path_train, transform=transform, 
+                                                huggingface=huggingface, contrastive_transform=contrastive_transform)
+    else:
+        train_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==1], zarr_path_train, transform=transform, 
+                                                    huggingface=huggingface, use_augmentation=use_augmentation)
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,pin_memory=pin_memory)
     val_dataset = ZarrImageCropDataset_resize(val_df, zarr_path_val, transform=transform, 
@@ -182,7 +207,7 @@ def main(args):
     
     if show_image:
         print("Saving debug images...")
-        display_debug_images(train_dataloader,save_path, save_name='train')
+        display_debug_images(train_dataloader,save_path, save_name='train', contrastive_mode=contrastive_mode)
         display_debug_images(val_dataloader,save_path, save_name='val')
         print("Debug images saved.")
     
@@ -190,7 +215,7 @@ def main(args):
 
     loss_fn = get_criterion(name=loss_criterion)
 
-    train_fine(
+    best_model_performance=train_fine(
         model=model,
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
@@ -208,10 +233,17 @@ def main(args):
         use_amp=use_amp,
         val_percentage=val_percentage,  # Use 10% of validation data for linear evaluation
         optim_config=optim_config,  # e.g., 'Adam', 'SGD', 'AdamW'
+        contrastive_mode=contrastive_mode,  # Set to True for contrastive learning
         # ... other parameters
     )
-        
+    
+    # Save best model performance to JSON as a dict
+    performance_json_path = os.path.join(save_path, "best_model_performance_temp.json")
+    with open(performance_json_path, "w") as f:
+        json.dump(best_model_performance, f, indent=4)
+    print(f"Best model performance saved to {performance_json_path}")
 
+    return best_model_performance
     # Get the current timestamp
     #timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     # Save the DataFrame to a CSV file
@@ -236,6 +268,6 @@ if __name__ == "__main__":
     from utils.script_launching import load_config
     from utils.script_launching import DotDict
     from utils.train_on_rep_utils import select_n_patches
-    from utils.dataframes import ZarrImageCropDataset_resize
+    from utils.dataframes import ZarrImageCropDataset_resize,ZarrContrastive
     args = parse_args()
     main(args)
