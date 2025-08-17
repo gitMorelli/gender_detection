@@ -246,6 +246,7 @@ class CheckpointManager:
             'train_losses': metrics.train_losses,
             'val_losses': metrics.val_losses,
             'val_accuracies': metrics.val_accuracies,
+            'train_accuracies': metrics.train_accuracies,
             'learning_rates': metrics.learning_rates,
             'grad_norms': metrics.grad_norms,
             'memory_stats': metrics.memory_stats,
@@ -278,6 +279,7 @@ class CheckpointManager:
         
         # Restore metrics
         metrics.train_losses = checkpoint.get('train_losses', [])
+        metrics.train_accuracies = checkpoint.get('train_accuracies', [])
         metrics.val_losses = checkpoint.get('val_losses', [])
         metrics.val_accuracies = checkpoint.get('val_accuracies', [])
         metrics.learning_rates = checkpoint.get('learning_rates', [])

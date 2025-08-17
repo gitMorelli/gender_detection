@@ -174,7 +174,10 @@ def main(args):
             #print(f"Selecting {n_patches} patches per page...")
             val_df = select_n_patches(val_df, n_patches=n_patches).reset_index(drop=True)
         val_df['train'] = 0
-        zarr_path_val = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\test_public_writers.zarr"
+        if contrastive_mode:
+            zarr_path_val = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\train_writers.zarr"
+        else:
+            zarr_path_val = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\test_public_writers.zarr"
     else:
         val_writers = set(random.sample(list(writers.unique()), max(1, len(writers.unique()) // n_splits)))
         train_df.loc[train_df['writer'].isin(val_writers), 'train'] = 0
@@ -205,6 +208,8 @@ def main(args):
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,pin_memory=pin_memory)
     
+    print(f"Train dataset size: {len(train_dataset)}")
+    print(f"Validation dataset size: {len(val_dataset)}")
     if show_image:
         print("Saving debug images...")
         display_debug_images(train_dataloader,save_path, save_name='train', contrastive_mode=contrastive_mode)

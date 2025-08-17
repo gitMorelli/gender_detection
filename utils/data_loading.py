@@ -55,8 +55,9 @@ def get_dataloaders(transform, batch_size=16, N_max=282,file_name='icdar_train_d
 def load_classification_head(selected_FE,selected_classifier,classifier_type,validation_mode,train_filename,source_path,**kwargs):
 
     train_df = pd.read_csv(train_filename)
-    cols_to_keep = [c for c in train_df.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]
+    cols_to_keep = [c for c in train_df.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]#[:256]  # Keep only the first 256 features
     in_features = len(cols_to_keep)  # Number of features from the model output
+    #print(in_features)
 
     base_dir=source_path + f'/outputs/online_deep_feature_extraction/{selected_FE}/representation_extraction/'
     if classifier_type == 'sklearn':

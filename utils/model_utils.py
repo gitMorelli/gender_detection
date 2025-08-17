@@ -6,6 +6,9 @@ import torch
 from transformers import VisionEncoderDecoderModel, ViTModel
 import torch.nn as nn
 import torch.nn.functional as F
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+
 source_path = 'C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection'
 # Define a custom truncated model
 class TruncatedDeiT(nn.Module):
@@ -111,7 +114,15 @@ class CustomMLP(nn.Module):
         activation = kwargs.get('activation', 'relu')
         dropout = kwargs.get('dropout', None)
         batchnorm = kwargs.get('batchnorm', False)
-
+        with_input_norm = kwargs.get('with_input_norm', None)
+        scale = kwargs.get('scale', 1.0)
+        mean = kwargs.get('mean', 0.0)
+        if with_input_norm is None:
+            pass
+        elif with_input_norm=='batch_norm':
+            layers.append(nn.BatchNorm1d(input_size))
+        elif with_input_norm=='dataset_norm':
+            layers.append(FeatureNormalizer(mean,scale))
         for hidden_size in hidden_sizes:
             layers.append(nn.Linear(input_size, hidden_size))
             if batchnorm:
@@ -215,6 +226,7 @@ def get_resnet(name,mode, pretrained, **kwargs):
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18']")
     contrastive = kwargs.get('contrastive', False)
+    load_contrastive = kwargs.get('load_contrastive', False)
     if contrastive or load_contrastive:
         in_features = model.fc.in_features 
         contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
@@ -619,21 +631,27 @@ def get_classification_head(name='MLPClassifier1',in_features=512,num_classes=2,
     dropout = kwargs.get('dropout', None)
     activation = kwargs.get('activation', 'relu')
     n_neurons = kwargs.get('n_neurons', 128)
+    with_input_norm = kwargs.get('with_input_norm', None)
+    scale = kwargs.get('scale', 1.0)
+    mean = kwargs.get('mean', 0.0)
     if name == 'MLPClassifier1': #1 hidden layer
         hidden_sizes = kwargs.get('hidden_sizes',[n_neurons]) 
-        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,dropout=dropout, activation=activation)
+        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,
+                         dropout=dropout, activation=activation, with_input_norm=with_input_norm,scale=scale, mean=mean)
+    elif name == 'MLPClassifier2':
+        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons,n_neurons]) 
+        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,
+                         dropout=dropout, activation=activation,with_input_norm=with_input_norm,scale=scale, mean=mean)
+    elif name == 'MLPClassifier3':
+        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons,n_neurons,n_neurons])
+        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,dropout=dropout, 
+                         activation=activation,with_input_norm=with_input_norm,scale=scale, mean=mean)
     if name == 'MLPClassifier1-BatchNorm': #1 hidden layer
         hidden_sizes = kwargs.get('hidden_sizes',[n_neurons]) 
         return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes, activation='relu',batchnorm=True)
-    elif name == 'MLPClassifier2':
-        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons,n_neurons]) 
-        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,dropout=0.8, activation='relu')
     elif name == 'MLPClassifier2-BatchNorm':
         hidden_sizes = kwargs.get('hidden_sizes',[n_neurons,n_neurons])
         return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes, dropout=0.2 ,activation='relu',batchnorm=True)
-    elif name == 'MLPClassifier3':
-        hidden_sizes = kwargs.get('hidden_sizes',[n_neurons,n_neurons,n_neurons])
-        return CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes,dropout=0.5, activation='relu')
     elif name == 'TransformerClassifier':
         hidden_sizes = kwargs.get('hidden_sizes',[n_neurons,n_neurons])
         return CustomTransformer(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
@@ -697,7 +715,7 @@ def get_sklearn_model(name='logreg', **kwargs):
         )
     elif name=='mlp':
         from sklearn.neural_network import MLPClassifier
-        return MLPClassifier(hidden_layer_sizes=(128), activation='relu', solver='adam',
+        return MLPClassifier(hidden_layer_sizes=(256), activation='relu', solver='adam',
                             max_iter=200, random_state=42, early_stopping=True, validation_fraction=0.1, n_iter_no_change=10)
     elif name=='dt':
         from sklearn.tree import DecisionTreeClassifier
@@ -796,9 +814,30 @@ def get_param_names(model, type_of_model):
         backbone_name = 'encoder.'
         classifier_name = 'projection_head.'
     else:
-        backbone_name = 'backbone.'
+        backbone_name = 'vision_model.'
         classifier_name = 'classifier.'
     all_param_names = [name for name, _ in model.named_parameters()]
     backbone_param_names = [name for name, _ in model.named_parameters() if name.startswith(backbone_name)]
     classifier_param_names = [name for name, _ in model.named_parameters() if name.startswith(classifier_name)]
     return all_param_names, backbone_param_names, classifier_param_names
+
+class FeatureNormalizer(nn.Module):
+    def __init__(self, mean, std, learnable=False):
+        super().__init__()
+        mean = torch.tensor(mean, dtype=torch.float32)
+        std = torch.tensor(std, dtype=torch.float32)
+        self.mean = nn.Parameter(mean, requires_grad=learnable)
+        self.std = nn.Parameter(std, requires_grad=learnable)
+
+    def forward(self, x):
+        return (x - self.mean) / self.std
+
+def get_normalization_parameters(train_file_name):
+    #train_df.sort_values(by='page', inplace=True)
+    train_df = pd.read_csv(train_file_name)
+    cols_to_keep = [c for c in train_df.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]
+    X_train = train_df[cols_to_keep].values
+    scaler = StandardScaler().fit(X_train)
+    scaler_mean = scaler.mean_
+    scaler_scale = scaler.scale_
+    return scaler_mean, scaler_scale

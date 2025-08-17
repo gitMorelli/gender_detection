@@ -14,6 +14,7 @@ import io
 from torch.optim.optimizer import Optimizer
 import os
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 def train_model(model, train_loader, val_loader, criterion, optimizer, 
@@ -282,7 +283,11 @@ class LARS(Optimizer):
 
 def get_optimizer(parameters, name='Adam', lr=0.001,**kwargs):
     if name == 'Adam':
-        return optim.Adam(parameters, lr=lr)
+        if 'weight_decay' in kwargs:
+            weight_decay = kwargs['weight_decay']
+        else:
+            weight_decay = 0
+        return optim.Adam(parameters, lr=lr,weight_decay=weight_decay)
     elif name == 'SGD':
         return optim.SGD(parameters, lr=lr, momentum=0.9)
     elif name == 'AdamW':
@@ -385,6 +390,7 @@ def get_model_size_mb(model):
 def perform_training_step(model, batch, optimizer, scaler, loss_fn, device, 
                          use_amp, log_grad_norm, profiler, contrastive_mode=False):
     """Perform a single training step"""
+    #print(f"[DEBUG] contrastive_mode in perform_training_step = {contrastive_mode}, batch keys = {batch.keys()}")
     if contrastive_mode:
         x_i, x_j = batch['image1'].to(device), batch['image2'].to(device)
     else:
@@ -458,12 +464,12 @@ def train_epoch(model, train_dataloader, optimizer, scheduler, scaler, loss_fn,
     if torch.cuda.is_available():
         torch.cuda.synchronize()
         memory_before = torch.cuda.memory_allocated() / 1e6
-    
+    #print(f"[DEBUG] contrastive_mode in train_epoch = {contrastive_mode}")
     loop = enumerate(tqdm(train_dataloader, desc=f"Epoch {epoch+1}/{total_epochs} [Train]"))
     
     for idx, batch in loop:
         batch_start_time = time.time()
-        
+        #print(f"[DEBUG] contrastive_mode in train_epoch = {contrastive_mode}")
         loss, grad_norm, outputs, labels = perform_training_step(
             model, batch, optimizer, scaler, loss_fn, device, 
             use_amp, log_grad_norm, profiler, contrastive_mode=contrastive_mode
@@ -645,6 +651,7 @@ def train_fine(
     metrics.print_summary()
     #profiler.cleanup()
     best_ind = len(metrics.val_losses)-metrics.epochs_without_improvement-1 
+    print(best_ind)
     best_model_performance = {
         'best_val_loss': metrics.best_val_loss,
         'best_val_acc': metrics.val_accuracies[best_ind],
@@ -746,6 +753,7 @@ class GridSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 },
                 'Transformer': {
                     'head_model': ['MLPClassifier1','MLPClassifier2'],
@@ -760,6 +768,7 @@ class GridSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 }
             },
             'fine_tune': {
@@ -775,6 +784,7 @@ class GridSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 },
                 'Transformer': {
                     'head_model': ['MLPClassifier1','MLPClassifier2'],
@@ -789,6 +799,7 @@ class GridSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 }
             },
             'from_scratch': {
@@ -801,6 +812,7 @@ class GridSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 },
                 'Transformer': {
                     'head_model': ['MLPClassifier1','MLPClassifier2'],
@@ -811,6 +823,7 @@ class GridSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 }
             },
         }
@@ -838,6 +851,7 @@ class RandomSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 },
                 'Transformer': {
                     'head_model': ['MLPClassifier1','MLPClassifier2'],
@@ -852,6 +866,7 @@ class RandomSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 }
             },
             'fine_tune': {
@@ -867,6 +882,7 @@ class RandomSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 },
                 'Transformer': {
                     'head_model': ['MLPClassifier1','MLPClassifier2'],
@@ -881,6 +897,7 @@ class RandomSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 }
             },
             'from_scratch': {
@@ -893,6 +910,7 @@ class RandomSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 },
                 'Transformer': {
                     'head_model': ['MLPClassifier1','MLPClassifier2'],
@@ -903,6 +921,7 @@ class RandomSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2, 0.4],
                     'n_neurons': [128, 256],
+                    'with_input_norm': [True,False],
                 }
             },
         }
@@ -917,47 +936,50 @@ class SingleSearchConfig(BaseSearchConfig):
         configs = {
             'progressive': {
                 'CNN': {
+                    #https://chatgpt.com/share/689dff31-5c94-8010-88e7-08dd47b8f061
                     'head_model': ['MLPClassifier1'],
                     'optimizer': ['AdamW'],
-                    'lr_classific_head': [0.001],
-                    'lr_backbone_initial': [1e-4],
+                    'lr_classific_head': [1e-4],
+                    'lr_backbone_initial': [1e-6],
                     'lr_backbone_scaling':[0.1],
                     'pretrain_head_epochs': [3],
-                    'step_phase': [8],
-                    'weight_decay': [1e-4],
+                    'step_phase': [3],
+                    'weight_decay': [5e-4],
                     'scheduler': ['no_scheduling'], #fisso
-                    'log_grad_norm': [False],
+                    'log_grad_norm': [True],
                     'dropout': [0.2],
                     'n_neurons': [128],
+                    'with_input_norm': ['batch_norm'],
                 },
                 'Transformer': {
                     'head_model': ['MLPClassifier1'],
                     'optimizer': ['AdamW'],
-                    'lr_classific_head': [0.001],
-                    'lr_backbone_initial': [1e-4],
+                    'lr_classific_head': [1e-4],
+                    'lr_backbone_initial': [1e-6],
                     'lr_backbone_scaling':[0.1],
                     'pretrain_head_epochs': [3],
-                    'step_phase': [8],
+                    'step_phase': [5],
                     'weight_decay': [1e-4],
                     'scheduler': ['no_scheduling'], #fisso
                     'log_grad_norm': [False],
                     'dropout': [0.2],
                     'n_neurons': [128],
+                    'with_input_norm': ['batch_norm']
                 },
             },
             'fine_tune': {
                 'CNN': {
                     'head_model': ['MLPClassifier1'],
-                    'optimizer': ['AdamW'],
-                    'lr_classific_head': [0.001],
+                    'optimizer': ['Adam'],
+                    'lr_classific_head': [1e-3],
                     'lr_backbone_initial': [1e-4],
                     'pretrain_head_epochs': [3],
-                    'weight_decay': [1e-5],
+                    'weight_decay': [1e-4],
                     'scheduler_head': ['no_scheduling'], 
-                    'scheduler': ['no_scheduling'], 
+                    'scheduler': ['CosineAnnealingLR'], 
                     'log_grad_norm': [False],
                     'dropout': [0.2],
-                    'n_neurons': [128],
+                    'n_neurons': [64],
                 },
                 'Transformer': {
                     'head_model': ['MLPClassifier1'],
@@ -971,6 +993,7 @@ class SingleSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2],
                     'n_neurons': [128],
+                    'with_input_norm': [True]
                 }
             },
             'from_scratch': {
@@ -983,6 +1006,7 @@ class SingleSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2],
                     'n_neurons': [128],
+                    'with_input_norm': [True]
                 },
                 'Transformer': {
                     'head_model': ['MLPClassifier1'],
@@ -993,6 +1017,7 @@ class SingleSearchConfig(BaseSearchConfig):
                     'log_grad_norm': [False],
                     'dropout': [0.2],
                     'n_neurons': [128],
+                    'with_input_norm': [True]
                 }
             },
         }
@@ -1060,7 +1085,7 @@ def set_search_params(params,type_of_training,total_epochs,steps,backbone_param_
             'phase_scheduling': [params['scheduler_head'],params['scheduler']],
             'phase_optimizer':[params['optimizer'],params['optimizer']],  # Example: ['AdamW', 'SGD', 'AdamW'] for different phases
             'phase_lr': [params['lr_classific_head'], params['lr_backbone_initial']],
-            'phase_optimizer_hyperparams': [{'weight_decay': weight_decay}for i in range(2)],
+            'phase_optimizer_hyperparams': [{'weight_decay': params['weight_decay'] }for i in range(2)],
             'phase_scheduler_hyperparams': [{'warmup_epochs': optimizer_phases[0], 'T_max': total_epochs} for i in range(2)],
         }
     elif type_of_training == 'from_scratch':
@@ -1077,3 +1102,4 @@ def set_search_params(params,type_of_training,total_epochs,steps,backbone_param_
     else:
         raise ValueError(f"Unknown training type: {type_of_training}")
     return optim_config
+

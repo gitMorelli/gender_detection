@@ -82,6 +82,7 @@ def main(args):
     zarr_path = args.zarr_path
     contrastive_mode = args.contrastive_mode
     load_contrastive = args.load_contrastive
+    augmentation_code = args.augmentation_code
 
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
@@ -119,7 +120,7 @@ def main(args):
         #dataset=FastOnTheFlyDataset(train_df[:1000], transform, huggingface=huggingface, image_cache_size=100)
         #dataset = HDF5ImageCropDataset_resize(train_df[:1000], hdf5_path, transform=transform, huggingface=huggingface)#, patches=patches, select_cls=select_cls)
         dataset = ZarrImageCropDataset_resize(train_df, zarr_path, transform=transform, 
-                                              huggingface=huggingface,use_augmentation=data_augmentation)
+                                              huggingface=huggingface,use_augmentation=data_augmentation,code=augmentation_code)
         #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,pin_memory=pin_memory)
     

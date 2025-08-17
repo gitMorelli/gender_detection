@@ -305,7 +305,7 @@ def compute_subgroup_accuracies(pipeline, train_df,cols_to_drop,target_label):
 
     return subgroup_accuracies
 
-def compute_predictions_and_uncertainties(model, train_df, head_type):
+def compute_predictions_and_uncertainties(model, train_df, head_type,calibrate=False,threshold=0.5):
     cols_to_drop = [c for c in train_df.columns if not(c.startswith('f') and len(c) > 1 and c[1].isdigit())]
     if head_type == 'pytorch':
         model.eval()
@@ -316,8 +316,13 @@ def compute_predictions_and_uncertainties(model, train_df, head_type):
             y_prob = probs[:, 1].numpy()  # probability of class 1
     else:
         y_prob = model.predict_proba(train_df.drop(columns=cols_to_drop).values)[:,1]
+    if calibrate:
+        from sklearn.isotonic import IsotonicRegression
+        iso = IsotonicRegression(out_of_bounds='clip')
+        iso.fit(y_prob, train_df['male'])
+        y_prob = iso.predict(y_prob)
     #y_pred = pipeline.predict(X_train.values)
-    y_pred =(y_prob>= 0.5).astype(int)
+    y_pred =(y_prob>= threshold).astype(int)
     train_df['y_prob'] = y_prob
     train_df['y_pred'] = y_pred
     print(f"Accuracy for individual patches: {accuracy_score(train_df[train_df['train']==0]['male'], train_df[train_df['train']==0]['y_pred'])}")

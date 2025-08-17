@@ -220,14 +220,24 @@ def load_input_files(source_path,selected_FE,kind,suffix):
     if kind == 'patches_224':
         source_file_train='icdar_train_df_patches_20250716_113702'
         source_file_val='icdar_train_df_patches_20250716_120511'
+        source_file_test='icdar_train_df_patches_20250716_115204'
         train_filename = input_dir+f'\\train{suffix}\\{selected_FE}_features_{source_file_train}.csv'
         val_filename = input_dir+f'\\val\\{selected_FE}_features_{source_file_val}.csv'
+        test_filename = input_dir+f'\\test\\{selected_FE}_features_{source_file_test}.csv'
+    if kind == 'patches_448':
+        source_file_train='icdar_train_df_patches_20250811_193545'
+        source_file_val='icdar_train_df_patches_20250716_120511'
+        source_file_test='icdar_train_df_patches_20250716_115204'
+        train_filename = input_dir+f'\\train{suffix}\\{selected_FE}_features_{source_file_train}.csv'
+        val_filename = input_dir+f'\\val\\{selected_FE}_features_{source_file_val}.csv'
+        test_filename = input_dir+f'\\test\\{selected_FE}_features_{source_file_test}.csv'
     if kind == 'body':
         extra_file_train = 'icdar_train_df_body_20250523_181312'
         extra_file_val = 'icdar_train_df_body_20250716_123551' 
         train_filename = input_dir+'\\extra_view'+f'\\train{suffix}\\{selected_FE}_features_{extra_file_train}.csv' 
         val_filename = input_dir+'\\extra_view'+f'\\val\\{selected_FE}_features_{extra_file_val}.csv' 
-    return train_filename, val_filename
+        test_filename = None
+    return train_filename, val_filename, test_filename
 def load_preprocessed_files(kind, mode):
     if kind == 'patches_224':
         if mode == 'train':
@@ -238,6 +248,13 @@ def load_preprocessed_files(kind, mode):
             output = 'icdar_train_df_patches_20250716_115204.csv'
         elif mode == 'contrastive':
             output = 'icdar_train_df_iam_rimes_patches_20250724_200130.csv'
+    if kind == 'patches_448':
+        if mode == 'train':
+            output = 'icdar_train_df_patches_20250811_193545.csv'
+        elif mode == 'val':
+            raise ValueError("No validation set for patches_448")
+        elif mode == 'test':
+            raise ValueError("No test set for patches_448")
     elif kind == 'body':
         if mode == 'train':
             output = 'icdar_train_df_body_20250523_181312.csv'

@@ -485,7 +485,7 @@ class ZarrImageCropDataset_resize_augmentation(Dataset):
         self.zarr_store = None  # optional: let GC handle closure
 
 class ZarrImageCropDataset_resize(Dataset):
-    def __init__(self, df, zarr_path, transform=None, huggingface=False, use_augmentation=False):
+    def __init__(self, df, zarr_path, transform=None, huggingface=False, use_augmentation=False, code='simclr'):
         """
         df: DataFrame with columns ['file_name', 'x', 'y', 'x2', 'y2']
         zarr_path: path to directory-based Zarr store
@@ -497,7 +497,7 @@ class ZarrImageCropDataset_resize(Dataset):
         self.huggingface = huggingface
         self.zarr_store = None  # will be lazily opened
         self.use_augmentation = use_augmentation
-        self.augmentation_transform = u_transforms.get_augmentation_transform() if use_augmentation else None
+        self.augmentation_transform = u_transforms.get_augmentation_transform(code=code) if use_augmentation else None
 
         # Load filenames and create mapping: file_name -> index
         z = zarr.open(self.zarr_path, mode='r')
@@ -543,6 +543,9 @@ class ZarrImageCropDataset_resize(Dataset):
             patch_tensor = self.transform(patch)
         else:
             patch_tensor = patch
+        '''assert isinstance(patch_tensor, torch.Tensor), f"Expected torch.Tensor but got {type(patch_tensor)}"
+        assert not patch_tensor.is_cuda, "Expected patch_tensor to be on CPU, but it's on CUDA"
+        assert patch_tensor.device.type == "cpu", f"Expected CPU tensor but got device: {patch_tensor.device}"'''
         #times.append(datetime.now())
 
         '''for i, name in enumerate(time_names):
@@ -767,7 +770,7 @@ class ZarrContrastive(Dataset):
         row = self.df.iloc[idx]
         file_name = row['file_name']
         x1, y1, x2, y2 = row['x'], row['y'], row['x2'], row['y2']
-        label = row['male']
+        #label = row['male']
 
         img_idx = self.file_to_idx[file_name]
         full_img = self.zarr_store['images'][img_idx]  # numpy array HWC
@@ -776,15 +779,15 @@ class ZarrContrastive(Dataset):
         patch = full_img[y1:y2, x1:x2, :]
         #times.append(datetime.now())
 
-        patch = Image.fromarray(patch)
-        if hasattr(patch, "size"):
-            width, height = patch.size
+        patch_source = Image.fromarray(patch)
+        if hasattr(patch_source, "size"):
+            width, height = patch_source.size
             if width == 0 or height == 0:
-                raise ValueError(f"Invalid patch size: {patch.size} at index {idx}; x1={x1}, y1={y1}, x2={x2}, y2={y2} in file {file_name}")
+                raise ValueError(f"Invalid patch size: {patch_source.size} at index {idx}; x1={x1}, y1={y1}, x2={x2}, y2={y2} in file {file_name}")
         #times.append(datetime.now())
         patches=[]
         for i in range(2):
-            patch = self.contrastive_transform(patch)
+            patch = self.contrastive_transform(patch_source)
             if self.huggingface:
                 inputs = self.transform(images=patch, return_tensors="pt")
                 patch_tensor = inputs['pixel_values'][0]  # shape: (C, H, W)

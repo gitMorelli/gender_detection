@@ -3,6 +3,32 @@ from torchvision import datasets, transforms
 from transformers import TrOCRProcessor, ViTImageProcessor
 from doctr.models.preprocessor import PreProcessor
 from PIL import Image, ImageOps
+from scipy.ndimage import rotate as scipy_rotate
+import random
+import numpy as np
+
+class RandomRotationWrap:
+    def __init__(self, degrees):
+        if isinstance(degrees, (int, float)):
+            self.degrees = (-degrees, degrees)
+        else:
+            self.degrees = degrees
+
+    def __call__(self, img):
+        angle = random.uniform(*self.degrees)
+        np_img = np.array(img)
+        
+        # Rotate with wrap mode using scipy
+        rotated = scipy_rotate(
+            np_img,
+            angle,
+            reshape=False,
+            mode='wrap',
+            order=1  # bilinear interpolation
+        )
+        
+        # Convert back to PIL
+        return Image.fromarray(rotated.astype(np.uint8))
 
 # Step 1: Define your resize_with_padding function
 def resize_with_padding(image, target_size=(32, 128)):
@@ -374,35 +400,11 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
     else:
         raise ValueError(f"Unknown model name: {name}. Please provide a valid model name.")
 
-def get_augmentation_transform():
+def get_augmentation_transform(code='simclr'):
     color_jitter_strength = 0.3
     image_size=224
     # SimCLR data augmentation transform
-    simclr_transform = transforms.Compose([
-        transforms.RandomResizedCrop(size=image_size, scale=(0.6, 1.0)),
-        #transforms.RandomHorizontalFlip(),
-        transforms.RandomApply([
-            transforms.ColorJitter(
-                        brightness=color_jitter_strength,
-                        contrast=color_jitter_strength,
-                        saturation=color_jitter_strength,
-                        hue=0.05)
-                ], p=0.8),
-        transforms.RandomGrayscale(p=0.2),
-        transforms.GaussianBlur(5, sigma=(0.1, 0.5)),  # kernel_size ~ 0.1 * image size
-        transforms.RandomAffine(degrees=3, translate=(0.02, 0.02),shear=3),
-    ])
-    return simclr_transform
-
-def get_contrastive_transform(name):
-    normalize = transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], 
-            std=[0.229, 0.224, 0.225]
-        )
-    image_size=224
-    if name=='sim-clr':
-        color_jitter_strength = 0.3
-        # SimCLR data augmentation transform
+    if code == 'simclr':
         transform = transforms.Compose([
             transforms.RandomResizedCrop(size=image_size, scale=(0.6, 1.0)),
             #transforms.RandomHorizontalFlip(),
@@ -416,8 +418,52 @@ def get_contrastive_transform(name):
             transforms.RandomGrayscale(p=0.2),
             transforms.GaussianBlur(5, sigma=(0.1, 0.5)),  # kernel_size ~ 0.1 * image size
             transforms.RandomAffine(degrees=3, translate=(0.02, 0.02),shear=3),
-            transforms.ToTensor(),
-            normalize
+        ])
+    elif code == 'simple':
+        # Full augmentation pipeline
+        color_jitter_strength = 0.4
+        transform = transforms.Compose([
+            transforms.RandomRotation(degrees=(-10, 10), fill=255),
+    
+            # Random resized crop for zoom effect (zoom between 80% and 100% of original size)
+            transforms.RandomResizedCrop(size=448, scale=(0.2, 1.0)),
+            
+            transforms.RandomHorizontalFlip(p=0.3),
+            transforms.RandomVerticalFlip(p=0.3),
+
+            transforms.RandomApply([
+                transforms.ColorJitter(
+                            brightness=color_jitter_strength,
+                            contrast=color_jitter_strength,
+                            saturation=color_jitter_strength,
+                            hue=0.05)
+                    ], p=0.3),
+            
+            #transforms.ToTensor()
+        ])
+    return transform
+
+def get_contrastive_transform(name):
+    image_size=224
+    if name=='sim-clr':
+        color_jitter_strength = 0.3
+        # SimCLR data augmentation transform
+        transform = transforms.Compose([
+            transforms.RandomRotation(degrees=(-10, 10), fill=255),
+            transforms.RandomResizedCrop(size=image_size, scale=(0.6, 1.0)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([
+                transforms.ColorJitter(
+                            brightness=color_jitter_strength,
+                            contrast=color_jitter_strength,
+                            saturation=color_jitter_strength,
+                            hue=0.05)
+                    ], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.GaussianBlur(5, sigma=(0.1, 0.5)),  # kernel_size ~ 0.1 * image size
+            #transforms.RandomAffine(degrees=3, translate=(0.02, 0.02),shear=3),
+            #transforms.ToTensor(),
+            #normalize
         ])
     elif name=='simple':
         color_jitter = transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)
@@ -426,7 +472,7 @@ def get_contrastive_transform(name):
             #transforms.RandomHorizontalFlip(),
             transforms.RandomApply([color_jitter], p=0.8),
             transforms.RandomApply([transforms.GaussianBlur(kernel_size=3)], p=0.5),
-            transforms.ToTensor(),
-            normalize
+            #transforms.ToTensor(),
+            #normalize
         ])
     return transform
