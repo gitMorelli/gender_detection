@@ -12,6 +12,10 @@ import threading
 import zarr
 import utils.utils_transforms as u_transforms
 import pandas as pd
+from utils import file_IO
+import os
+from torchvision.io import read_image
+from torchvision.transforms.functional import to_pil_image
 
 def pad_collate_fn(batch):
     """
@@ -124,6 +128,105 @@ class CustomPatchDataset(Dataset):
             'image': patch,
             'writer': int(writer),
             'label': label
+        }
+
+class PreProcessedDataset(Dataset):
+    def __init__(self, df,label_column, transform=None, huggingface=False, use_augmentation=None, code='simclr',
+                 source_dir='C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\data_on_disk'):
+        """
+        Args:
+            image_dirs (list of str): List of directories to load images from.
+            labels_df (DataFrame): DataFrame containing labeled images.
+            transform (callable, optional): Optional transform to be applied on an image.
+        """
+        #self.label_column=label_column
+        self.image_files = df['file_name'].tolist()
+        self.img_labels = df[label_column].tolist()
+        self.transform = transform
+        self.huggingface = huggingface
+        self.x1 = df['x'].tolist()
+        self.y1 = df['y'].tolist() 
+        self.source_dir = source_dir
+        self.use_augmentation = use_augmentation
+        self.augmentation_transform = u_transforms.get_augmentation_transform(code=code) if use_augmentation else None
+
+        df['temp_file_name'] = df['file_name'].apply(file_IO.assemble_file_name)
+        def add_x1_y1(row):
+            return os.path.join(self.source_dir, row['temp_file_name'], f"{row['x']}_{row['y']}.png")
+        self.image_files = df.apply(add_x1_y1, axis=1).tolist()
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, idx):
+        img_path = self.image_files[idx]
+
+        image = Image.open(img_path)
+        assert image.mode == 'RGB', "PIL image is not in RGB mode"
+
+        label = self.img_labels[idx]
+
+        if self.use_augmentation:
+            image = self.augmentation_transform(image)
+        if self.huggingface:
+            # the transform is actually an huggingface processor in this case
+            inputs = self.transform(images=image, return_tensors="pt")
+            # Remove batch dimension from inputs
+            image = inputs['pixel_values'][0]
+        else:
+            if self.transform:
+                image = self.transform(image)
+
+        return {
+            'image': image,
+            'label': torch.tensor(label, dtype=torch.long)
+        }
+
+class PreProcessedDataset_contrastive(Dataset):
+    def __init__(self, df, transform=None, huggingface=False, contrastive_transform=None,
+                 source_dir='C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\data_on_disk'):
+        """
+        Args:
+            image_dirs (list of str): List of directories to load images from.
+            labels_df (DataFrame): DataFrame containing labeled images.
+            transform (callable, optional): Optional transform to be applied on an image.
+        """
+        #self.label_column=label_column
+        self.image_files = df['file_name'].tolist()
+        self.transform = transform
+        self.huggingface = huggingface
+        self.x1 = df['x'].tolist()
+        self.y1 = df['y'].tolist() 
+        self.source_dir = source_dir
+        self.contrastive_transform = contrastive_transform
+        df['temp_file_name'] = df['file_name'].apply(file_IO.assemble_file_name)
+        def add_x1_y1(row):
+            return os.path.join(self.source_dir, row['temp_file_name'], f"{row['x']}_{row['y']}.png")
+        self.image_files = df.apply(add_x1_y1, axis=1).tolist()
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, idx):
+        img_path = self.image_files[idx]
+        
+        image = Image.open(img_path)
+        assert image.mode == 'RGB', "PIL image is not in RGB mode"
+
+        patches=[]
+        for i in range(2):
+            patch = self.contrastive_transform(image)
+            if self.huggingface:
+                inputs = self.transform(images=patch, return_tensors="pt")
+                patch_tensor = inputs['pixel_values'][0]  # shape: (C, H, W)
+            elif self.transform:
+                patch_tensor = self.transform(patch)
+            else:
+                patch_tensor = patch
+            patches.append(patch_tensor)
+        #times.append(datetime.now())
+
+        return {
+            'image1': patches[0],
+            'image2': patches[1],
         }
 
 class CustomExtractedDataset(Dataset):

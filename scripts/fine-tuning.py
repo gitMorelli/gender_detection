@@ -101,6 +101,7 @@ def main(args):
     contrastive_mode = args.contrastive_mode  # Set to True for contrastive learning
     load_contrastive = args.load_contrastive  # Set to True if loading a trained contrastive model for fine tuning
     nn_parameters = args.nn_parameters
+    load_data_from = args.load_data_from  # 'zarr' or 'folder'
 
     profiler_config = {
         'profile_epochs': list(range(0, total_epochs, 10)),  # Profile every 10 epochs
@@ -195,16 +196,29 @@ def main(args):
     assert set(train_df[train_df['train'] == 1]['writer']).isdisjoint(set(train_df[train_df['train'] == 0]['writer'])), "Train and validation writers overlap!"
     return 0'''
     if contrastive_mode:
-        contrastive_transform = u_transforms.get_contrastive_transform('sim-clr')
-        train_dataset = ZarrContrastive(train_df[train_df['train']==1], zarr_path_train, transform=transform, 
+        contrastive_transform = u_transforms.get_contrastive_transform('simclr')
+        if load_data_from == 'zarr':
+            train_dataset = ZarrContrastive(train_df[train_df['train']==1], zarr_path_train, transform=transform, 
                                                 huggingface=huggingface, contrastive_transform=contrastive_transform)
+        elif load_data_from == 'pre-processed':
+            train_dataset = PreProcessedDataset_contrastive(train_df[train_df['train']==1], transform=transform, 
+                                                 huggingface=huggingface, contrastive_transform=contrastive_transform)
     else:
-        train_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==1], zarr_path_train, transform=transform, 
-                                                    huggingface=huggingface, use_augmentation=use_augmentation)
+        if load_data_from == 'zarr':
+            train_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==1], zarr_path_train, transform=transform, 
+                                                        huggingface=huggingface, use_augmentation=use_augmentation)
+        elif load_data_from == 'pre-processed':
+            train_dataset = PreProcessedDataset(train_df[train_df['train']==1], 'male' ,transform=transform, 
+                                                huggingface=huggingface, use_augmentation=use_augmentation)
+    
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,pin_memory=pin_memory)
-    val_dataset = ZarrImageCropDataset_resize(val_df, zarr_path_val, transform=transform, 
-                                              huggingface=huggingface, use_augmentation=False)
+    if load_data_from == 'zarr':
+        val_dataset = ZarrImageCropDataset_resize(val_df, zarr_path_val, transform=transform, 
+                                                huggingface=huggingface, use_augmentation=False)
+    elif load_data_from == 'pre-processed':
+        val_dataset = PreProcessedDataset(val_df, 'male' ,transform=transform, 
+                                                huggingface=huggingface, use_augmentation=False)
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,pin_memory=pin_memory)
     
@@ -273,6 +287,6 @@ if __name__ == "__main__":
     from utils.script_launching import load_config
     from utils.script_launching import DotDict
     from utils.train_on_rep_utils import select_n_patches
-    from utils.dataframes import ZarrImageCropDataset_resize,ZarrContrastive
+    from utils.dataframes import ZarrImageCropDataset_resize,ZarrContrastive, PreProcessedDataset_contrastive, PreProcessedDataset
     args = parse_args()
     main(args)

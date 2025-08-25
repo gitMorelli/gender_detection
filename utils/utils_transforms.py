@@ -445,7 +445,7 @@ def get_augmentation_transform(code='simclr'):
 
 def get_contrastive_transform(name):
     image_size=224
-    if name=='sim-clr':
+    if name=='simclr':
         color_jitter_strength = 0.3
         # SimCLR data augmentation transform
         transform = transforms.Compose([

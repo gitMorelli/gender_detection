@@ -4,11 +4,11 @@ import torch
 import torch.optim as optim
 from datetime import datetime
 from utils.monitoring import TrainingProfiler,TrainingMetrics, CheckpointManager
-from utils.evaluation_utils import perform_validation
+from utils.evaluation_utils import perform_validation, perform_validation_contrastive
 import time
 import math
 import numpy as np
-from torch.cuda.amp import autocast, GradScaler
+from torch.amp import autocast, GradScaler
 from torch.optim.lr_scheduler import LambdaLR
 import io
 from torch.optim.optimizer import Optimizer
@@ -541,7 +541,7 @@ def train_fine(
     #scheduler = get_scheduler(optimizer, name=scheduler_name, **kwargs) 
     optimization_manager = OptimizationManager(model, optim_config, **kwargs)
     scaler = GradScaler(device='cuda') if use_amp else None
-    
+
     # Initialize helper classes
     metrics = TrainingMetrics()
     checkpoint_manager = CheckpointManager(checkpoint_path)
@@ -588,7 +588,7 @@ def train_fine(
         
         if contrastive_mode:
             val_loss, val_acc = perform_validation_contrastive(model, val_dataloader, device, val_percentage, 
-                                                               epoch, total_epochs, use_amp, loss_fn)
+                                                               epoch, total_epochs, use_amp)
         else:
             val_loss, val_acc = perform_validation(model, val_dataloader, device, val_percentage, 
                                                    epoch, total_epochs, use_amp, loss_fn)
@@ -983,17 +983,16 @@ class SingleSearchConfig(BaseSearchConfig):
                 },
                 'Transformer': {
                     'head_model': ['MLPClassifier1'],
-                    'optimizer': ['AdamW'],
+                    'optimizer': ['Adam'],
                     'lr_classific_head': [0.001],
-                    'lr_backbone_initial': [1e-4],
+                    'lr_backbone_initial': [1e-5],
                     'pretrain_head_epochs': [3],
-                    'weight_decay': [1e-5],
+                    'weight_decay': [1e-2],
                     'scheduler_head': ['no_scheduling'], 
                     'scheduler': ['no_scheduling'], 
                     'log_grad_norm': [False],
                     'dropout': [0.2],
-                    'n_neurons': [128],
-                    'with_input_norm': [True]
+                    'n_neurons': [64],
                 }
             },
             'from_scratch': {

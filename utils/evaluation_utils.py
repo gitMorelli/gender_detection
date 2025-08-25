@@ -1,5 +1,5 @@
 import torch
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from tqdm import tqdm
 import random
 from torch.utils.data import DataLoader, Subset
