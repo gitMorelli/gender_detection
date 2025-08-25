@@ -11,6 +11,7 @@ outputs/models/
 outputs/online_deep_feature_extraction/
 outputs/fine_tuning/
 outputs/preprocessed_data/*
+outputs/data_on_disk/*
 !outputs/preprocessed_data/file_metadata_log.json
 
 # Ignore Jupyter notebook checkpoints
