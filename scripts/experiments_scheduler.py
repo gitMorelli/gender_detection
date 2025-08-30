@@ -232,6 +232,29 @@ def generate_experiments(config_path, experiment_csv,experiment):
                     args.n_job=i
                     args.patch_merging = combine
                     try_args.append(copy.deepcopy(args))
+    elif experiment == 'experiment_13':
+        #compare all models on body and standard patches
+        args.with_pca = False
+        args.selected_model = 'logreg'
+        args.n_splits = 10
+        for file in try_files:
+            i += 1
+            args.input_file_name = file
+            args.n_job=i
+            try_args.append(copy.deepcopy(args))
+    elif experiment == 'experiment_14': 
+        #generalization experiment on body and standard patches
+        args.with_pca = False
+        args.selected_model = 'logreg'
+        args.n_splits = 10
+        try_task = ['arabic','english']
+        for file in try_files:
+            for language in try_task:
+                i += 1
+                args.input_file_name = file
+                args.n_job=i
+                args.train_on_language = language
+                try_args.append(copy.deepcopy(args))
     '''elif experiment == 'experiment_12': #combining features on different datasets experiments
         args.selected_model = 'mlp'
         args.with_pca = False
@@ -248,9 +271,10 @@ if __name__ == "__main__":
     #experiment_csv = os.path.join(output_dir, "experiment_table_20250702_193304.pkl")  # Change to 'experiment_table.csv' if needed
     #20250711_154537
     #experiment_csv = os.path.join(output_dir, "experiment_table_20250711_154537.pkl")
-    experiment_csv = os.path.join(output_dir, "experiment_table_20250715_154509.pkl")
+    #experiment_csv = os.path.join(output_dir, "experiment_table_20250715_154509.pkl")
+    experiment_csv = os.path.join(output_dir, "experiment_table_20250830_183443.pkl")
     #experiments = [f'experiment_{i}' for i in range(4,5)]  # Change to 'experiment_2' if needed
-    experiments = ['experiment_2','experiment_6']
+    experiments = ['experiment_13','experiment_14']
     print(experiments)
     config_path = 'feature_extraction_configs/exp_patch_overfitting1.yaml'
 
