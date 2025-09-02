@@ -20,13 +20,6 @@ import yaml
 import argparse
 from torch.amp import GradScaler, autocast
 
-def compute_output_gpu(model, device, batch):
-    model.eval()
-    with torch.no_grad():
-        images = batch['image'].to(device)
-        outputs = model(images)
-    return outputs
-
 def compute_output(model, device, transform, t, huggingface, patches):
     image_file = t['file_name']
     image = Image.open(image_file).convert("RGB")
@@ -269,5 +262,7 @@ if __name__ == "__main__":
     from utils.script_launching import DotDict
     from utils.dataframes import ZarrImageCropDataset_resize
     from utils.visualization import display_debug_images
+    from model_utils import compute_output_gpu
+    
     args = parse_args()
     main(args)

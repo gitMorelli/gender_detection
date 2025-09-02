@@ -843,3 +843,10 @@ def get_normalization_parameters(train_file_name):
     scaler_mean = scaler.mean_
     scaler_scale = scaler.scale_
     return scaler_mean, scaler_scale
+
+def compute_output_gpu(model, device, batch):
+    model.eval()
+    with torch.no_grad():
+        images = batch['image'].to(device)
+        outputs = model(images)
+    return outputs
