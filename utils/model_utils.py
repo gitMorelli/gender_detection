@@ -58,10 +58,14 @@ class WrappedHuggingfaceModel(torch.nn.Module):
 
 class ContrastiveModel(nn.Module):
     """ResNet Backbone + Projection Head for SimCLR."""
-    def __init__(self, model, in_features,projection_dim=128,hidden_dim=256):
+    def __init__(self, model, in_features,projection_dim=128,hidden_dim=256,model_type='resnet'):
         super().__init__()
-        self.encoder = model
-        self.encoder.fc = nn.Identity()  # Remove the classification head
+        if model_type == 'resnet':
+            self.encoder = model
+            self.encoder.fc = nn.Identity()  # Remove the classification head
+        elif model_type == 'vit':
+            self.encoder = model
+            #self.encoder.heads = nn.Identity()  # Remove the classification head
         self.projection_head = nn.Sequential(
             nn.Linear(in_features, hidden_dim),
             nn.ReLU(),
@@ -226,15 +230,9 @@ def get_resnet(name,mode, pretrained, **kwargs):
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18']")
     contrastive = kwargs.get('contrastive', False)
-    load_contrastive = kwargs.get('load_contrastive', False)
-    if contrastive or load_contrastive:
-        in_features = model.fc.in_features 
-        contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
-        load_contrastive = kwargs.get('load_contrastive', False)
-        if load_contrastive:
-            checkpoint = torch.load(source_path+f'\\outputs\\online_deep_feature_extraction\\{name}\\checkpoint_best.pt', map_location='cpu', weights_only=False)
-            #checkpoint = torch.load('C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\models\\contrastive\\checkpoint.pt', map_location='cpu', weights_only=False)
-            contrastive_model.load_state_dict(checkpoint['model_state_dict'])
+    if contrastive:
+        in_features = model.fc.in_features
+        contrastive_model = ContrastiveModel(model, in_features=in_features, projection_dim=128)
         return contrastive_model
     if mode=='classification head':
         num_classes=kwargs.get('num_classes', 2)
@@ -511,7 +509,6 @@ def get_deit(name, mode, pretrained, **kwargs):
         def forward(self, pixel_values):
             outputs = self.hugging_model(pixel_values=pixel_values,output_attentions=True)
             return outputs.hidden_states[-1][:, 0, :]  # Return the CLS token output
-    
     if pretrained:
         model = ViTForImageClassification.from_pretrained('facebook/deit-tiny-patch16-224',output_hidden_states=True)
     else:
@@ -526,6 +523,10 @@ def get_deit(name, mode, pretrained, **kwargs):
             model = WrappedModel(model) 
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+    contrastive = kwargs.get('contrastive', False)
+    if contrastive:
+        in_features = 192
+        contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
     return model
 def get_clip_vit(name, mode, pretrained, **kwargs):
     from transformers import CLIPModel
@@ -623,7 +624,8 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)    
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'trocr family', 'vit family', and others]")
-    if 'pretrained_modality' in kwargs:
+    pretrained_modality = kwargs.get('custom_pretrained','original')
+    if pretrained_modality != 'original':
         model = get_custom_pretrained_weights(name,model,**kwargs)
     return model
 
@@ -800,13 +802,13 @@ def test_output(size,transform, model,huggingface=False):
     return output
 
 def get_custom_pretrained_weights(name,model,**kwargs):
-    pretrained_modality = kwargs['pretrained_modality']
-    if kwargs["mode"] == 'truncated' and kwargs["truncation"] == 'remove head':
-        path=source_path+f'\\outputs\\online_deep_feature_extraction\\{name}\\{pretrained_modality}\\checkpoint_best_backbone.pth'
-        state_dict = torch.load(path, map_location="cpu")
-        model.load_state_dict(state_dict)
+    pretrained_modality = kwargs['custom_pretrained']
+    which_checkpoint = kwargs.get('which_checkpoint', 'last')
+    if which_checkpoint == 'best':
+        checkpoint = torch.load(source_path+f'\\outputs\\online_deep_feature_extraction\\{name}\\{pretrained_modality}\\checkpoints\\checkpoint_best.pt', map_location='cpu', weights_only=False)
     else:
-        raise ValueError("Pretrained modality is only supported for truncated models with 'remove head'.")
+        checkpoint = torch.load(source_path+f'\\outputs\\online_deep_feature_extraction\\{name}\\{pretrained_modality}\\checkpoints\\checkpoint.pt', map_location='cpu', weights_only=False)
+    model.load_state_dict(checkpoint['model_state_dict'])
     return model
 
 def get_param_names(model, type_of_model):

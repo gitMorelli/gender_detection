@@ -99,7 +99,6 @@ def main(args):
     use_augmentation = args.use_augmentation  # Set to True for data augmentation
     n_patches = args.n_patches
     contrastive_mode = args.contrastive_mode  # Set to True for contrastive learning
-    load_contrastive = args.load_contrastive  # Set to True if loading a trained contrastive model for fine tuning
     nn_parameters = args.nn_parameters
     load_data_from = args.load_data_from  # 'zarr' or 'folder'
 
@@ -126,7 +125,7 @@ def main(args):
     transform = u_transforms.get_transform(selected_model, use_patches=patches, custom=custom_transform, mode=transform_mode)
     model = model_utils.get_model(name=selected_model, mode=model_mode, 
                                   pretrained=True, truncation=truncation, 
-                                  contrastive=contrastive_mode, load_contrastive=load_contrastive)
+                                  contrastive=contrastive_mode)
 
     # Define model
     train_df = pd.read_csv(f"{source_path}\\outputs\\preprocessed_data\\{input_filename}")

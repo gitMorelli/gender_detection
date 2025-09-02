@@ -81,8 +81,8 @@ def main(args):
     n_patches = args.n_patches
     zarr_path = args.zarr_path
     contrastive_mode = args.contrastive_mode
-    load_contrastive = args.load_contrastive
     augmentation_code = args.augmentation_code
+    custom_pretrained = args.custom_pretrained  # 'original', 'contrastive', 'fine-tune'
 
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
@@ -90,7 +90,7 @@ def main(args):
     #Initialization
     transform = u_transforms.get_transform(selected_model, use_patches=patches, custom=custom_transform, mode=transform_mode)
     model = model_utils.get_model(name=selected_model, mode=model_mode, pretrained=True, truncation=truncation, 
-                                                    contrastive_mode=contrastive_mode, load_contrastive=load_contrastive)
+                                                    contrastive=contrastive_mode,custom_pretrained=custom_pretrained)
     # Define loss function and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Device is: ",device)
