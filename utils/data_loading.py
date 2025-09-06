@@ -58,8 +58,11 @@ def load_classification_head(selected_FE,selected_classifier,classifier_type,val
     cols_to_keep = [c for c in train_df.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]#[:256]  # Keep only the first 256 features
     in_features = len(cols_to_keep)  # Number of features from the model output
     #print(in_features)
-
-    base_dir=source_path + f'/outputs/online_deep_feature_extraction/{selected_FE}/representation_extraction/'
+    custom_pretrained = kwargs.get('custom_pretrained', 'original')
+    if custom_pretrained == 'original':
+        base_dir=source_path + f'/outputs/online_deep_feature_extraction/{selected_FE}/representation_extraction/'
+    else:
+        base_dir=source_path + f'/outputs/online_deep_feature_extraction/{selected_FE}/{custom_pretrained}/'
     if classifier_type == 'sklearn':
         search_dir = base_dir+f'sklearn_model_trained_on_rep/{selected_classifier}/'
         pipeline = load(os.path.join(search_dir, validation_mode+'_pipeline.joblib'))

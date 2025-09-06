@@ -182,7 +182,11 @@ class TrainingMetrics:
         axes[0, 1].set_title("Validation Loss")
 
         # Learning rate and grad norm
-        axes[0, 2].plot(self.learning_rates, label="Learning Rate", color='orange',linestyle='None', marker='o')
+        learning_rates_array=np.array(self.learning_rates)
+        n_columns=learning_rates_array.shape[1]
+        colors = plt.cm.viridis(np.linspace(0, 1, n_columns))
+        for i in range(n_columns):
+            axes[0, 2].plot(learning_rates_array[:, i], label=f"Learning Rate Group {i}", color=colors[i], linestyle='None', marker='o')
         axes[0, 2].set_xlabel("Epoch")
         axes[0, 2].set_ylabel("LR")
         axes[0, 2].legend()

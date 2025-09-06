@@ -143,10 +143,10 @@ def main(args):
     print("Output shape: ", output.shape)
     in_features = output.shape[1]  # Number of features from the model output
     if contrastive_mode == False:
-        classificaton_head = model_utils.get_classification_head(name=selected_classifier, in_features=in_features, num_classes=2,
+        classification_head = model_utils.get_classification_head(name=selected_classifier, in_features=in_features, num_classes=2,
                                                 dropout=nn_parameters['dropout'], n_neurons=nn_parameters['n_neurons'],
-                                                activation=nn_parameters['activation'])
-        model = model_utils.JoinedModels(model, classificaton_head)
+                                                activation=nn_parameters['activation'],with_input_norm=nn_parameters['with_input_norm'])
+        model = model_utils.JoinedModels(model, classification_head)
         output=compute_output(model, 'cpu', transform, train_df.iloc[i], huggingface, patches)
     print(output)
     

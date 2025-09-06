@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import glob
 import shutil
+import matplotlib.pyplot as plt
 
 
 def assemble_file_name(input_string):
@@ -222,8 +223,11 @@ def get_csv_filename(folder):
     files = glob.glob(os.path.join(folder, "*.csv"))
     return os.path.basename(files[0]) if files else None
 
-def load_input_files(source_path,selected_FE,kind,suffix):
-    input_dir=source_path+f'\\outputs\\online_deep_feature_extraction\\{selected_FE}\\representation_extraction\\extracted_representation'
+def load_input_files(source_path,selected_FE,kind,suffix,custom_pretrained='original'):
+    if custom_pretrained=='original':
+        input_dir=source_path+f'\\outputs\\online_deep_feature_extraction\\{selected_FE}\\representation_extraction\\extracted_representation'
+    else:
+        input_dir=source_path+f'\\outputs\\online_deep_feature_extraction\\{selected_FE}\\{custom_pretrained}\\extracted_representation'
     if kind == 'patches_224':
         source_file_train='icdar_train_df_patches_20250716_113702'
         source_file_val='icdar_train_df_patches_20250716_120511'
@@ -315,3 +319,24 @@ def init_expl_dirs(search_dir,clear=False):
         explanation_dir += string
         os.makedirs(explanation_dir, exist_ok=True)
         os.chmod(explanation_dir, 0o555)  if i%3==0 else os.chmod(explanation_dir, 0o755)'''
+def save_dict_to_txt(my_dict, file_path="output.txt"):
+    with open(file_path, "w") as f:
+        for key, value in my_dict.items():
+            f.write(f"{key}: {value}\n")
+
+def save_df_to_png(display_df, save_dir):
+    # Include index as a column for display
+    display_df_with_index = display_df.copy()
+    display_df_with_index.insert(0, display_df_with_index.index.name or "index", display_df_with_index.index)
+    
+    fig, ax = plt.subplots()
+    ax.axis('tight')
+    ax.axis('off')
+    table = ax.table(
+        cellText=display_df_with_index.values,
+        colLabels=display_df_with_index.columns,
+        loc='center'
+    )
+
+    plt.savefig(save_dir, dpi=300)
+    plt.close()

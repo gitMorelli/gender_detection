@@ -281,21 +281,13 @@ class LARS(Optimizer):
 
                 p.data.add_(-group['lr'], dp)
 
-def get_optimizer(parameters, name='Adam', lr=0.001,**kwargs):
+def get_optimizer(param_groups, name='Adam'):
     if name == 'Adam':
-        if 'weight_decay' in kwargs:
-            weight_decay = kwargs['weight_decay']
-        else:
-            weight_decay = 0
-        return optim.Adam(parameters, lr=lr,weight_decay=weight_decay)
+        return optim.Adam(param_groups)
     elif name == 'SGD':
-        return optim.SGD(parameters, lr=lr, momentum=0.9)
+        return optim.SGD(param_groups)
     elif name == 'AdamW':
-        if 'weight_decay' in kwargs:
-            weight_decay = kwargs['weight_decay']
-        else:
-            weight_decay = 0.05
-        return optim.AdamW(parameters, lr=lr, weight_decay=weight_decay)
+        return optim.AdamW(param_groups)
     else:
         raise ValueError(f"Unknown optimizer name: {name}. Please provide a valid optimizer name.")
 
@@ -331,6 +323,27 @@ def get_scheduler(optimizer, name='no_scheduling',start_epoch=0, **kwargs):
         for param_group in optimizer.param_groups:
             param_group.setdefault('initial_lr', param_group['lr'])
         return CosineAnnealingLR(optimizer, T_max=T_max, eta_min=eta_min,last_epoch=start_epoch-1)
+    elif name == 'ProgressiveWarmupCosineAnnealingLR':
+        T = kwargs.get('T', 20)
+        eta_min_ratio = kwargs.get('eta_min', 1e-3)
+        warmup = kwargs.get('warmup', 1)
+        def make_lambda(start):
+            def l(last_epoch):
+                # last_epoch is the scheduler's counter (epoch or step depending on how you step)
+                t = last_epoch - start
+                if t < 0:
+                    return 1.0  # frozen period -> keep base_lr
+                # optional warmup
+                if t < warmup:
+                    return (t + 1) / (warmup + 1)
+                # cosine from 1.0 -> eta_min_ratio over T steps after warmup
+                tt = min(max(t - warmup, 0), T)
+                cos = (1 + math.cos(math.pi * tt / max(T, 1))) / 2
+                return eta_min_ratio + (1 - eta_min_ratio) * cos
+            return l
+        start_epochs = kwargs.get('start_epochs', [0])
+        lambdas = [make_lambda(s) for s in start_epochs]
+        return LambdaLR(optimizer, lr_lambda=lambdas)
     elif name == 'StepLR':
         step_size= kwargs.get('step_size', 30)
         return torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=0.1)
@@ -551,8 +564,8 @@ def train_fine(
     start_epoch,optimizer_dict,scheduler_dict, prev_opt_phase = checkpoint_manager.load_checkpoint(
         model, scaler, metrics, device, use_amp
     )
-    optimizer = optimization_manager.set_optimizer(start_epoch)
-    scheduler = optimization_manager.set_scheduler(optimizer,start_epoch)
+    optimizer = optimization_manager.set_optimizer()
+    scheduler = optimization_manager.set_scheduler()
     if start_epoch > 0:
         optimizer.load_state_dict(optimizer_dict)
         scheduler.load_state_dict(scheduler_dict)
@@ -566,8 +579,7 @@ def train_fine(
         if prev_opt_phase != opt_phase:
             print(f"Switching to optimization phase {opt_phase} at epoch {epoch}")
             prev_opt_phase = opt_phase
-            optimizer = optimization_manager.set_optimizer(epoch) #not sure if it destroys the loaded optimizer
-            scheduler = optimization_manager.set_scheduler(optimizer,epoch)
+            optimization_manager.update_trainable_params(epoch) 
         # Start epoch profiling
         # Setup profiler
         profiler = TrainingProfiler(use_profiler, profiler_config)
@@ -597,8 +609,8 @@ def train_fine(
         epoch_time = time.time() - epoch_start_time
         
         # Update metrics
-        current_lr = optimizer.param_groups[0]['lr']
-        metrics.update_train_metrics(avg_train_loss, current_lr, train_accuracy ,avg_grad_norm)
+        current_lrs = [optimizer.param_groups[i]['lr'] for i in range(len(optimizer.param_groups))]
+        metrics.update_train_metrics(avg_train_loss, current_lrs, train_accuracy ,avg_grad_norm)
         metrics.update_val_metrics(val_loss, val_acc)
         
         # Memory tracking
@@ -616,8 +628,10 @@ def train_fine(
         
         # Enhanced logging
         print(f"Epoch {epoch+1}| Train Accuracy {train_accuracy:.4f}| Train Loss: {avg_train_loss:.4f} | Val Acc: {val_acc:.4f} | "
-              f"Val Loss: {val_loss:.4f} | LR: {current_lr:.6f} | Avg Grad Norm: {avg_grad_norm:.4f} | "
+              f"Val Loss: {val_loss:.4f} | Avg Grad Norm: {avg_grad_norm:.4f} | "
               f"Epoch Time: {epoch_time:.2f}s | Val Time: {val_time:.2f}s")
+        for i,current_lr in enumerate(current_lrs):
+            print(f"block {i} lr:",f"{current_lr:.6f}")
         
         # Check for improvement and save checkpoint
         if metrics.check_improvement(val_loss):
@@ -672,42 +686,56 @@ class OptimizationManager:
         self.model = model
         self.kwargs = kwargs
         self.optimizer_phases = config.get('optimizer_phases', [])
-        self.phase_layers_to_freeze = config.get('phase_layers_to_freeze', [])
-        self.phase_scheduling = config.get('phase_scheduling', [])
-        self.phase_optimizer = config.get('phase_optimizer', ['Adam'])
+        self.training_blocks = config.get('training_blocks', [])
+        self.scheduling = config.get('scheduling', 'no_scheduling')
+        self.optimizer_name = config.get('optimizer_name', ['Adam'])
         self.phase_lr = config.get('phase_lr', [0.001])
-        self.phase_scheduler_hyperparams = config.get('phase_scheduler_hyperparams', [{}])
+        self.phase_scheduler_hyperparams = config.get('phase_scheduler_hyperparams', {})
         self.phase_optimizer_hyperparams = config.get('phase_optimizer_hyperparams', [{}])
-    
+
     def get_phase(self,epoch):
         for i, phase in enumerate(self.optimizer_phases):
             if phase > epoch:
                 return i
         return len(self.optimizer_phases) - 1
 
-    def set_optimizer(self,epoch):
+    def set_optimizer(self):
+        self.optimizer_name = self.optimizer_name
+        print(f"Setting optimizer: {self.optimizer_name}")
+        param_groups = []
+        for i, block in enumerate(self.training_blocks):
+            block_lr = self.phase_lr[i]
+            block_params = [param for name, param in self.model.named_parameters() if name in block]
+            weight_decay = self.phase_optimizer_hyperparams[i].get('weight_decay', 0)
+            if block_params:
+                param_groups.append({'params': block_params, 'lr': block_lr, 'weight_decay': weight_decay})
+        self.optimizer = get_optimizer(param_groups, name=self.optimizer_name)
+        return self.optimizer
+
+    def update_trainable_params(self,epoch):
         self.epoch = epoch
         i = self.get_phase(epoch)
-        self.optimizer_name = self.phase_optimizer[i]
-        self.lr = self.phase_lr[i]
-        self.layers_to_freeze = self.phase_layers_to_freeze[i]
+        blocks=[]
+        for j in range(i+1): # ia lso reset to true all previous blocks so that the code is robust to reinitializaiton from checkpoitns
+            blocks += self.training_blocks[j]
         for name, param in self.model.named_parameters():
-            if name in self.layers_to_freeze:
-                param.requires_grad = False
-            else:
+            if name in blocks:
                 param.requires_grad = True
-        print(f"Setting optimizer for phase {i}: {self.optimizer_name} with learning rate {self.lr}")
-        print(f"Freezing {self.layers_to_freeze} parameters")
+            else:
+                param.requires_grad = False
+        print(f"Unfreezing {self.training_blocks[i]} parameters")
         # Print number of trainable parameters after freezing
         trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         print(f"Trainable parameters after freezing: {trainable_params:,}")
-        return get_optimizer(self.model.parameters(), name=self.optimizer_name, lr=self.lr, **self.phase_optimizer_hyperparams[i])
+        return
 
-    def set_scheduler(self, optimizer,epoch):
-        i = self.get_phase(epoch)
-        self.scheduling = self.phase_scheduling[i]
-        return get_scheduler(optimizer, name=self.scheduling, start_epoch = epoch, **self.phase_scheduler_hyperparams[i])
-
+    def set_scheduler(self):
+        #. In PyTorch, LR schedulers operate per–param group. 
+        # At every scheduler.step(), they compute a new LR for each group independently, 
+        # based on that group’s own base LR captured when the scheduler was created
+        self.scheduling = self.phase_scheduling
+        kwarg = {'start_epochs': [0] + self.optimizer_phases}
+        return get_scheduler(self.optimizer, name=self.scheduling, **self.phase_scheduler_hyperparams, **kwarg)
 
 def get_progressive_training_steps(selected_model,contrastive_mode=False):
     if selected_model == 'resnet18':
@@ -952,19 +980,20 @@ class SingleSearchConfig(BaseSearchConfig):
                     'with_input_norm': ['batch_norm'],
                 },
                 'Transformer': {
-                    'head_model': ['MLPClassifier1'],
-                    'optimizer': ['AdamW'],
-                    'lr_classific_head': [1e-4],
-                    'lr_backbone_initial': [1e-6],
-                    'lr_backbone_scaling':[0.1],
-                    'pretrain_head_epochs': [3],
-                    'step_phase': [5],
+                    'head_model': ['logreg'],
+                    'optimizer': 'AdamW',
+                    'lr_classific_head': [1e-3],
+                    'lr_backbone_initial': [1e-4],
+                    'lr_backbone_scaling':[0.5],
+                    'pretrain_head_epochs': [1],
+                    'step_phase': [1],
                     'weight_decay': [1e-4],
-                    'scheduler': ['no_scheduling'], #fisso
-                    'log_grad_norm': [False],
+                    'scheduler': 'ProgressiveWarmupCosineAnnealingLR', #fisso
+                    'scheduler_params': {'warmup': 1,'eta_min_ratio': 0.05,'T': 20},
+                    'log_grad_norm': [True],
                     'dropout': [0.2],
                     'n_neurons': [128],
-                    'with_input_norm': ['batch_norm']
+                    'with_input_norm': [None]
                 },
             },
             'fine_tune': {
@@ -984,10 +1013,10 @@ class SingleSearchConfig(BaseSearchConfig):
                 'Transformer': {
                     'head_model': ['MLPClassifier1'],
                     'optimizer': ['Adam'],
-                    'lr_classific_head': [0.001],
-                    'lr_backbone_initial': [1e-5],
-                    'pretrain_head_epochs': [3],
-                    'weight_decay': [1e-2],
+                    'lr_classific_head': [1e-3],
+                    'lr_backbone_initial': [1e-4],
+                    'pretrain_head_epochs': [1],
+                    'weight_decay': [1e-3],
                     'scheduler_head': ['no_scheduling'], 
                     'scheduler': ['no_scheduling'], 
                     'log_grad_norm': [False],
@@ -1046,20 +1075,19 @@ def get_search_params(type_of_search='grid_search', type_of_training='progressiv
     config = factory.get_config(type_of_search)
     return config.get_params(type_of_training, type_of_model)
 
-def set_search_params(params,type_of_training,total_epochs,steps,backbone_param_names):
+def set_search_params(params,type_of_training,total_epochs,steps,backbone_param_names,classifier_param_names):
     """Set search parameters based on the type of training"""
     if type_of_training == 'progressive':
         #for progressive fine tuning
         optimizer_phases = [params['pretrain_head_epochs']]
-        phase_layers_to_freeze = [backbone_param_names]
+        training_blocks = [classifier_param_names]
         phase_lr = [params['lr_classific_head']]
         step_phase = params['step_phase']
         lr_backbone_initial = params['lr_backbone_initial']
         lr_backbone_scaling = params['lr_backbone_scaling']
         for i,name in enumerate(steps):
             optimizer_phases.append(optimizer_phases[i]+step_phase) 
-            phase_layers=phase_layers_to_freeze[i]
-            phase_layers_to_freeze.append([l for l in phase_layers if not(name in l)])
+            training_blocks.append([l for l in backbone_param_names if name in l])
             if i == 0:
                 phase_lr.append(lr_backbone_initial)
             else:
@@ -1069,12 +1097,12 @@ def set_search_params(params,type_of_training,total_epochs,steps,backbone_param_
         weight_decay = params['weight_decay'] 
         optim_config = {
                 'optimizer_phases':optimizer_phases+[total_epochs],  # Example: [10, 10, 80] for 100 epochs
-                'phase_layers_to_freeze':phase_layers_to_freeze+[[]],
-                'phase_scheduling': [params['scheduler'] for _ in range(len(optimizer_phases)+1)],
-                'phase_optimizer':[optimizer_name for _ in range(len(optimizer_phases)+1)],  # Example: ['AdamW', 'SGD', 'AdamW'] for different phases
+                'phase_layers_to_freeze':training_blocks,
+                'scheduling': params['scheduler'],
+                'optimizer_name':optimizer_name ,  # Example: ['AdamW', 'SGD', 'AdamW'] for different phases
                 'phase_lr': phase_lr,
                 'phase_optimizer_hyperparams': [{'weight_decay':weight_decay} for _ in range(len(optimizer_phases)+1) for _ in range(len(optimizer_phases)+1)],
-                'phase_scheduler_hyperparams': [{} for _ in range(len(optimizer_phases)+1)],
+                'phase_scheduler_hyperparams': params.get('scheduler_params', {}),
             }
     elif type_of_training == 'fine_tune':
         optimizer_phases = [params['pretrain_head_epochs'], total_epochs]  # Example: [1, 4, 95] for 100 epochs

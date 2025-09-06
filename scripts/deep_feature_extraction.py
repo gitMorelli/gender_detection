@@ -83,7 +83,9 @@ def main(args):
     #Initialization
     transform = u_transforms.get_transform(selected_model, use_patches=patches, custom=custom_transform, mode=transform_mode)
     model = model_utils.get_model(name=selected_model, mode=model_mode, pretrained=True, truncation=truncation, 
-                                                    contrastive=contrastive_mode,custom_pretrained=custom_pretrained)
+                                                    contrastive=contrastive_mode)
+    if custom_pretrained != 'original':
+        model=model_utils.get_custom_pretrained_weights(selected_model,model,custom_pretrained=custom_pretrained,which_checkpoint='last')                                          
     # Define loss function and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Device is: ",device)

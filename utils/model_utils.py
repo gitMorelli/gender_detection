@@ -625,8 +625,6 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'trocr family', 'vit family', and others]")
     pretrained_modality = kwargs.get('custom_pretrained','original')
-    if pretrained_modality != 'original':
-        model = get_custom_pretrained_weights(name,model,**kwargs)
     return model
 
 def get_classification_head(name='MLPClassifier1',in_features=512,num_classes=2,**kwargs):
@@ -671,7 +669,11 @@ def get_sklearn_model(name='logreg', **kwargs):
         return SVC(kernel='rbf', C=0.1, gamma='scale', probability=True, random_state=42)
     elif name=='logreg':
         from sklearn.linear_model import LogisticRegression
-        return LogisticRegression(max_iter=1000, random_state=42)
+        penalty=kwargs.get('penalty','l2')
+        C=kwargs.get('C',1.0)
+        solver=kwargs.get('solver','lbfgs')
+        max_iter=kwargs.get('max_iter',5000)
+        return LogisticRegression(max_iter=max_iter, random_state=42, penalty=penalty, C=C, solver=solver)
     elif name=='gbm':
         # Define the models
         from sklearn.ensemble import GradientBoostingClassifier
@@ -787,7 +789,7 @@ def get_trainable_layers(name,depth=0):
     #if -1 is returned all layers are trainable    else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet18', 'resnet50', 'efficientnet', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'MLP']")
 
-def test_output(size,transform, model,huggingface=False):
+def test_output(size,transform, model):
     dummy_input = torch.rand(1, 3, size, size)
     dummy_input.shape
     '''if huggingface:

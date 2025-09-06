@@ -53,6 +53,7 @@ def main(args):
     extra_train_filename = args.extra_train_filename
     extra_val_filename = args.extra_val_filename
     aggregation_mode = args.aggregation_mode
+    sklearn_model_parameters = args.sklearn_model_parameters
 
     if task == 'language detection' and train_on_language != 'all':
         raise ValueError("For language detection, 'train_on' must be 'all'.")
@@ -105,7 +106,7 @@ def main(args):
 
     gkf = GroupKFold(n_splits=n_splits)
 
-    model = get_sklearn_model(name=selected_model)
+    model = get_sklearn_model(name=selected_model, **sklearn_model_parameters)
 
     if with_pca:
         from sklearn.decomposition import PCA

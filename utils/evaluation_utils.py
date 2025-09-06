@@ -11,7 +11,6 @@ import torch.nn.functional as F
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
 
-list_of_metrics = ['majority_vote', 'weighted_vote', 'most_probable']
 
 def test_model(model, test_loader, device):
     model.eval()
@@ -305,7 +304,8 @@ def compute_subgroup_accuracies(pipeline, train_df,cols_to_drop,target_label):
 
     return subgroup_accuracies
 
-def compute_predictions_and_uncertainties(model, train_df, head_type,calibrate=False,threshold=0.5,use_external_probs=None):
+def compute_predictions_and_uncertainties(model, train_df, head_type,calibrate=False,threshold=0.5,use_external_probs=None, list_of_metrics=None):
+    out_results = {}
     if use_external_probs is not None:
         y_prob = use_external_probs
     else:
@@ -319,6 +319,9 @@ def compute_predictions_and_uncertainties(model, train_df, head_type,calibrate=F
                 y_prob = probs[:, 1].numpy()  # probability of class 1
         else:
             y_prob = model.predict_proba(train_df.drop(columns=cols_to_drop).values)[:,1]
+        feature_cols = [c for c in train_df.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]
+        train_df=train_df.drop(columns=feature_cols)
+    
     if calibrate:
         from sklearn.isotonic import IsotonicRegression
         iso = IsotonicRegression(out_of_bounds='clip')
@@ -328,7 +331,9 @@ def compute_predictions_and_uncertainties(model, train_df, head_type,calibrate=F
     y_pred =(y_prob>= threshold).astype(int)
     train_df['y_prob'] = y_prob
     train_df['y_pred'] = y_pred
-    print(f"Accuracy for individual patches: {accuracy_score(train_df[train_df['train']==0]['male'], train_df[train_df['train']==0]['y_pred'])}")
+
+    out_results['Accuracy for individual patches']=accuracy_score(train_df[train_df['train']==0]['male'], train_df[train_df['train']==0]['y_pred'])
+    
     train_df['page'] = train_df.groupby(['writer', 'isEng', 'same_text']).ngroup()
     train_df = train_df.sort_values('page').reset_index(drop=True)
     grouped_true = group_labels(train_df['male'], train_df['page'])
@@ -339,17 +344,35 @@ def compute_predictions_and_uncertainties(model, train_df, head_type,calibrate=F
         grouped_predictions,uncertainty = ensembled_predictions_w_uncertainty(train_df['y_pred'], train_df['page'], mode=metric,probs=train_df['y_prob'])
         train_df[metric]= train_df['page'].map(grouped_predictions)
         train_df[metric+'_uncertainty'] = train_df['page'].map(uncertainty)
-        print(f"Accuracy for {metric}: {accuracy_score(train_df[train_df['train']==0]['grouped_true'], train_df[train_df['train']==0][metric])}")
-    # Save the predictions to a CSV file
+
+        out_results[f"Accuracy for {metric}"] = accuracy_score(train_df[train_df['train']==0]['grouped_true'], train_df[train_df['train']==0][metric])
+    
     #cross_val_subgroup_accuracies.append(compute_subgroup_accuracies(pipeline, train_FE_temp, cols_to_drop, target_label))
     n_patches = int(len(train_df)/len(train_df['page'].unique()))
     train_df['majority_vote_uncertainty'] /= n_patches #-> 1 if all patches classified the same, 0 if all patches classified differently
-    return train_df
 
-def select_instances(train_df, selected_metric='majority_vote'):
-    grouped = train_df[train_df['train'] == 0].groupby('page').first()[['grouped_true'] + list_of_metrics +[metric + '_uncertainty' for metric in list_of_metrics]].reset_index()
+    #I compute the writer level results
+    writer_level_df,accuracy_writer_level = get_writer_level_prediction(train_df[train_df['train']==0], threshold)
+    out_results['Accuracy for writer level prediction']=accuracy_writer_level
+    train_df = train_df.merge(writer_level_df[['writer', 'y_pred_writer', 'y_prob_writer']], on='writer', how='left')
+
+    return train_df,out_results
+
+def get_writer_level_prediction(df,threshold):
+    writer_level_df = df.groupby('writer', as_index=False).agg(y_prob_writer=('y_prob', 'mean'), male=('male', 'first'),writer=('writer', 'first'))
+    writer_level_df['y_pred_writer'] = (writer_level_df['y_prob_writer'] >= threshold).astype(int)
+    accuracy = accuracy_score(writer_level_df['male'], writer_level_df['y_pred_writer'])
+    return writer_level_df,accuracy
+
+def group_instances(train_df,level='page',list_of_metrics=None):
+    if level == 'page':
+        grouped = train_df[train_df['train'] == 0].groupby('page').first()[['grouped_true'] + list_of_metrics +[metric + '_uncertainty' for metric in list_of_metrics]].reset_index()
+    elif level == 'patch':
+        list_of_metrics = ['patch']
+        grouped=train_df[train_df['train'] == 0]
+        grouped['patch_uncertainty'] = np.abs(grouped['y_prob'] - 0.5) / 0.5
+        grouped['patch']=grouped['y_pred']
     for metric in list_of_metrics:
-
         percentile_25 = grouped[metric + '_uncertainty'].quantile(0.25) #threshold for unsure
         percentile_75 = grouped[metric + '_uncertainty'].quantile(0.75) #threshold for sure
         #print(f"Percentiles for {metric}: 25th = {percentile_25}, 75th = {percentile_75}")
@@ -357,25 +380,39 @@ def select_instances(train_df, selected_metric='majority_vote'):
         grouped[metric+'_sure'] = (grouped[metric+'_uncertainty'] >= percentile_75).astype(int)
         grouped[metric+'_unsure'] = (grouped[metric+'_uncertainty'] <= percentile_25).astype(int)
         grouped[metric+'_ok'] = (grouped[metric] == grouped['grouped_true']).astype(int)
-        # Group by sure, unsure, ok, and grouped_true, assign a unique number to each group
-        class_grouped=grouped.groupby([metric + '_sure', metric + '_unsure', metric + '_ok', 'grouped_true'])
-        for group_id, group_df in class_grouped:
-            idx = group_df.sample(1, random_state=42).index if not group_df.empty else group_df.sample(1, random_state=42).index
-            grouped.loc[idx, metric + '_selected'] = 1
-        print(f"Number of unique groups for {metric}: {(class_grouped.ngroup()).nunique()}")
 
         '''#select one sure and ok and 0
         conditions = (grouped[metric+'_uncertainty'] >= percentile_75) & (train_df[metric] == train_df['grouped_true']) & (1 == train_df['grouped_true'])
         selected = grouped[conditions].sample(1)
         grouped.loc[selected.index, metric+'_selected'] = 1'''
-    cols_to_drop = ['grouped_true'] + [metric + '_uncertainty' for metric in list_of_metrics]+list_of_metrics
-    grouped = grouped.drop(columns=cols_to_drop)
-    train_df = train_df.merge(grouped, on='page', how='left')
+    if level=='page':
+        cols_to_drop = ['grouped_true'] + [metric + '_uncertainty' for metric in list_of_metrics]+list_of_metrics
+        grouped = grouped.drop(columns=cols_to_drop)
+        train_df = train_df.merge(grouped, on='page', how='left')
+    elif level=='patch':
+        train_df=grouped.copy()
+    return train_df
 
-    selected = train_df[train_df[selected_metric + '_selected'] == 1]
+def select_instances(df, metric='weighted_vote', sure=None, unsure=None, ok=None,true=None, n_samples=1):
+    train_df=df.copy()
+    class_grouped=train_df.groupby([metric + '_sure', metric + '_unsure', metric + '_ok', 'grouped_true'])
+    group_df=class_grouped.get_group((sure, unsure, ok, true)) 
+    idx = group_df.sample(n_samples, random_state=42).index if not group_df.empty else group_df.sample(1, random_state=42).index
+    train_df.loc[idx, metric + '_selected'] = 1
+    selected = train_df[train_df[metric + '_selected'] == 1]
+    return selected
+
+def select_for_explanation(train_df, metric='weighted_vote'):
+    class_grouped=train_df.groupby([metric + '_sure', metric + '_unsure', metric + '_ok', 'grouped_true'])
+    unique_groups = class_grouped.groups.keys()
+    selected_list = []
+    for group in unique_groups:
+        sel = select_instances(train_df, metric=metric, sure=group[0], unsure=group[1], ok=group[2], true=group[3])
+        selected_list.append(sel)
+    selected = pd.concat(selected_list, ignore_index=True)
     grouping = ['sure', 'unsure', 'ok']
-    grouping = [selected_metric + '_' + group for group in grouping] + ['grouped_true']
-    print(grouping)
+    grouping = [metric + '_' + group for group in grouping] + ['grouped_true']
+    #print(grouping)
     display(selected[grouping+['page']].groupby('page').first().sort_values(grouping))
     cols_to_drop = [c for c in selected.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]
     selected = selected.drop(columns=cols_to_drop)
