@@ -1,3 +1,4 @@
+from typing_extensions import OrderedDict
 from torchvision.models import efficientnet_v2_s, EfficientNet_V2_S_Weights, alexnet, AlexNet_Weights
 from torchvision.models import resnet50, ResNet50_Weights, resnet18, ResNet18_Weights
 from torchvision.models import vgg16, VGG16_Weights, vgg11, VGG11_Weights, vgg13, VGG13_Weights, vgg19, VGG19_Weights
@@ -219,6 +220,94 @@ class SKLearnLogRegWrapper(nn.Module):
         p1 = torch.sigmoid(logits)
         p0 = 1 - p1
         return torch.cat([p0, p1], dim=1)  # Shape: [B, 2]
+
+def get_custom_cnn(name, mode, pretrained, **kwargs):
+    #https://chatgpt.com/share/68d26a38-d0f0-8010-9891-dc0770d96251
+    class TinyTextCNN(nn.Module):
+        def __init__(self, out_features=384):
+            super().__init__()
+            # (in_ch, out_ch, k, s, p)
+            def block(ic, oc):
+                return nn.Sequential(OrderedDict([
+                        (f"conv1", nn.Conv2d(ic, oc, 3, 1, 1, bias=False)),
+                        (f"bn1",   nn.BatchNorm2d(oc)),
+                        (f"relu1", nn.ReLU(inplace=True)),
+                        (f"conv2", nn.Conv2d(oc, oc, 3, 1, 1, bias=False)),
+                        (f"bn2",   nn.BatchNorm2d(oc)),   # <-- named as bn2
+                        (f"relu2", nn.ReLU(inplace=True)),
+                        (f"pool",  nn.MaxPool2d(2)),
+                        (f"drop",  nn.Dropout2d(0.1)),
+                    ])
+                )
+
+            self.features = nn.Sequential(
+                block(3,   32),   # 224 -> 112
+                block(32,  64),   # 112 -> 56
+                block(64, 128),   # 56  -> 28
+                block(128, 256),  # 28  -> 14
+                block(256, out_features),  # 14  -> 7
+            )
+
+            self.avgpool = nn.AdaptiveAvgPool2d(1)  # [B, C, 1, 1]
+        def forward(self, x):
+            x = self.features(x)
+            x = self.avgpool(x)
+            x = torch.flatten(x, 1)  # [B, C]
+            return x  
+    class ConvBNReLU(nn.Module):
+        def __init__(self, ic, oc, k=3, s=1):
+            super().__init__()
+            p = k // 2
+            self.conv = nn.Conv2d(ic, oc, k, s, p, bias=False)
+            self.bn   = nn.BatchNorm2d(oc)
+            self.act  = nn.ReLU(inplace=True)
+        def forward(self, x):
+            return self.act(self.bn(self.conv(x)))
+
+    class TinyCNN_XS(nn.Module):
+        def __init__(self, p_drop=0.2):
+            super().__init__()
+            # 224→112→56→28→14→7
+            ch = [24, 48, 96, 160]  # reduced channels
+            self.stage0 = ConvBNReLU(3, ch[0], k=3, s=2)     # 224→112
+
+            self.stage1 = nn.Sequential(
+                ConvBNReLU(ch[0], ch[0]),
+                ConvBNReLU(ch[0], ch[1], s=2),             # 112→56
+            )
+            self.stage2 = nn.Sequential(
+                ConvBNReLU(ch[1], ch[1]),
+                ConvBNReLU(ch[1], ch[2], s=2),             # 56→28
+            )
+            self.stage3 = nn.Sequential(
+                ConvBNReLU(ch[2], ch[2]),
+                ConvBNReLU(ch[2], ch[3], s=2),             # 28→14
+            )
+            self.stage4 = nn.Sequential(
+                ConvBNReLU(ch[3], ch[3], s=2),             # 14→7
+            )
+
+            self.dropout = nn.Dropout(p_drop)
+            self.pool    = nn.AdaptiveAvgPool2d(1)
+
+        def forward(self, x):
+            x = self.stage0(x)
+            x = self.stage1(x)
+            x = self.stage2(x)
+            x = self.stage3(x)
+            x = self.stage4(x)
+            x = self.dropout(x)
+            x = self.pool(x).squeeze(-1).squeeze(-1)                 
+            return x
+    out_features= 384
+    #model = TinyTextCNN(out_features=out_features)
+    model = TinyCNN_XS()
+    contrastive = kwargs.get('contrastive', False)
+    if contrastive:
+        contrastive_model = ContrastiveModel(model, in_features=out_features, projection_dim=128)
+        return contrastive_model
+    return model
+
 
 def get_resnet(name,mode, pretrained, **kwargs):
     if name=='resnet50':
@@ -621,6 +710,8 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
         model = get_clip_vit(name, mode, pretrained, **kwargs)
     elif name == "DeiT-Tiny":
         model = get_deit(name, mode, pretrained, **kwargs)
+    elif name == "custom_cnn":
+        model = get_custom_cnn(name, mode, pretrained, **kwargs)
     #num_classes=num_classes, hidden_sizes=hidden_sizes, strategy=kwargs.get('strategy', 'cls'), pooled=kwargs.get('pooled', True)    
     else:
         raise ValueError(f"Model {name} is not supported. Choose from ['resnet50', 'resnet18', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet', 'googlenet', 'trocr family', 'vit family', and others]")
@@ -719,7 +810,8 @@ def get_sklearn_model(name='logreg', **kwargs):
         )
     elif name=='mlp':
         from sklearn.neural_network import MLPClassifier
-        return MLPClassifier(hidden_layer_sizes=(256), activation='relu', solver='adam',
+        hidden_layer_sizes = kwargs.get('hidden_layer_sizes', 256)
+        return MLPClassifier(hidden_layer_sizes=(hidden_layer_sizes,), activation='relu', solver='adam',
                             max_iter=200, random_state=42, early_stopping=True, validation_fraction=0.1, n_iter_no_change=10)
     elif name=='dt':
         from sklearn.tree import DecisionTreeClassifier

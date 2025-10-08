@@ -166,7 +166,7 @@ class TrainingMetrics:
     
     def plot_metrics(self, epoch, save_path=None):
         """Create comprehensive training plots"""
-        fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+        fig, axes = plt.subplots(2, 3, figsize=(30, 20))
         
         # Loss plots
         axes[0, 0].plot(self.train_losses, label="Train Loss")
@@ -182,14 +182,15 @@ class TrainingMetrics:
         axes[0, 1].set_title("Validation Loss")
 
         # Learning rate and grad norm
-        learning_rates_array=np.array(self.learning_rates)
-        n_columns=learning_rates_array.shape[1]
+        learning_rates_array = np.array(self.learning_rates)
+        n_columns = learning_rates_array.shape[1]
         colors = plt.cm.viridis(np.linspace(0, 1, n_columns))
         for i in range(n_columns):
-            axes[0, 2].plot(learning_rates_array[:, i], label=f"Learning Rate Group {i}", color=colors[i], linestyle='None', marker='o')
+            axes[0, 2].plot(learning_rates_array[:, i], label=f"Learning Rate Group {i}", color=colors[i])
         axes[0, 2].set_xlabel("Epoch")
         axes[0, 2].set_ylabel("LR")
-        axes[0, 2].legend()
+        axes[0, 2].set_yscale("log")
+        #axes[0, 2].legend()
         axes[0, 2].set_title("Learning Rate")
 
         axes[1, 0].plot(self.grad_norms, label="Avg Grad Norm", color='green')

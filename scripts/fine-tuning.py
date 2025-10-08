@@ -97,10 +97,13 @@ def main(args):
     selected_classifier = args.selected_classifier  # 'logreg', 'svm', 'rf', 'gbc', 'mlp', 'dt'
     optim_config = args.optim_config  # e.g., 'Adam', 'SGD', 'AdamW'
     use_augmentation = args.use_augmentation  # Set to True for data augmentation
+    augmentation_code = args.augmentation_code  # 'simple', 'full'
     n_patches = args.n_patches
     contrastive_mode = args.contrastive_mode  # Set to True for contrastive learning
     nn_parameters = args.nn_parameters
     load_data_from = args.load_data_from  # 'zarr' or 'folder'
+    pretrained = args.pretrained  # True or False
+    label_column = args.label_column  # column name for labels in the dataframe
 
     profiler_config = {
         'profile_epochs': list(range(0, total_epochs, 10)),  # Profile every 10 epochs
@@ -124,7 +127,7 @@ def main(args):
     #Initialization
     transform = u_transforms.get_transform(selected_model, use_patches=patches, custom=custom_transform, mode=transform_mode)
     model = model_utils.get_model(name=selected_model, mode=model_mode, 
-                                  pretrained=True, truncation=truncation, 
+                                  pretrained=pretrained, truncation=truncation, 
                                   contrastive=contrastive_mode)
 
     # Define model
@@ -207,8 +210,8 @@ def main(args):
             train_dataset = ZarrImageCropDataset_resize(train_df[train_df['train']==1], zarr_path_train, transform=transform, 
                                                         huggingface=huggingface, use_augmentation=use_augmentation)
         elif load_data_from == 'pre-processed':
-            train_dataset = PreProcessedDataset(train_df[train_df['train']==1], 'male' ,transform=transform, 
-                                                huggingface=huggingface, use_augmentation=use_augmentation)
+            train_dataset = PreProcessedDataset(train_df[train_df['train']==1], label_column=label_column,transform=transform, 
+                                                huggingface=huggingface, use_augmentation=use_augmentation, code=augmentation_code)
     
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,pin_memory=pin_memory)
@@ -216,7 +219,7 @@ def main(args):
         val_dataset = ZarrImageCropDataset_resize(val_df, zarr_path_val, transform=transform, 
                                                 huggingface=huggingface, use_augmentation=False)
     elif load_data_from == 'pre-processed':
-        val_dataset = PreProcessedDataset(val_df, 'male' ,transform=transform, 
+        val_dataset = PreProcessedDataset(val_df, label_column=label_column,transform=transform, 
                                                 huggingface=huggingface, use_augmentation=False)
     #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,pin_memory=pin_memory)

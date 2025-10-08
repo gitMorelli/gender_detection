@@ -237,16 +237,6 @@ def attention_on_batch(rollout, input_tensor, labels):
     for i in range(len(labels)):
         #print(input_tensor[i].shape)
         mask = rollout(input_tensor[i].unsqueeze(0))#, category_index=0)
-        visualization = show_mask_on_image(input_tensor[i].unsqueeze(0), mask)
-        visualizations.append(visualization)
+        #visualization = visualization.show_mask_on_image(input_tensor[i].unsqueeze(0), mask) #import visualization library
+        visualizations.append(mask)
     return visualizations
-
-def show_mask_on_image(input_tensor, mask):
-    np_img = input_tensor[0].detach().cpu().numpy().transpose(1, 2, 0)
-    mask_r=cv2.resize(mask, (np_img.shape[1], np_img.shape[0]))
-    #img = np.float32(np_img) / 255
-    heatmap = cv2.applyColorMap(np.uint8(255 * mask_r), cv2.COLORMAP_JET)
-    heatmap = np.float32(heatmap) / 255
-    cam = heatmap + np.float32(np_img)
-    cam = cam / np.max(cam)
-    return np.uint8(255 * cam)

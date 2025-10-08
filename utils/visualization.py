@@ -1,3 +1,4 @@
+from matplotlib import cm
 import matplotlib.pyplot as plt
 import os
 import cv2
@@ -8,6 +9,8 @@ from PIL import ImageDraw, ImageFont
 import zarr
 import utils.utils_transforms as u_transforms
 import numpy as np
+from matplotlib import cm, colors
+from skimage import measure  # for contours (pip install scikit-image)
 
 class ZarrVisualizer():
     def __init__(self, selected, zarr_path,selected_metric, save_path, transform=None, huggingface=False, use_augmentation=False):
@@ -228,7 +231,7 @@ def display_gradcam_vis(visualizations,df,selected_metric='weighted_vote', save_
             f.write(txt_info)
     
 
-def display_vis_on_background(visualizations,df,selected_metric='weighted_vote',blank_background=False,save_path=None):
+def display_vis_on_background(visualizations,df,mask=False,selected_metric='weighted_vote',blank_background=False,save_path=None):
     for ind in range(len(visualizations)):
         #only works with transforms that first resize and then crop and that work on square images
         pages = df['page'].unique()
@@ -256,7 +259,16 @@ def display_vis_on_background(visualizations,df,selected_metric='weighted_vote',
             y1= group['y'].iloc[i]
             x2= group['x2'].iloc[i]
             y2= group['y2'].iloc[i]
-            rgb_image = Image.fromarray(visualization, mode='RGB')
+            if mask: #i have only a binary mask -> i have to convert to an rgb image
+                # Convert mask to RGB image for overlay
+                back_temp =  Image.open(group['file_name'].iloc[0]).convert("RGBA")
+                patch = back_temp.crop((x1, y1, x2, y2))
+                patch = np.array(patch)
+                if patch.shape[2] == 4:
+                    patch = patch[:, :, :3]
+                rgb_image = Image.fromarray(show_mask_on_image(patch, visualization,tensor=False), mode='RGB')
+            else:
+                rgb_image = Image.fromarray(visualization, mode='RGB')
             # Convert to RGBA (adds alpha channel = fully opaque)
             overlay = rgb_image.convert('RGBA')
 
@@ -294,6 +306,20 @@ def display_vis_on_background(visualizations,df,selected_metric='weighted_vote',
             overlay.putalpha(alpha)
             # Paste the overlay image onto the background
             background.paste(overlay, position, overlay)  # third argument is the mask for transparency
+            
+            # Draw a colored rectangle (contour) around the overlayed image
+            contour_color = (0, 255, 0, 255) if group['y_pred'].iloc[i] == 1 else (255, 0, 0, 255)
+            contour_width = 4  # thickness of the contour
+            draw_bg = ImageDraw.Draw(background)
+            rect_x1 = position[0]
+            rect_y1 = position[1]
+            rect_x2 = position[0] + overlay.width
+            rect_y2 = position[1] + overlay.height
+            for w in range(contour_width):
+                draw_bg.rectangle(
+                    [rect_x1 - w, rect_y1 - w, rect_x2 + w, rect_y2 + w],
+                    outline=contour_color
+                )
 
         # Save or show the result
         background.save(save_path+f"\\page_{page}.png")
@@ -332,3 +358,107 @@ def display_debug_images(dataloader,path,save_name, contrastive_mode=False):
         plt.close()
         break
     return 0
+
+def enhance_attention(att_map, base_rgb=None, cmap_name="inferno",
+                         pclip=(2, 98), gamma=1.0, max_alpha=0.55,
+                         draw_contours=True, contour_levels=(0.7, 0.9)):
+    att_map_cpy=[]
+    for i in range(len(att_map)):
+        att_map_cpy.append([])
+        for j in range(len(att_map[i])):
+            sal_rgb=att_map[i][j]
+            # 1) collapse to gray & robust-normalize
+            gray = 0.299*sal_rgb[...,0] + 0.587*sal_rgb[...,1] + 0.114*sal_rgb[...,2]
+            lo, hi = np.percentile(gray, pclip)
+            g = np.clip((gray - lo) / max(1e-6, (hi - lo)), 0, 1)
+
+            # 2) gamma for perceived contrast (gamma<1 brightens mid/high)
+            g = np.power(g, gamma)
+
+            # 3) warm colormap
+            cmap = cm.get_cmap(cmap_name)
+
+            # 4) alpha scales with saliency (sparse on paper)
+            alpha = (g * max_alpha).astype(np.float32)
+
+            # 5) colorize (RGB) and overlay on base or white
+            heat_rgb = cmap(g)[..., :3]
+            if base_rgb is None:
+                base = np.ones_like(heat_rgb)  # white background
+            else:
+                base = (base_rgb / 255.0).astype(np.float32)
+
+            out = (1 - alpha[..., None]) * base + alpha[..., None] * heat_rgb
+
+            # 6) optional thin contours to make hotspots pop without filling text
+            if draw_contours:
+                for lvl in contour_levels:
+                    conts = measure.find_contours(g, lvl)
+                    for c in conts:
+                        c = np.round(c).astype(int)
+                        c = c[(c[:,0]>=0)&(c[:,0]<g.shape[0])&(c[:,1]>=0)&(c[:,1]<g.shape[1])]
+                        out[c[:,0], c[:,1], :] = np.array([0.9, 0.2, 0.1])  # strong warm red
+
+            att_map_cpy[i].append(np.clip(out * 255, 0, 255).astype(np.uint8))
+    return att_map_cpy
+
+def list_cv2_colormaps():
+    """
+    Returns a dictionary of available OpenCV colormaps.
+    """
+    colormaps = {
+        'COLORMAP_AUTUMN': cv2.COLORMAP_AUTUMN,
+        'COLORMAP_BONE': cv2.COLORMAP_BONE,
+        'COLORMAP_JET': cv2.COLORMAP_JET,
+        'COLORMAP_WINTER': cv2.COLORMAP_WINTER,
+        'COLORMAP_RAINBOW': cv2.COLORMAP_RAINBOW,
+        'COLORMAP_OCEAN': cv2.COLORMAP_OCEAN,
+        'COLORMAP_SUMMER': cv2.COLORMAP_SUMMER,
+        'COLORMAP_SPRING': cv2.COLORMAP_SPRING,
+        'COLORMAP_COOL': cv2.COLORMAP_COOL,
+        'COLORMAP_HSV': cv2.COLORMAP_HSV,
+        'COLORMAP_PINK': cv2.COLORMAP_PINK,
+        'COLORMAP_HOT': cv2.COLORMAP_HOT,
+        'COLORMAP_PARULA': cv2.COLORMAP_PARULA,
+        'COLORMAP_MAGMA': cv2.COLORMAP_MAGMA,
+        'COLORMAP_INFERNO': cv2.COLORMAP_INFERNO,
+        'COLORMAP_PLASMA': cv2.COLORMAP_PLASMA,
+        'COLORMAP_VIRIDIS': cv2.COLORMAP_VIRIDIS,
+        'COLORMAP_CIVIDIS': cv2.COLORMAP_CIVIDIS,
+        'COLORMAP_TWILIGHT': cv2.COLORMAP_TWILIGHT,
+        'COLORMAP_TWILIGHT_SHIFTED': cv2.COLORMAP_TWILIGHT_SHIFTED,
+        'COLORMAP_TURBO': cv2.COLORMAP_TURBO,
+        'COLORMAP_DEEPGREEN': cv2.COLORMAP_DEEPGREEN,
+    }
+    return colormaps
+def show_mask_on_image(input_tensor, mask,tensor=True, colormap=cv2.COLORMAP_JET, top_percent=90.0,gamma=1.0,alpha=1):
+    if tensor:
+        np_img = input_tensor[0].detach().cpu().numpy().transpose(1, 2, 0)
+    else:
+        np_img = input_tensor
+        np_img = np.float32(np_img) / 255
+    mask_r=cv2.resize(mask, (np_img.shape[1], np_img.shape[0]))
+    if mask_r.ndim == 3:
+        mask_r = mask_r[..., 0]
+    mask_r = mask_r.astype(np.float32)
+    if mask_r.max() > 1.5:  # likely 0–255
+        mask_r /= 255.0
+    mask_r = np.clip(mask_r, 0.0, 1.0)
+
+    # ---- keep only "spikes" (top X%) ----
+    q = np.clip(1.0 - top_percent / 100.0, 0.0, 1.0)
+    thresh = float(np.quantile(mask_r, q)) if mask_r.size else 1.0
+    #print(thresh)
+
+    # weights: 0 below threshold, ramps to 1 above threshold; optional gamma to sharpen
+    denom = max(1e-6, 1.0 - thresh)
+    weights = np.clip((mask_r - thresh) / denom, 0.0, 1.0) ** float(gamma)
+
+    # ---- build heatmap just once (full mask colors), blend only where weights>0 ----
+    heat = cv2.applyColorMap((mask_r * 255.0 + 0.5).astype(np.uint8), colormap).astype(np.float32) / 255.0
+    heat = cv2.cvtColor(heat, cv2.COLOR_BGR2RGB)
+
+    w3 = weights[..., None]  # broadcast to 3 channels
+    blend = (1.0 - alpha * w3) * np_img + (alpha * w3) * heat
+    out = np.clip(blend, 0.0, 1.0)
+    return (out * 255.0 + 0.5).astype(np.uint8)

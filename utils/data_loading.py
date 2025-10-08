@@ -87,5 +87,6 @@ def load_selected_instances(source_path, selected_FE, selected_classification_he
         search_dir = base_dir+f'sklearn_model_trained_on_rep/{selected_classification_head}/'
     else:
         search_dir = base_dir+f'torch_model_trained_on_rep/{selected_classification_head}/'
+    search_dir+='current/'
     selected=pd.read_csv(search_dir+f'selected_instances_{selected_metric}.csv')
     return selected

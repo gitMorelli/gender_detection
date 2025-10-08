@@ -149,6 +149,7 @@ class PreProcessedDataset(Dataset):
         self.source_dir = source_dir
         self.use_augmentation = use_augmentation
         self.augmentation_transform = u_transforms.get_augmentation_transform(code=code) if use_augmentation else None
+        print(self.augmentation_transform)
 
         df['temp_file_name'] = df['file_name'].apply(file_IO.assemble_file_name)
         def add_x1_y1(row):
@@ -162,6 +163,7 @@ class PreProcessedDataset(Dataset):
 
         image = Image.open(img_path)
         assert image.mode == 'RGB', "PIL image is not in RGB mode"
+        #print(f"Loaded image {img_path} with size: {image.size}")
 
         label = self.img_labels[idx]
 

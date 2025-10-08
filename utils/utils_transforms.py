@@ -362,6 +362,14 @@ def get_deit_transforms(name='DeiT-Tiny'):
     processor = AutoFeatureExtractor.from_pretrained('facebook/deit-tiny-patch16-224')
     return processor
 
+def get_customcnn_transforms(**kwargs):
+    transform= transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.25, 0.25, 0.25]),
+    ])
+    return transform
+
 def get_transform(name='resnet18',use_patches=True, **kwargs):
     if name in ['resnet18','resnet50','resnet101','resnet152','resnet50-contrastive']:
         return get_resnet_transforms(name,use_patches=use_patches,**kwargs)
@@ -397,6 +405,8 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
         return get_clip_vit_transforms(name, **kwargs)
     elif name == "DeiT-Tiny":
         return get_deit_transforms(name)
+    elif name=='custom_cnn':
+        return get_customcnn_transforms(**kwargs)
     else:
         raise ValueError(f"Unknown model name: {name}. Please provide a valid model name.")
 
@@ -438,6 +448,32 @@ def get_augmentation_transform(code='simclr'):
                             saturation=color_jitter_strength,
                             hue=0.05)
                     ], p=0.3),
+            
+            #transforms.ToTensor()
+        ])
+    elif code == 'simple_224':
+        #https://chatgpt.com/share/68c00721-1f60-8010-8b92-8bdcbd2b9b50 (considerations on transforms)
+        # Full augmentation pipeline
+        color_jitter_strength = 0.5
+        transform = transforms.Compose([
+            #transforms.RandomApply([
+             #   transforms.RandomRotation(degrees=(-10, 10), fill=255, interpolation=InterpolationMode.BILINEAR)], 
+              #  p=0.1),
+            # Random resized crop for zoom effect (zoom between 80% and 100% of original size)
+            transforms.RandomApply([transforms.RandomResizedCrop(size=224, scale=(0.6, 1.0))],
+                                    p=0.2),
+            transforms.RandomHorizontalFlip(p=0.2),
+            transforms.RandomVerticalFlip(p=0.2),
+            
+            #transforms.RandomGrayscale(p=0.1),
+
+            #transforms.RandomApply([
+             #   transforms.ColorJitter(
+              #              brightness=0.2,
+               #             contrast=0.2,
+                #            saturation=0.05,
+                 #           hue=0.01)
+                  #  ], p=0.2),'''
             
             #transforms.ToTensor()
         ])
