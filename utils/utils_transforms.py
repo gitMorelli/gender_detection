@@ -477,6 +477,13 @@ def get_augmentation_transform(code='simclr'):
             
             #transforms.ToTensor()
         ])
+    elif code == 'zoom':
+        # Zoom augmentation pipeline
+        transform = transforms.Compose([
+            transforms.RandomResizedCrop(size=image_size, scale=(0.5, 1.0), interpolation=InterpolationMode.BILINEAR),
+            #transforms.ToTensor(),
+            #normalize
+        ])
     return transform
 
 def get_contrastive_transform(name):

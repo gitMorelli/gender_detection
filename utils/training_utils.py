@@ -3,7 +3,7 @@ from tqdm import tqdm
 import torch
 import torch.optim as optim
 from datetime import datetime
-from utils.monitoring import TrainingProfiler,TrainingMetrics, CheckpointManager
+from utils.monitoring import TrainingProfiler,TrainingMetrics, CheckpointManager, get_logger
 from utils.evaluation_utils import perform_validation, perform_validation_contrastive
 import time
 import math
@@ -564,15 +564,18 @@ def train_fine(
     """
     Main training function - now much cleaner and more readable
     """
+    #initialize logger
+    logger = get_logger(checkpoint_path.replace('checkpoint.pt', 'train.log'))
+
     # Setup components
     model = model.to(device)
     model_size_mb = get_model_size_mb(model)
-    print(f"Model size: {model_size_mb:.2f} MB")
+    logger.info(f"Model size: {model_size_mb:.2f} MB")
     
     # Initialize components
     #optimizer = get_optimizer(model.parameters(),name=optim_name, lr=base_lr,**kwargs)
     #scheduler = get_scheduler(optimizer, name=scheduler_name, **kwargs) 
-    optimization_manager = OptimizationManager(model, optim_config, **kwargs)
+    optimization_manager = OptimizationManager(model, optim_config, **kwargs,logger=logger)
     scaler = GradScaler(device='cuda') if use_amp else None
 
     # Initialize helper classes
@@ -595,9 +598,9 @@ def train_fine(
         epoch_start_time = time.time()
         
         opt_phase = optimization_manager.get_phase(epoch)
-        print(f"\nEpoch {epoch} - Optimization Phase: {opt_phase}")
+        logger.info(f"\nEpoch {epoch} - Optimization Phase: {opt_phase}")
         if prev_opt_phase != opt_phase:
-            print(f"Switching to optimization phase {opt_phase} at epoch {epoch}")
+            logger.info(f"Switching to optimization phase {opt_phase} at epoch {epoch}")
             prev_opt_phase = opt_phase
             optimization_manager.update_trainable_params(epoch) 
         # Start epoch profiling
@@ -647,26 +650,26 @@ def train_fine(
                 scheduler.step()
         
         # Enhanced logging
-        print(f"Epoch {epoch+1}| Train Accuracy {train_accuracy:.4f}| Train Loss: {avg_train_loss:.4f} | Val Acc: {val_acc:.4f} | "
+        logger.info(f"Epoch {epoch+1}| Train Accuracy {train_accuracy:.4f}| Train Loss: {avg_train_loss:.4f} | Val Acc: {val_acc:.4f} | "
               f"Val Loss: {val_loss:.4f} | Avg Grad Norm: {avg_grad_norm:.4f} | "
               f"Epoch Time: {epoch_time:.2f}s | Val Time: {val_time:.2f}s")
         for i,current_lr in enumerate(current_lrs):
-            print(f"block {i} lr:",f"{current_lr:.6f}")
-        
+            logger.info(f"block {i} lr:",f"{current_lr:.6f}")
+
         # Check for improvement and save checkpoint
         if metrics.check_improvement(val_loss):
             checkpoint_manager_best.save_checkpoint(
                 model, optimizer, scheduler, scaler, epoch, metrics, use_amp
             )
-            print(f"✅ Saved new best model at epoch {epoch+1}")
+            logger.info(f"✅ Saved new best model at epoch {epoch+1}")
         checkpoint_manager.save_checkpoint(
             model, optimizer, scheduler, scaler, epoch, metrics, opt_phase,use_amp
         )
-        print(f"⏳ No improvement for {metrics.epochs_without_improvement} epoch(s)")
-        
+        logger.info(f"⏳ No improvement for {metrics.epochs_without_improvement} epoch(s)")
+
         # Early stopping check
         if metrics.should_early_stop(early_stopping_patience):
-            print(f"⛔ Early stopping at epoch {epoch+1} (no improvement for {early_stopping_patience} epochs)")
+            logger.info(f"⛔ Early stopping at epoch {epoch+1} (no improvement for {early_stopping_patience} epochs)")
             break
         
         # Plot metrics
@@ -715,6 +718,8 @@ class OptimizationManager:
         self.param_groups_per_phase = [0 for _ in self.training_blocks]
         self.excluded_layers = config.get('excluded_layers', [])
         self.type_of_training = config.get('type_of_training', 'progressive')
+        self.n_blocks = config.get('n_blocks', len(self.training_blocks)) #1 only class head, 2 class head and first stage, ..
+        self.logger = kwargs.get('logger', None)
 
     def get_phase(self,epoch):
         for i, phase in enumerate(self.optimizer_phases):
@@ -723,8 +728,8 @@ class OptimizationManager:
         return len(self.optimizer_phases) - 1
 
     def set_optimizer(self):
-        print("Setting up training modality:", self.type_of_training)
-        print(f"Setting optimizer: {self.optimizer_name}")
+        self.logger.info("Setting up training modality: %s", self.type_of_training)
+        self.logger.info("Setting optimizer: %s", self.optimizer_name)
         param_groups = []
         for i, block in enumerate(self.training_blocks):
             block_lr = self.phase_lr[i]
@@ -755,20 +760,21 @@ class OptimizationManager:
             i = self.get_phase(epoch)
             blocks=[]
             for j in range(i+1): # ia lso reset to true all previous blocks so that the code is robust to reinitializaiton from checkpoitns
-                blocks += self.training_blocks[j]
+                if j<self.n_blocks:
+                    blocks += self.training_blocks[j]
             for name, param in self.model.named_parameters():
                 if name in blocks:
                     param.requires_grad = True
                 else:
                     param.requires_grad = False
-            print(f"Unfreezing {self.training_blocks[i]} parameters")
+            self.logger.info(f"Unfreezing {self.training_blocks[i]} parameters")
             # Print number of trainable parameters after freezing
         elif self.type_of_training == 'from_scratch':
             for param in self.model.parameters():
                 param.requires_grad = True
-            print("Fine-tuning all model parameters")
+            self.logger.info("Fine-tuning all model parameters")
         trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"Trainable parameters after freezing: {trainable_params:,}")
+        self.logger.info(f"Trainable parameters after freezing: {trainable_params:,}")
         return
 
     def set_scheduler(self):
@@ -786,7 +792,7 @@ class OptimizationManager:
         return get_scheduler(self.optimizer, name=self.scheduling, **kwarg)
 
 def get_progressive_training_steps(selected_model,contrastive_mode=False):
-    if selected_model == 'resnet18':
+    if selected_model in ['resnet18','resnet50']:
         steps=['layer4','layer3','layer2','layer1']
     elif selected_model == 'DeiT-Tiny':
         steps=[f'layer.{i}.'for i in range(11,-1,-1)]
@@ -1018,19 +1024,20 @@ class SingleSearchConfig(BaseSearchConfig):
                     #https://chatgpt.com/share/689dff31-5c94-8010-88e7-08dd47b8f061
                     'head_model': ['MLPClassifier1'],
                     'optimizer': ['AdamW'],
-                    'lr_classific_head': [1e-3],
-                    'lr_backbone_initial': [1e-4],
+                    'lr_classific_head': [1e-4],
+                    'lr_backbone_initial': [1e-5],
                     'lr_backbone_scaling':[0.1],
-                    'pretrain_head_epochs': [2],
-                    'step_phase': [5],
-                    'weight_decay': [5e-3],
+                    'pretrain_head_epochs': [1],
+                    'step_phase': [1],
+                    'n_blocks': [2], #number of blocks to fine-tune
+                    'weight_decay': [1e-3],
                     'excluded_layers': [['downsample','bn','bias']], #fisso
                     'scheduler': ['ProgressiveWarmupCosineAnnealingLR'], #fisso
-                    'scheduler_params': [{'warmup': 2,'eta_min_ratio': 0.05,'T': 30}],
+                    'scheduler_params': [{'warmup': 1,'eta_min_ratio': 0.1,'T': 10}],
                     'scheduler_params_head': [{'warmup': 0,'eta_min_ratio': 0.1,'T': 10}],
                     'log_grad_norm': [True],
-                    'dropout': [0.4],
-                    'n_neurons': [64],
+                    'dropout': [0.5],
+                    'n_neurons': [128],
                     'with_input_norm': [None],
                 },
                 'Transformer': {
@@ -1157,6 +1164,9 @@ def set_search_params(params,type_of_training,total_epochs,steps,backbone_param_
         weight_decay = params['weight_decay'] 
         scheduler_params = params.get('scheduler_params', {})
         #print(training_blocks)
+        n_blocks = params.get('n_blocks', -1)
+        if n_blocks == -1:
+            n_blocks = len(steps)-1
         optim_config = {
                 'excluded_layers': params.get('excluded_layers', []),
                 'optimizer_phases':optimizer_phases[:-1],  # Example: [10, 10, 80] for 100 epochs
@@ -1167,6 +1177,7 @@ def set_search_params(params,type_of_training,total_epochs,steps,backbone_param_
                 'phase_optimizer_hyperparams': [{'weight_decay':weight_decay} for _ in range(len(optimizer_phases)+1)],
                 'phase_scheduler_hyperparams': [params.get('scheduler_params_head', {})]+[scheduler_params for _ in range(len(training_blocks)-1)],
                 'type_of_training': 'progressive',
+                'n_blocks': n_blocks
             }
     elif type_of_training == 'from_scratch':
         #for progressive fine tuning

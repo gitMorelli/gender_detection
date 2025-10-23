@@ -3,6 +3,29 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from contextlib import nullcontext
+import logging
+from logging.handlers import RotatingFileHandler
+
+def get_logger(log_path='train.log', level=logging.INFO, max_bytes=5_000_000, backup_count=5):
+    logger = logging.getLogger('train_logger')
+    logger.setLevel(level)
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    # Console
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    # Rotating file handler (prevents infinite-size logs)
+    fh = RotatingFileHandler(log_path, maxBytes=max_bytes, backupCount=backup_count)
+    fh.setLevel(level)
+
+    fmt = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    ch.setFormatter(fmt)
+    fh.setFormatter(fmt)
+
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+    return logger
 
 class TrainingProfiler:
     """Handles all profiling-related functionality"""
