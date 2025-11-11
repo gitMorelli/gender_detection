@@ -21,6 +21,7 @@ import argparse
 from torch.amp import GradScaler, autocast
 
 def compute_output(model, device, transform, t, huggingface, patches):
+    model.eval()
     image_file = t['file_name']
     image = Image.open(image_file).convert("RGB")
     if patches:
@@ -76,6 +77,7 @@ def main(args):
     contrastive_mode = args.contrastive_mode
     augmentation_code = args.augmentation_code
     custom_pretrained = args.custom_pretrained  # 'original', 'contrastive', 'fine-tune'
+    verbose=args.verbose
 
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
@@ -88,7 +90,8 @@ def main(args):
         model=model_utils.get_custom_pretrained_weights(selected_model,model,custom_pretrained=custom_pretrained,which_checkpoint='last')                                          
     # Define loss function and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Device is: ",device)
+    if verbose:
+        print("Device is: ",device) 
     model = model.to(device)
     train_df = pd.read_csv(f"{source_path}\\outputs\\preprocessed_data\\{input_filename}")
     train_df=file_IO.change_filename_from_to(train_df, fr=saved, to=running)
@@ -99,7 +102,8 @@ def main(args):
 
     i=0
     output=compute_output(model, device, transform, train_df.iloc[i], huggingface, patches)
-    print("Output shape: ", output.shape)
+    if verbose:
+        print("Output shape: ", output.shape)
     if output.dim() == 3:
         select_cls = True  # If output is 3D, we assume it's a transformer model with CLS token
     else:
@@ -132,7 +136,7 @@ def main(args):
         for i in range(num_views):
             new_features = []
             for i, batch in enumerate(dataloader):
-                output = compute_output_gpu(model, device, batch)
+                output = model_utils.compute_output_gpu(model, device, batch)
                 if select_cls:
                     output = output[:, 0, :]
                 for vec in output:
@@ -142,8 +146,9 @@ def main(args):
                 else:
                     elapsed = time.time() - start_time
                     images_processed = len(new_features)
-                    print(f'''Elapsed time {elapsed:.2f};Processed batch {i} out of {len(dataloader)}; Speed: {images_processed / elapsed:.2f} images/sec; 
-                        Projected time: {(len(dataloader) - i) * (elapsed / (i+1)):.2f} seconds''')
+                    if verbose:
+                        print(f'''Elapsed time {elapsed:.2f};Processed batch {i} out of {len(dataloader)}; Speed: {images_processed / elapsed:.2f} images/sec; 
+                            Projected time: {(len(dataloader) - i) * (elapsed / (i+1)):.2f} seconds''')
             # Create the DataFrame
             df_out = pd.DataFrame(new_features)
             df_out.columns = [f'f{i+1}' for i in range(df_out.shape[1])]
@@ -226,8 +231,9 @@ def main(args):
         print(f"Dataframe saved to {output_file}")
 
         LOG_FILE = output_dir+"\\file_metadata_log.json"
-        print(f"Log file path: {LOG_FILE}")
-        print(f"Output file path: {output_file}")
+        if verbose:
+            print(f"Log file path: {LOG_FILE}")
+            print(f"Output file path: {output_file}")
 
         file_IO.add_or_update_file(
             output_file, LOG_FILE,
@@ -264,7 +270,6 @@ if __name__ == "__main__":
     from utils.script_launching import DotDict
     from utils.dataframes import ZarrImageCropDataset_resize
     from utils.visualization import display_debug_images
-    from model_utils import compute_output_gpu
     
     args = parse_args()
     main(args)

@@ -5,6 +5,7 @@ import pandas as pd
 import glob
 import shutil
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def assemble_file_name(input_string):
@@ -249,12 +250,13 @@ def load_input_files(source_path,selected_FE,kind,suffix,custom_pretrained='orig
         val_filename = input_dir+'\\extra_view'+f'\\val\\{selected_FE}_features_{extra_file_val}.csv' 
         test_filename = None
     return train_filename, val_filename, test_filename
+
 def load_preprocessed_files(kind, mode):
     if kind == 'patches_224':
         if mode == 'train':
             output = 'icdar_train_df_patches_20250716_113702.csv'
         elif mode == 'val':
-            output = 'icdar_train_df_patches_20250716_120511.csv'
+            output = 'icdar_train_df_patches_20250716_120511.csv' 
         elif mode == 'test':
             output = 'icdar_train_df_patches_20250716_115204.csv'
         elif mode == 'contrastive':
@@ -340,3 +342,238 @@ def save_df_to_png(display_df, save_dir):
 
     plt.savefig(save_dir, dpi=300)
     plt.close()
+
+
+### PREPROCESS EXPERIMENT LOGS, get info on files and experiments ###
+def preprocess_experiment_logs(source_path):
+    '''
+    This function preprocesses the experiment logs and divides them into different dataframes based on dataset types.
+    It categorizes datasets into patch datasets used for training, files with extracted representations,
+    contrastive learning datasets, and handcrafted features.
+    '''
+    output_dir_preprocessed = source_path + "\\outputs\\preprocessed_data\\"
+    LOG_FILE_preprocessed = output_dir_preprocessed+"file_metadata_log.json"
+    df_pre = assemble_csv_from_log(LOG_FILE_preprocessed)
+    df_pre['created'] = pd.to_datetime(df_pre['created'])
+    df_pre['experiment'] = df_pre['experiment'].apply(lambda x: os.path.basename(str(x)))
+    #I divide the table into: patch datasets used for training, files with the extracted representations, contrastive learning datasets
+    # Assign dataset type based on conditions
+    df_pre.loc[
+        ~df_pre['experiment'].str.contains('EXTRACTED', case=False) &
+        ~df_pre['experiment'].str.contains('iam', case=False) &
+        ~df_pre['experiment'].str.contains('KAGGLE', case=False),
+        'type of dataset'
+    ] = 'patch datasets used for training'
+
+    df_pre.loc[
+        df_pre['experiment'].str.contains('KAGGLE', case=False),
+        'type of dataset'
+    ] = 'handcrafted features'
+
+    df_pre.loc[
+        df_pre['experiment'].str.contains('EXTRACTED', case=False),
+        'type of dataset'
+    ] = 'extracted representations'
+
+    df_pre.loc[
+        df_pre['experiment'].str.contains('iam', case=False),
+        'type of dataset'
+    ] = 'contrastive learning datasets'
+    df_pre['type of dataset'] = df_pre['type of dataset'].fillna('none')
+    df_pre_extracted = df_pre[df_pre['type of dataset'] == 'extracted representations']
+    df_pre_contrastive = df_pre[df_pre['type of dataset'] == 'contrastive learning datasets']
+    df_pre_handcrafted = df_pre[df_pre['type of dataset'] == 'handcrafted features']
+    df_pre_patch = df_pre[df_pre['type of dataset'] == 'patch datasets used for training']
+    # identify duplicates in the extracted df (eg same model applied with different transforms
+    '''df_pre_extracted['group_key'] = df_pre_extracted[['model', 'source_file']].agg(tuple, axis=1)
+    display(df_pre_extracted.sort_values('group_key')[['model','source_file','custom transform','group_key']])''' 
+    '''grouped = df_pre_extracted.groupby(['model', 'source_file'])
+    for name, group in grouped:
+        if len(group) > 1:
+            print(f"Group: {name}")
+            display(group[['experiment','model', 'source_file', 'custom transform']])
+            print(group['experiment'].to_list())
+            print('-' * 40)'''
+    experiments_to_remove = [
+        'icdar_EXTRACTED_train_df_resnet50_20250516_163737.csv',
+        'icdar_EXTRACTED_train_df_crnn_vgg16_bn_20250520_161925.csv',
+        'icdar_EXTRACTED_train_df_crnn_vgg16_bn_20250520_165111.csv'
+    ]
+    df_pre_extracted = df_pre_extracted[~df_pre_extracted['experiment'].isin(experiments_to_remove)]
+    '''def filter_custom_transform(df):
+        # Group by 'source_file' and 'model'
+        grouped = df.groupby(['source_file', 'model'], group_keys=False)
+        def filter_group(group):
+            if len(group) > 1:
+                # Keep only rows where 'custom transform' == False
+                filtered = group[group['custom transform'] == False]
+                # If all are filtered out (no False), keep the original group
+                return filtered if not filtered.empty else group
+            else:
+                return group
+        return grouped.apply(filter_group).reset_index(drop=True)
+
+    df_pre_extracted_filtered = filter_custom_transform(df_pre_extracted)'''
+    df_pre_patch['type'] = np.nan
+    mask = ((df_pre_patch['prop'].isna()) | (df_pre_patch['prop'] == 1)) & (df_pre_patch['gw'].notna())
+    df_pre_patch.loc[mask, 'type'] = 'squares'
+    mask = df_pre_patch['prop']<1
+    df_pre_patch.loc[mask, 'type'] = 'rectangles'
+    mask = ~df_pre_patch['n_slices'].isna()
+    df_pre_patch.loc[mask, 'type'] = 'sentences'
+    mask = ~df_pre_patch['fraction of the max used to identify boundaries'].isna()
+    df_pre_patch.loc[mask, 'type'] = 'body'
+    mask = df_pre_patch['type'].isna()
+    df_pre_patch.loc[mask, 'type'] = 'full images'
+
+    df_pre_patch['type_index'] = df_pre_patch.groupby(['type','gw','m patches'], dropna=False).cumcount() + 1
+    df_pre_patch['unique name'] = df_pre_patch.apply(
+        lambda row: f"{row['type']}_gw{row['gw']}_m{row['m patches']}_idx{row['type_index']}", axis=1
+    )
+
+    return df_pre_patch, df_pre_extracted, df_pre_contrastive, df_pre_handcrafted
+
+def get_reference_table_for_experiments(df_pre_patch,df_pre_extracted,im_show=False,im_plot=True):
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    unique_models = df_pre_extracted['model'].unique()
+    # Create a DataFrame with 'model' as the first column and unique 'unique name' values as other columns
+    unique_names = df_pre_patch['unique name'].unique()
+    unique_names = sorted(unique_names)
+    df_visualization = pd.DataFrame(columns=['model'] + list(unique_names))
+    df_visualization['model'] = unique_models
+    for model in unique_models:
+        for unique_name in unique_names:
+            # Find the experiment corresponding to this unique_name in df_pre_patch
+            exp_row = df_pre_patch[df_pre_patch['unique name'] == unique_name]
+            if not exp_row.empty:
+                experiment_value = exp_row.iloc[0]['experiment']
+                # Check if there is a row in df_pre_extracted with this model and source file
+                match = df_pre_extracted[
+                    (df_pre_extracted['model'] == model) &
+                    (df_pre_extracted['source_file'] == experiment_value)
+                ]
+                if not match.empty:
+                    df_visualization.loc[df_visualization['model'] == model, unique_name] = 1
+    #print(list(unique_models))
+    #print(list(unique_names))
+    # Convert the DataFrame to numeric (1 for applied, 0 or NaN for not applied)
+    viz_numeric = df_visualization.copy()
+    viz_numeric = viz_numeric.set_index('model')
+    viz_numeric = viz_numeric.apply(pd.to_numeric, errors='coerce').fillna(0)
+
+    if im_show or im_plot:
+        fig, ax = plt.subplots(figsize=(18, 6))
+        sns.heatmap(viz_numeric, annot=True, cmap='YlGnBu', cbar=True, linewidths=0.5, ax=ax)
+        plt.title('Model Application to Preprocessed Datasets')
+        plt.xlabel('Preprocessed Dataset (unique name)')
+        plt.ylabel('Model')
+        plt.tight_layout()
+
+        # ensure output folder exists and save figure with timestamp
+        output_dir = os.getcwd()
+        filename = f"model_dataset_heatmap.png"
+        save_path = os.path.join(output_dir, filename)
+        if im_plot:
+            fig.savefig(save_path, dpi=300) 
+        print(f"Saved heatmap to {save_path}")
+
+        if im_show:
+            plt.show()  
+
+        viz_numeric_T = viz_numeric.transpose()
+        plt.figure(figsize=(18, 6))
+        sns.heatmap(viz_numeric_T, annot=True, cmap='YlGnBu', cbar=True, linewidths=0.5)
+        plt.title('Model Application to Preprocessed Datasets')
+        plt.xlabel('Preprocessed Dataset (unique name)')
+        plt.ylabel('Model')
+        plt.tight_layout()
+        if im_plot:
+            plt.savefig(save_path.replace(".png", "_transposed.png"), dpi=300) 
+        if im_show:
+            plt.show() 
+
+    return viz_numeric
+
+def get_experiment_from_model_and_unique_names(df_pre_extracted, df_pre_patch, model_name, unique_names):
+    """
+    Given df_pre_extracted, df_pre_patch, a model name, and a list of unique_names,
+    return the experiment(s) in df_pre_extracted where the model was applied to any dataset with those unique_names.
+    Returns a list of experiment names (can be empty if no match).
+    """
+    experiments = []
+    for unique_name in unique_names:
+        patch_row = df_pre_patch[df_pre_patch['unique name'] == unique_name]
+        if patch_row.empty:
+            continue
+        source_file = patch_row.iloc[0]['experiment']
+        matches = df_pre_extracted[
+            (df_pre_extracted['model'] == model_name) &
+            (df_pre_extracted['source_file'] == source_file)
+        ]
+        experiments.extend(matches['experiment'].tolist())
+    return experiments
+
+def get_applied_unique_names(viz_numeric, model_name, filter_list=None):
+    """
+    Given the viz_numeric DataFrame and a model name,
+    return a list of unique names (columns) where the value is 1 for that model.
+    If filter_list is provided (list of strings), only include unique names containing all of those strings.
+    """
+    if model_name not in viz_numeric.index:
+        return []
+    row = viz_numeric.loc[model_name]
+    unique_names = [col for col, val in row.items() if val == 1]
+    if filter_list is not None:
+        unique_names = [
+            name for name in unique_names
+            if all(f in name for f in filter_list)
+        ]
+    return unique_names
+
+def get_experiment_from_models_and_unique_name(df_pre_extracted, df_pre_patch, model_names, unique_name):
+    """
+    Given df_pre_extracted, df_pre_patch, a list of model names, and a unique_name,
+    return the experiment(s) in df_pre_extracted where any of the models was applied to the dataset with that unique_name.
+    Returns a list of experiment names (can be empty if no match).
+    """
+    # Find the source file corresponding to the unique_name in df_pre_patch
+    patch_row = df_pre_patch[df_pre_patch['unique name'] == unique_name]
+    if patch_row.empty:
+        return []
+    source_file = patch_row.iloc[0]['experiment']
+    # Find experiments in df_pre_extracted with any of the given models and source_file
+    matches = df_pre_extracted[
+        (df_pre_extracted['model'].isin(model_names)) &
+        (df_pre_extracted['source_file'] == source_file)
+    ]
+    return matches['experiment'].tolist()
+
+def get_models_with_both(viz_numeric, name1, name2):
+    """
+    Returns a list of model names (index of viz_numeric) that have 1 for both name1 and name2 columns.
+    """
+    mask = (viz_numeric[name1] == 1) & (viz_numeric[name2] == 1)
+    return viz_numeric.index[mask].tolist()
+
+def get_models_applied_to_unique_name(viz_numeric, unique_name):
+    """
+    Given the viz_numeric DataFrame and a unique_name (column),
+    return a list of model names (index) where the value is 1 for that unique_name.
+    """
+    if unique_name not in viz_numeric.columns:
+        return []
+    column = viz_numeric[unique_name]
+    model_names = [idx for idx, val in column.items() if val == 1]
+    return model_names
+
+def get_experiment_from_unique_name(df, unique_name):
+    """
+    Given a dataframe with a 'unique name' column and a unique_name string,
+    return the corresponding 'experiment' value.
+    """
+    row = df[df['unique name'] == unique_name]
+    if not row.empty:
+        return row.iloc[0]['experiment']
+    else:
+        return None

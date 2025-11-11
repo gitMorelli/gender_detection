@@ -1,6 +1,6 @@
 from torchvision.transforms import InterpolationMode
 from torchvision import datasets, transforms
-from transformers import TrOCRProcessor, ViTImageProcessor
+from transformers import TrOCRProcessor, ViTImageProcessor, AutoFeatureExtractor
 from doctr.models.preprocessor import PreProcessor
 from PIL import Image, ImageOps
 from scipy.ndimage import rotate as scipy_rotate
@@ -58,21 +58,40 @@ def get_mnist_transforms():
     ])
     
     return mnist_transform
-
-def get_efficient_transforms():
+def get_handwriting_transforms():
     """
-    Returns the transformation pipeline for EfficientNet.
+    Returns the transformation pipeline for Handwriting CNN.
     """
-    efficient_transform = transforms.Compose([
+    handwriting_transform = transforms.Compose([
         transforms.Resize(500,interpolation=InterpolationMode.BILINEAR),
-        transforms.CenterCrop(384),
+        transforms.CenterCrop(256),
         transforms.ToTensor(),
         #transforms.Pad((0, 0, 0, 0), fill=0, padding_mode="constant"),  # Optional: Add padding if needed
         #weights["efficient"].transforms()
     ])
     
-    return efficient_transform
-
+    return handwriting_transform
+def get_small_cnn_transforms():
+    """
+    Returns the transformation pipeline for Small CNN.
+    """
+    small_cnn_transform = transforms.Compose([
+        transforms.Resize(500,interpolation=InterpolationMode.BILINEAR),
+        transforms.CenterCrop(256),
+        transforms.ToTensor(),
+        #transforms.Pad((0, 0, 0, 0), fill=0, padding_mode="constant"),  # Optional: Add padding if needed
+        #weights["efficient"].transforms()
+    ])
+    
+    return small_cnn_transform
+def get_customcnn_transforms(**kwargs):
+    transform= transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.25, 0.25, 0.25]),
+    ])
+    return transform
+### CNN TRANSFORMS ###
 def get_resnet_transforms(name, use_patches=False, **kwargs):
     """
     Returns the transformation pipeline for ResNet.
@@ -99,103 +118,134 @@ def get_resnet_transforms(name, use_patches=False, **kwargs):
         else:
             raise ValueError(f"Model {name} is not supported for custom transforms.")
     else:
-        if name in ['resnet18','resnet50','resnet50-contrastive']:
-            if mode=='resize':
-                transform = transforms.Compose([
-                    transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
-                    #transforms.CenterCrop(224),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-                ])
-            else:
-                transform = transforms.Compose([
-                    transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
-                    transforms.CenterCrop(224),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                ])
+        if mode=='resize':
+            transform = transforms.Compose([
+                transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+                #transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
         else:
-            raise ValueError(f"Model {name} is not supported.")
+            transform = transforms.Compose([
+                transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
     return transform
-
+def get_mobilenet_transforms(name, use_patches=False, **kwargs):
+    transform = transforms.Compose([
+        transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    return transform
+def get_convnext_transforms(name, use_patches=False, **kwargs):
+    transform = transforms.Compose([
+        transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    return transform
+def get_maxvit_transforms(name, use_patches=False, **kwargs):
+    transform = transforms.Compose([
+        transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    return transform
+def get_densenet_transforms(name, use_patches=False, **kwargs):
+    transform = transforms.Compose([
+        transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    return transform
+def get_efficientnet_transforms(name, use_patches=False, **kwargs):
+    if name=='efficientnet_v2_s':
+        transform = transforms.Compose([
+            transforms.Resize((384,384), interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    elif name=='efficientnet_v2_l':
+        transform = transforms.Compose([
+            transforms.Resize((480,480), interpolation=transforms.InterpolationMode.BICUBIC),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5,0.5,0.5], std=[0.5,0.5,0.5]),
+        ])
+    return transform
+def get_inception_transforms(name, use_patches=False, **kwargs):
+    transform = transforms.Compose([
+        transforms.Resize((299,299), interpolation=transforms.InterpolationMode.BILINEAR),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    return transform
 def get_vgg_transforms(name, use_patches=False, **kwargs):
     """
     Returns the transformation pipeline for VGG models.
     """
     mode = kwargs.get('mode', '')
     if kwargs.get('custom') == True:
-        if name in ['vgg11', 'vgg13', 'vgg16', 'vgg19']:
-            if use_patches:
-                transform = transforms.Compose([
-                    transforms.Resize(256, interpolation=InterpolationMode.BILINEAR),
-                    transforms.CenterCrop(224),
-                    transforms.ToTensor(),
-                ])
-            else:
-                transform = transforms.Compose([
-                    transforms.Resize(500, interpolation=InterpolationMode.BILINEAR),
-                    transforms.ToTensor(),
-                ])
+        if use_patches:
+            transform = transforms.Compose([
+                transforms.Resize(256, interpolation=InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+            ])
         else:
-            raise ValueError(f"Model {name} is not supported for custom transforms.")
+            transform = transforms.Compose([
+                transforms.Resize(500, interpolation=InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+            ])
     else:
-        if name in ['vgg11', 'vgg13', 'vgg16', 'vgg19']:
-            if mode == 'resize':
-                transform = transforms.Compose([
-                    transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-                ])
-            else:
-                transform = transforms.Compose([
-                    transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
-                    transforms.CenterCrop(224),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                ])
+        if mode == 'resize':
+            transform = transforms.Compose([
+                transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
         else:
-            raise ValueError(f"Model {name} is not supported.")
+            transform = transforms.Compose([
+                transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
     return transform
-
 def get_alexnet_transforms(name, use_patches=False, **kwargs):
     """
     Returns the transformation pipeline for AlexNet.
     """
     mode = kwargs.get('mode', '')
     if kwargs.get('custom') == True:
-        if name == 'alexnet':
-            if use_patches:
-                transform = transforms.Compose([
-                    transforms.Resize(256, interpolation=InterpolationMode.BILINEAR),
-                    transforms.CenterCrop(224),
-                    transforms.ToTensor(),
-                ])
-            else:
-                transform = transforms.Compose([
-                    transforms.Resize(500, interpolation=InterpolationMode.BILINEAR),
-                    transforms.ToTensor(),
-                ])
+        if use_patches:
+            transform = transforms.Compose([
+                transforms.Resize(256, interpolation=InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+            ])
         else:
-            raise ValueError(f"Model {name} is not supported for custom transforms.")
+            transform = transforms.Compose([
+                transforms.Resize(500, interpolation=InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+            ])
     else:
-        if name == 'alexnet':
-            if mode == 'resize':
-                transform = transforms.Compose([
-                    transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-                ])
-            else:
-                transform = transforms.Compose([
-                    transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
-                    transforms.CenterCrop(224),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                ])
+        if mode == 'resize':
+            transform = transforms.Compose([
+                transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
         else:
-            raise ValueError(f"Model {name} is not supported.")
+            transform = transforms.Compose([
+                transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ])
     return transform
-
 def get_googlenet_transforms(name, use_patches=False, **kwargs):
     """
     Returns the transformation pipeline for GoogleNet.
@@ -234,46 +284,62 @@ def get_googlenet_transforms(name, use_patches=False, **kwargs):
         else:
             raise ValueError(f"Model {name} is not supported.")
     return transform
+def get_regnet_transforms(name, **kwargs):
+    transform = transforms.Compose([
+        transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    return transform
 
+### TRANSFORMER TRANSFORMS ###
 def get_trocr_transforms(name='trocr-small-stage1'):
     processor = TrOCRProcessor.from_pretrained(f'microsoft/{name}',use_fast=False)
     return processor
-
 def get_vit_transforms(name='vit-base-patch16-224-in21k'):
-    if name in ['vit-base-patch16-224-in21k']:
+    if name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224","vit-huge-patch14-224-in21k",
+                "vit-large-patch16-224-in21k","vit-base-patch32-224-in21k"]:
         processor = ViTImageProcessor.from_pretrained(f'google/{name}')
     else:
         raise ValueError(f"Model {name} is not supported.")
     return processor
-
-def get_handwriting_transforms():
-    """
-    Returns the transformation pipeline for Handwriting CNN.
-    """
-    handwriting_transform = transforms.Compose([
-        transforms.Resize(500,interpolation=InterpolationMode.BILINEAR),
-        transforms.CenterCrop(256),
+def get_layoutlmv3_base_transforms(**kwargs):
+    from transformers import LayoutLMv3Processor
+    processor = LayoutLMv3Processor.from_pretrained("microsoft/layoutlmv3-base")
+    return processor
+def get_clip_vit_transforms(name, **kwargs):
+    from transformers import CLIPImageProcessor
+    if name == "clip-vit-large-patch14-un":
+        name = "clip-vit-large-patch14"
+    processor = CLIPImageProcessor.from_pretrained(f"openai/{name}")
+    return processor
+def get_deit_transforms(name='DeiT-Tiny',**kwargs):
+    if 'Dist' in name:
+        dist='distilled-'
+    else:
+        dist=''
+    if 'DeiT-Tiny' in name:
+        processor = AutoFeatureExtractor.from_pretrained(f'facebook/deit-tiny-{dist}patch16-224')
+    elif 'DeiT-Small' in name:
+        processor = AutoFeatureExtractor.from_pretrained(f'facebook/deit-small-{dist}patch16-224')
+    elif 'DeiT-Base' in name:
+        processor = AutoFeatureExtractor.from_pretrained(f'facebook/deit-base-{dist}patch16-224')
+    return processor
+def get_beit_transforms(name='BEiT-Base',**kwargs):
+    from transformers import BeitFeatureExtractor
+    if 'BEiT-Large' in name:
+        processor = BeitFeatureExtractor.from_pretrained(f'microsoft/beit-large-patch16-384')
+    elif 'BEiT-Base' in name:
+        processor = BeitFeatureExtractor.from_pretrained(f'microsoft/beit-base-patch16-384')
+    return processor
+def get_swin_transforms(name='swin-s',**kwargs):
+    transform = transforms.Compose([
+        transforms.Resize((256,256), interpolation=transforms.InterpolationMode.BILINEAR),
         transforms.ToTensor(),
-        #transforms.Pad((0, 0, 0, 0), fill=0, padding_mode="constant"),  # Optional: Add padding if needed
-        #weights["efficient"].transforms()
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    
-    return handwriting_transform
-
-def get_small_cnn_transforms():
-    """
-    Returns the transformation pipeline for Small CNN.
-    """
-    small_cnn_transform = transforms.Compose([
-        transforms.Resize(500,interpolation=InterpolationMode.BILINEAR),
-        transforms.CenterCrop(256),
-        transforms.ToTensor(),
-        #transforms.Pad((0, 0, 0, 0), fill=0, padding_mode="constant"),  # Optional: Add padding if needed
-        #weights["efficient"].transforms()
-    ])
-    
-    return small_cnn_transform
-
+    return transform
+### doctr transforms ###
 def get_dresnet50_transforms(**kwargs):
     ''' doctr default preprocessor
     transform=PreProcessor(
@@ -293,7 +359,33 @@ def get_dresnet50_transforms(**kwargs):
             transforms.Normalize(mean=[0.798, 0.785, 0.772], std=[0.264, 0.2749, 0.287]),
         ])
     return transform
-
+def get_db_mobilenet_transforms(**kwargs):
+    if kwargs.get('custom')==True:
+        print('no support for custom transforms')
+    else:
+        transform = transforms.Compose([
+            transforms.Resize((1024,1024), interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.798, 0.785, 0.772], std=[0.264, 0.2749, 0.287]),
+        ])
+    return transform
+def get_linknet_transforms(name,**kwargs):
+    if kwargs.get('custom')==True:
+        print('no support for custom transforms')
+    else:
+        if name=='linknet_resnet50_224':
+            transform = transforms.Compose([
+                transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.798, 0.785, 0.772], std=[0.264, 0.2749, 0.287]),
+            ])
+        else:
+            transform = transforms.Compose([
+                transforms.Resize((1024,1024), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.798, 0.785, 0.772], std=[0.264, 0.2749, 0.287]),
+            ])
+    return transform
 def get_crnn_vgg16_bn_transforms(**kwargs):
     #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
     mode=kwargs.get('mode',)
@@ -319,7 +411,24 @@ def get_crnn_vgg16_bn_transforms(**kwargs):
             transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
         ])
     return transform
-
+def get_crnn_mobilenet_transforms(name,**kwargs):
+    #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
+    if kwargs.get('custom')==True:
+        print('no support for custom transforms')
+    else:
+        if name == 'crnn_mobilenet_224':
+            transform = transforms.Compose([
+                transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+            ])
+        else:
+            transform = transforms.Compose([
+                transforms.Resize((32,128), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+            ])
+    return transform
 def get_sar_resnet31_transforms(**kwargs):
     #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
     if kwargs.get('custom')==True:
@@ -331,8 +440,7 @@ def get_sar_resnet31_transforms(**kwargs):
             transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
         ])
     return transform
-
-def get_vitstr_base_transforms(**kwargs):
+def get_vitstr_transforms(**kwargs):
     #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
     if kwargs.get('custom')==True:
         print('no support for custom transforms')
@@ -344,69 +452,71 @@ def get_vitstr_base_transforms(**kwargs):
         ])
     return transform
 
-def get_layoutlmv3_base_transforms(**kwargs):
-    from transformers import LayoutLMv3Processor
-    processor = LayoutLMv3Processor.from_pretrained("microsoft/layoutlmv3-base")
-    return processor
-
-def get_clip_vit_transforms(name, **kwargs):
-    from transformers import CLIPImageProcessor
-    if name == "clip-vit-large-patch14":
-        processor = CLIPImageProcessor.from_pretrained("openai/clip-vit-large-patch14")
-    else:
-        raise ValueError(f"Model {name} is not supported.")
-    return processor
-
-def get_deit_transforms(name='DeiT-Tiny'):
-    from transformers import AutoFeatureExtractor
-    processor = AutoFeatureExtractor.from_pretrained('facebook/deit-tiny-patch16-224')
-    return processor
-
-def get_customcnn_transforms(**kwargs):
-    transform= transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.25, 0.25, 0.25]),
-    ])
-    return transform
-
 def get_transform(name='resnet18',use_patches=True, **kwargs):
-    if name in ['resnet18','resnet50','resnet101','resnet152','resnet50-contrastive']:
+    ### CNN transforms ###
+    if name.startswith('resnet'):
         return get_resnet_transforms(name,use_patches=use_patches,**kwargs)
-    elif name in ['vgg11', 'vgg13', 'vgg16', 'vgg19']:
+    elif name.startswith('vgg'):
         return get_vgg_transforms(name, use_patches=use_patches, **kwargs)
-    elif name == 'alexnet':
+    elif name.startswith('alexnet'):
         return get_alexnet_transforms(name, use_patches=use_patches, **kwargs)
     elif name == 'googlenet':
         return get_googlenet_transforms(name, use_patches=use_patches, **kwargs)
-    elif name=='efficientnet':  
-        return get_efficient_transforms()
+    elif name.startswith('mobilenet'):
+        return get_mobilenet_transforms(name, **kwargs)
+    elif name.startswith('convnext'):
+        return get_convnext_transforms(name, **kwargs)
+    elif name.startswith('densenet'):
+        return get_densenet_transforms(name, **kwargs)
+    elif name.startswith('efficientnet'):
+        return get_efficientnet_transforms(name, **kwargs)
+    elif name.startswith('inception'):
+        return get_inception_transforms(name, **kwargs)
+    elif name.startswith('regnet'):
+        return get_regnet_transforms(name, **kwargs)
+    elif name.startswith('swin'):
+        return get_swin_transforms(name, **kwargs)
+    ### hybrid models transforms ###
+    elif name.startswith('maxvit'):
+        return get_maxvit_transforms(name, **kwargs)
+    ### custom transforms ####
     elif name=='handwriting':
         return get_handwriting_transforms()
     elif name=='smallcnn':
         return get_small_cnn_transforms()
     elif name=='mnist':
         return get_mnist_transforms()
+    elif name=='custom_cnn':
+        return get_customcnn_transforms(**kwargs)
+    ### transformer models transforms ###
     elif name in ['trocr-small-stage1','trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1','trocr-base-stage1']:
         return get_trocr_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
-    elif name in ['vit-base-patch16-224-in21k']:
+    elif name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224","vit-huge-patch14-224-in21k",
+                "vit-large-patch16-224-in21k","vit-base-patch32-224-in21k"]:
         return get_vit_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
+    elif name=='layoutlmv3_base':
+        return get_layoutlmv3_base_transforms(**kwargs)
+    elif name in ["clip-vit-large-patch14","clip-vit-large-patch14-un","clip-vit-base-patch16","clip-vit-base-patch32"]:
+        return get_clip_vit_transforms(name, **kwargs)
+    elif name.startswith('DeiT'):
+        return get_deit_transforms(name, **kwargs)
+    elif name.startswith('BEiT'):
+        return get_beit_transforms(name, **kwargs)
+    ### doctr models transforms ###
     elif name=='dresnet50':
         return get_dresnet50_transforms(**kwargs)
     elif name=='crnn_vgg16_bn':
         return get_crnn_vgg16_bn_transforms(**kwargs)
     elif name=='sar_resnet31':
         return get_sar_resnet31_transforms(**kwargs)
-    elif name=='vitstr_base':
-        return get_vitstr_base_transforms(**kwargs)
-    elif name=='layoutlmv3_base':
-        return get_layoutlmv3_base_transforms(**kwargs)
-    elif name == "clip-vit-large-patch14":
-        return get_clip_vit_transforms(name, **kwargs)
-    elif name == "DeiT-Tiny":
-        return get_deit_transforms(name)
-    elif name=='custom_cnn':
-        return get_customcnn_transforms(**kwargs)
+    elif name.startswith('vitstr'):
+        return get_vitstr_transforms(**kwargs)
+    elif name=='db_mobilenet':
+        return get_db_mobilenet_transforms(**kwargs)
+    elif name.startswith('linknet'):
+        return get_linknet_transforms(name,**kwargs)
+    elif name in ['crnn_mobilenet', 'crnn_mobilenet_224']:
+        return get_crnn_mobilenet_transforms(name,**kwargs)
     else:
         raise ValueError(f"Unknown model name: {name}. Please provide a valid model name.")
 

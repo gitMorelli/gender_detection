@@ -1,0 +1,51 @@
+{
+  "version": "0.2.0",
+  "inputs": [
+    { "id": "expName", "type": "promptString", "description": "Experiment name" }
+  ],
+  "configurations": [
+    {
+      "name": "model comparison experiments debugger",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/notebooks/model_comparison_experiment/experiments_scheduler.py",
+      "cwd": "${fileDirname}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "subProcess": true,                          // follows multiprocessing children (e.g., DataLoader workers)
+      "redirectOutput": true,                   // ensures output is shown in terminal
+      "args": [ ],// no args needed here
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    },
+    {
+      "name": "HVAE: Main (morphomnist)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/causal_gen/src/main.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "subProcess": true,                          // follows multiprocessing children (e.g., DataLoader workers)
+      "redirectOutput": true, 
+      "args": [
+        "--exp_name=${input:expName}",
+        "--data_dir=${workspaceFolder}/causal_gen/datasets/morphomnist",
+        "--hps", "morphomnist",
+        "--parents_x", "thickness", "intensity", "digit",
+        "--context_dim=12",
+        "--concat_pa",
+        "--lr=0.001",
+        "--bs=32",
+        "--wd=0.01",
+        "--beta=1",
+        "--cond_prior",
+        "--eval_freq=1"
+      ],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    }
+  ]
+}
