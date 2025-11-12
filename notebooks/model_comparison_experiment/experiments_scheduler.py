@@ -7,10 +7,11 @@ import tempfile
 import copy
 from datetime import datetime
 import pandas as pd
+import json
 
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..','..')))
-#import utils.file_IO as file_IO
+source_path=os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..'))
+sys.path.append(source_path)
+import utils.file_IO as file_IO
 
 class DotDict:
     def __init__(self, **entries):
@@ -56,23 +57,15 @@ def generate_experiments(config_path, experiment_csv,experiment):
     script_name = 'cv_evaluation.py'
     try_args = []
     i = 0
-    args.selected_model = 'logreg'
+
     args.with_pca = False
     args.n_splits = 10
     args.with_pca = False
     args.selected_model = 'logreg'
+    args.with_feature_scaling = False
 
     if experiment == 'standard_patches':
         try_files = df['standard_patches'].dropna().tolist()
-        #compare all models on standard patches
-        for file in try_files:
-            i += 1
-            args.input_file_name = file
-            args.n_job=i
-            try_args.append(copy.deepcopy(args))
-    if experiment == 'standard_patches_no_scaling':
-        try_files = df['standard_patches'].dropna().tolist()
-        args.with_feature_scaling = False
         #compare all models on standard patches
         for file in try_files:
             i += 1
@@ -108,19 +101,33 @@ def generate_experiments(config_path, experiment_csv,experiment):
                 args.train_on_language = language
                 try_args.append(copy.deepcopy(args))
 
-    return try_args, i, script_name
+    return try_args, i, script_name 
 
 if __name__ == "__main__":
-    output_dir = "outputs"
-    experiment_csv = os.path.join(output_dir, "experiment_table_20251111_113627.pkl")
-    experiments = ['standard_patches','standard_patches_no_scaling','standard_patches_single','standard_body','standard_patches_generalization']
+    experiment_csv = os.path.join('experiment_tables', "experiment_table_20251111_113627.pkl")
+    experiments = ['standard_patches','standard_patches_single','standard_body','standard_patches_generalization']
     config_path = 'configs/exp_patch_overfitting1.yaml'
 
-    for experiment in experiments[:2]:
+    for experiment in experiments:
         print(f"Running experiment: {experiment}")
         try_args, total_jobs, script_name = generate_experiments(config_path, experiment_csv,experiment)
         print(f"Total experiments to run: {total_jobs}")
-
-        for i, arg in enumerate(try_args[:2]):
-            print(f"Experiment {i}/{total_jobs}: {arg.input_file_name}, Model: {arg.selected_model}")
-            run_experiment(arg,script_name)  # Test a single run first
+        results_path = os.path.join('outputs', f"results_{experiment}.json")
+        # Load the JSON data
+        if not os.path.exists(results_path):
+            print(f"Still to be created: {results_path}")
+            unique_fe_models = []
+        else:
+            with open(results_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # Extract all unique FE model values
+            unique_fe_models = list({entry.get("FE model") for entry in data.values() if "FE model" in entry})
+            # Print them
+            print('unique models already trained: ',len(unique_fe_models))
+        for i, arg in enumerate(try_args):
+            FE_model=file_IO.get_selected_model_from_input_filename(source_path,arg.input_file_name)
+            if FE_model in unique_fe_models:
+                print(f"Skipping experiment {i+1}/{total_jobs}: {arg.input_file_name}, Model: {FE_model} (already done)")
+            else:
+                print(f"Running experiment {i}/{total_jobs}: {arg.input_file_name}, Model: {FE_model}")
+                run_experiment(arg,script_name)  # Test a single run first

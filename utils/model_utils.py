@@ -419,15 +419,48 @@ def get_convnext(name, mode, pretrained, **kwargs):
             x=self.model(x) 
             x = x.flatten(1)
             return x
-    if name == 'convnext_base':
+    class ConvNeXtStageOut(nn.Module):
+        """
+        Returns the tensor after a chosen stage of model.features.
+        stage='stem'   → after features[0]
+        stage='s1'     → after features[1]   (56×56, C=192)
+        stage='ds1'    → after features[2]   (downsample to 28×28, C=384)
+        stage='s2'     → after features[3]
+        stage='ds2'    → after features[4]   (14×14, C=768)
+        stage='s3'     → after features[5]
+        stage='ds3'    → after features[6]   ( 7×7, C=1536)
+        stage='s4'     → after features[7]
+        """
+        _map = {
+            "stem": 0, "s1": 1, "ds1": 2, "s2": 3,
+            "ds2": 4, "s3": 5, "ds3": 6, "s4": 7,
+        }
+        def __init__(self, convnext: nn.Module, stage: str = "s3"):
+            super().__init__()
+            assert stage in self._map, f"stage must be one of {list(self._map)}"
+            self.model = convnext
+            self.idx = self._map[stage]
+            self.gap = nn.AdaptiveAvgPool2d(1)  # size-agnostic
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            # run through features sequentially until desired stage
+            for i, m in enumerate(self.model.features):
+                x = m(x)
+                if i == self.idx:
+                    x = self.gap(x)
+                    x = x.flatten(1)
+                    return x
+            return x  # fallback
+
+    if name.startswith('convnext_base'):
         from torchvision.models import ConvNeXt_Base_Weights, convnext_base
         weights = ConvNeXt_Base_Weights.IMAGENET1K_V1 if pretrained else None
         model = convnext_base(weights=weights)
-    if name == 'convnext_small':
+    if name.startswith('convnext_small'):
         from torchvision.models import ConvNeXt_Small_Weights, convnext_small
         weights = ConvNeXt_Small_Weights.IMAGENET1K_V1 if pretrained else None
         model = convnext_small(weights=weights)
-    elif name == 'convnext_large':
+    elif name.startswith('convnext_large'):
         from torchvision.models import ConvNeXt_Large_Weights, convnext_large
         weights = ConvNeXt_Large_Weights.IMAGENET1K_V1 if pretrained else None
         model = convnext_large(weights=weights)
@@ -442,8 +475,11 @@ def get_convnext(name, mode, pretrained, **kwargs):
     elif mode == 'truncated':
         truncation = kwargs.get('truncation', 'remove head')
         if truncation == 'remove head':
-            model.classifier = torch.nn.Identity()
-            model = WrappedModel(model)
+            if 'inter' in name:
+                model = ConvNeXtStageOut(model, stage="s2")
+            else:
+                model.classifier = torch.nn.Identity()
+                model = WrappedModel(model)
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
     return model
@@ -702,16 +738,18 @@ def get_dbnet(name, mode, pretrained, **kwargs):
     model = db_resnet50(pretrained=pretrained)
     model=model.feat_extractor
     class WrappedModel(torch.nn.Module):
-        def __init__(self, model):
+        def __init__(self, model,level=3):
             super().__init__()
             self.model = model
+            self.gap = torch.nn.AdaptiveAvgPool2d(1)
+            self.level=level
 
         def forward(self, x):
             out = self.model(x)
-            deepest_feature= out['3']  # shape: [1, 2048, 32, 32]
-            pooled = F.adaptive_avg_pool2d(deepest_feature, (1, 1))  # shape: [1, 2048, 1, 1]
+            deepest_feature= out[str(self.level)]  # shape: [1, 2048, 32, 32]
+            pooled = self.gap(deepest_feature)  # shape: [1, 2048, 1, 1]
             # Flatten to shape: [1, 2048]
-            feature_vector = pooled.view(pooled.size(0), -1)
+            feature_vector = pooled.flatten(1)
             return feature_vector
     if mode=='classification head':
         print('no support for classification head for dbnet')
@@ -720,14 +758,17 @@ def get_dbnet(name, mode, pretrained, **kwargs):
     elif mode=='truncated':
         truncation=kwargs.get('truncation', 'remove head')
         if truncation=='remove head':
-            return WrappedModel(model)
+            if 'inter' in name:
+                return WrappedModel(model,level=1)
+            else:
+                return WrappedModel(model)
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
 def get_vitstr(name, mode, pretrained, **kwargs):
     from doctr.models import vitstr_base,vitstr_small
-    if name=='vitstr_small':
+    if name.startswith('vitstr_small'):
         model = vitstr_small(pretrained=pretrained)
-    elif name=='vitstr_base':
+    elif name.startswith('vitstr_base'):
         model = vitstr_base(pretrained=pretrained)
     model=model.feat_extractor
     class WrappedModel(torch.nn.Module):
@@ -762,12 +803,12 @@ def get_sar_resnet31(name, mode, pretrained, **kwargs):
         def __init__(self, model):
             super().__init__()
             self.model = model
+            self.gap = torch.nn.AdaptiveAvgPool2d(1)
 
         def forward(self, x):
-            out = self.model(x)
-            x=out['features']  # shape: [1, 512, 32, 32]
-            x = F.adaptive_avg_pool2d(x, (1, 1))  # [1, 512, 1, 1]
-            x = x.view(x.size(0), -1)  # Flatten to shape: [1, 512]
+            x=self.model(x)['features']
+            x = self.gap(x)             # [B, C, 1, 1]
+            x = x.flatten(1)            # shape: [B, C]
             return x
     if mode=='classification head':
         print('no support for classification head for dbnet')
@@ -787,12 +828,12 @@ def get_crnn_vgg16_bn(name, mode, pretrained, **kwargs):
         def __init__(self, model):
             super().__init__()
             self.model = model
+            self.gap = torch.nn.AdaptiveAvgPool2d(1)
 
         def forward(self, x):
             x=self.model(x)
-            x = x.squeeze(2)           # [B, C, W]
-            x = x.permute(0, 2, 1)     # [B, W, C]
-            x = x.mean(dim=1)
+            x = self.gap(x)             # [B, C, 1, 1]
+            x = x.flatten(1)            # shape: [B, C]
             return x
     if mode=='classification head':
         print('no support for classification head for dbnet')
@@ -808,30 +849,28 @@ def crnn_mobilenet_v3_large(name, mode, pretrained, **kwargs):
     from doctr.models import crnn_mobilenet_v3_large
     model = crnn_mobilenet_v3_large(pretrained=pretrained)
     model=model.feat_extractor
-    if name=='crnn_mobilenet_224':
-        class WrappedModel(torch.nn.Module):
-            def __init__(self, model):
-                super().__init__()
-                self.model = model
-                self.gap = torch.nn.AdaptiveAvgPool2d(1)
+    class WrappedModel(torch.nn.Module):
+        def __init__(self, model):
+            super().__init__()
+            self.model = model
+            self.gap = torch.nn.AdaptiveAvgPool2d(1)
 
-            def forward(self, x):
-                x=self.model(x)
-                x = self.gap(x)             # [B, C, 1, 1]
-                x = x.flatten(1)            # shape: [B, C]
-                return x
-    else:
-        class WrappedModel(torch.nn.Module):
-            def __init__(self, model):
-                super().__init__()
-                self.model = model
-
-            def forward(self, x):
-                x=self.model(x)
-                x = x.squeeze(2)           # [B, C, W]
-                x = x.permute(0, 2, 1)     # [B, W, C]
-                x = x.mean(dim=1)
-                return x
+        def forward(self, x):
+            x=self.model(x)
+            x = self.gap(x)             # [B, C, 1, 1]
+            x = x.flatten(1)            # shape: [B, C]
+            return x
+    class CRNNStage(nn.Module):
+        def __init__(self, model, end_index):
+            super().__init__()
+            # copy first N layers of feat_extractor
+            self.backbone = nn.Sequential(*list(model.children())[:end_index + 1])
+            self.gap = torch.nn.AdaptiveAvgPool2d(1)
+        def forward(self, x):
+            x = self.backbone(x)
+            x = self.gap(x)             # [B, C, 1, 1]
+            x = x.flatten(1)            # shape: [B, C]
+            return x
     if mode=='classification head':
         print('no support for classification head for dbnet')
     elif mode=='as is':
@@ -839,7 +878,10 @@ def crnn_mobilenet_v3_large(name, mode, pretrained, **kwargs):
     elif mode=='truncated':
         truncation=kwargs.get('truncation', 'remove head')
         if truncation=='remove head':
-            return WrappedModel(model)
+            if 'inter' in name:
+                return CRNNStage(model, end_index=8)
+            else:
+                return WrappedModel(model)
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
 def get_db_mobilenet(name, mode, pretrained, **kwargs):
@@ -901,11 +943,37 @@ def get_linknet(name, mode, pretrained, **kwargs):
 ### transformer models ###
 def get_trocr(name, mode, pretrained, **kwargs):
     if pretrained:
-        model = VisionEncoderDecoderModel.from_pretrained(f'microsoft/{name}')
-        model = WrappedHuggingfaceModel(model.encoder) 
+        if 'inter' in name:
+            name_temp=name.replace('-inter','')
+        else:
+            name_temp=name
+        model = VisionEncoderDecoderModel.from_pretrained(f'microsoft/{name_temp}')
         #remove pixel_values argument; returns the output of the last layernorm (no pooling) 1,578,384
     else:
         print("no support for loading model without pretrained weights")
+    class TrOCRViTClsExtractor(nn.Module):
+        """
+        Extract the [CLS] token from the N-th ViT encoder layer (default: 12th).
+        Works with:
+        - transformers.VisionEncoderDecoderModel (uses .encoder)
+        - transformers.ViTModel
+        Assumes pixel_values are already preprocessed (resize + normalize).
+        """
+        def __init__(self, trocr_or_vit, layer_index: int = 12):
+            super().__init__()
+            # If it's a VisionEncoderDecoderModel, grab the vision encoder
+            self.encoder = getattr(trocr_or_vit, "encoder", trocr_or_vit)
+            #num_layers = self.encoder.config.num_hidden_layers
+            #assert 1 <= layer_index <= num_layers, f"layer_index must be in [1, {num_layers}]"
+            self.layer_index = layer_index
+
+        def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
+            # Run ONLY the vision encoder and request hidden states
+            out = self.encoder(pixel_values=pixel_values, output_hidden_states=True)
+            # hidden_states[0] = embeddings (patch+pos+cls); hidden_states[k] = after k-th block
+            hs = out.hidden_states[self.layer_index]    # [B, seq_len, hidden_dim]
+            cls = hs[:, 0, :]                           # [CLS]
+            return cls
     if mode=='classification head':
         num_classes=kwargs.get('num_classes', 2)
         hidden_sizes=kwargs.get('hidden_sizes', [128])
@@ -921,11 +989,14 @@ def get_trocr(name, mode, pretrained, **kwargs):
     elif mode=='truncated':
         truncation=kwargs.get('truncation', 'remove head')
         if truncation=='remove head':
-            pass #I simply take the output of the last encoder layer (as in the pretrained model)
+            if 'inter' in name:
+                model = TrOCRViTClsExtractor(model, layer_index=12)
+            else:
+                model = WrappedHuggingfaceModel(model.encoder)
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
-            model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
-            model = TruncatedDeiT(model.encoder, num_layers=10, from_above=False, encoder_only=not(pooled))
+            #model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-small-stage1')
+            #model = TruncatedDeiT(model.encoder, num_layers=10, from_above=False, encoder_only=not(pooled))
     return model
 def get_vit(name, mode, pretrained, **kwargs):
     if name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224","vit-huge-patch14-224-in21k",
@@ -1019,6 +1090,29 @@ def get_deit(name, mode, pretrained, **kwargs):
     return model
 def get_beit(name, mode, pretrained, **kwargs):
     from transformers import BeitForImageClassification
+    class BEiTClsExtractor(nn.Module):
+        """
+        Extract the [CLS] token from the N-th BEiT encoder layer (default: 12th).
+        Works with either:
+        - transformers.BeitModel
+        - transformers.BeitForImageClassification (uses .beit internally)
+        Assumes pixel_values are already preprocessed (resize + normalize).
+        """
+        def __init__(self, beit_or_classifier_model, layer_index: int = 12):
+            super().__init__()
+            # If it's a classifier, reach the base vision model via .beit
+            self.beit = getattr(beit_or_classifier_model, "beit", beit_or_classifier_model)
+            #num_layers = self.beit.config.num_hidden_layers
+            #assert 1 <= layer_index <= num_layers, f"layer_index must be in [1, {num_layers}]"
+            self.layer_index = layer_index
+
+        def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
+            # Request hidden states so we can index the chosen layer
+            out = self.beit(pixel_values=pixel_values, output_hidden_states=True)
+            # hidden_states[0] = embeddings (patch+pos); hidden_states[k] = after k-th block
+            hs = out.hidden_states[self.layer_index]     # [B, seq_len, hidden_dim]
+            cls = hs[:, 0, :]                            # [CLS] token
+            return cls
     class WrappedModel(torch.nn.Module):
         def __init__(self, hugging_model):
             super().__init__()
@@ -1027,36 +1121,57 @@ def get_beit(name, mode, pretrained, **kwargs):
         def forward(self, pixel_values):
             outputs = self.hugging_model(pixel_values=pixel_values,output_attentions=True)
             return outputs.hidden_states[-1][:, 0, :]  # Return the CLS token output
-    if name in ["BEiT-Large", "BEiT-Base"]:
-        if pretrained:
-            if "BEiT-Large" in name:
-                model = BeitForImageClassification.from_pretrained('microsoft/beit-large-patch16-384',output_hidden_states=True)
-            elif "BEiT-Base" in name:   
-                model = BeitForImageClassification.from_pretrained('microsoft/beit-base-patch16-384', output_hidden_states=True)
-        else:
-            print("no support for loading model without pretrained weights")
-        if mode == 'classification head':
-            raise ValueError("Classification head is not supported for DeiT models.")
-        elif mode == 'as is':
-            pass
-        elif mode == 'truncated':
-            truncation = kwargs.get('truncation', 'remove head')
-            if truncation == 'remove head':
-                model = WrappedModel(model) 
-            else:
-                raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
-        contrastive = kwargs.get('contrastive', False)
-        if contrastive:
-            in_features = 192
-            contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
+    if pretrained:
+        if "BEiT-Large" in name:
+            model = BeitForImageClassification.from_pretrained('microsoft/beit-large-patch16-384',output_hidden_states=True)
+        elif "BEiT-Base" in name:   
+            model = BeitForImageClassification.from_pretrained('microsoft/beit-base-patch16-384', output_hidden_states=True)
     else:
-        raise ValueError(f"Model {name} is not supported. Choose from ['DeiT-Tiny', 'DeiT-Small', 'DeiT-Base']")
+        print("no support for loading model without pretrained weights")
+    if mode == 'classification head':
+        raise ValueError("Classification head is not supported for DeiT models.")
+    elif mode == 'as is':
+        pass
+    elif mode == 'truncated':
+        truncation = kwargs.get('truncation', 'remove head')
+        if truncation == 'remove head':
+            if 'inter' in name:
+                model = BEiTClsExtractor(model, layer_index=12)
+            else:
+                model = WrappedModel(model) 
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+    contrastive = kwargs.get('contrastive', False)
+    if contrastive:
+        in_features = 192
+        contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
     return model
 def get_clip_vit(name, mode, pretrained, **kwargs):
     from transformers import CLIPModel
     normalization=True if name=="clip-vit-large-patch14" else False
     if name=="clip-vit-large-patch14-un":
         name="clip-vit-large-patch14"
+    class WrappedModelInter(nn.Module):
+        """
+        Works with either:
+        - transformers.CLIPVisionModel
+        - transformers.CLIPModel  (uses .vision_model internally)
+        Returns [CLS] from the specified vision block.
+        """
+        def __init__(self, model, layer_index: int = 12):
+            super().__init__()
+            # If it's a full CLIPModel, grab the vision tower
+            self.vision = getattr(model, "vision_model", model)
+            num_layers = self.vision.config.num_hidden_layers
+            assert 1 <= layer_index <= num_layers, f"layer_index must be in [1, {num_layers}]"
+            self.layer_index = layer_index
+
+        def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
+            # Run ONLY the vision encoder; request hidden states
+            out = self.vision(pixel_values=pixel_values, output_hidden_states=True)
+            hs = out.hidden_states[self.layer_index]   # [B, seq_len, hidden_dim]
+            cls = hs[:, 0, :]                          # [CLS]
+            return cls
     class WrappedModel(torch.nn.Module):
         def __init__(self, model, type_of_output='cls',normalization=False):
             super().__init__()
@@ -1093,7 +1208,11 @@ def get_clip_vit(name, mode, pretrained, **kwargs):
 
             return image_features
     if pretrained:
-        model = CLIPModel.from_pretrained(f'openai/{name}')
+        if 'inter' in name:
+            name_temp=name.replace('-inter','')
+        else:
+            name_temp=name
+        model = CLIPModel.from_pretrained(f'openai/{name_temp}')
         #model = WrappedHuggingfaceModel(model.vision_model) 
         #remove pixel_values argument; returns the output of the last layernorm (no pooling) 1,578,384
     else:
@@ -1112,7 +1231,10 @@ def get_clip_vit(name, mode, pretrained, **kwargs):
     elif mode=='truncated':
         truncation=kwargs.get('truncation', 'remove head')
         if truncation=='remove head':
-            return WrappedModel(model,'cls',normalization) #add an option for other ways of reading the output
+            if 'inter' in name:
+                return WrappedModelInter(model, layer_index=12)
+            else:
+                return WrappedModel(model,'cls',normalization) #add an option for other ways of reading the output
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
     elif mode=='exp':
@@ -1178,29 +1300,29 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
     elif name.startswith('maxvit'):
         model = get_maxvit(name, mode, pretrained, **kwargs)
     ### OCR MODELS ###
-    elif name == "dresnet50":
+    elif name.startswith("dresnet50"):
         model = get_dbnet(name, mode, pretrained, **kwargs)
     elif name.startswith('vitstr'):
         model = get_vitstr(name, mode, pretrained, **kwargs)
-    elif name == "sar_resnet31":
+    elif name.startswith('sar'):
         model = get_sar_resnet31(name, mode, pretrained, **kwargs)
-    elif name == "crnn_vgg16_bn":
+    elif name in ["crnn_vgg16_bn","crnn_vgg16_bn_224"]:
         model = get_crnn_vgg16_bn(name, mode, pretrained, **kwargs)
     elif name == "db_mobilenet":
         model = get_db_mobilenet(name, mode, pretrained, **kwargs)
     elif name.startswith('linknet'):
         model = get_linknet(name, mode, pretrained, **kwargs)
-    elif name in ['crnn_mobilenet','crnn_mobilenet_224']:
+    elif name.startswith('crnn_mobilenet'):
         model = crnn_mobilenet_v3_large(name, mode, pretrained, **kwargs)
     ### TRANSFORMER MODELS ###
-    elif name in ["trocr-small-stage1",'trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1','trocr-base-stage1']:
+    elif name.startswith('trocr'):
         model = get_trocr(name,mode, pretrained, **kwargs)
     elif name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224","vit-huge-patch14-224-in21k",
                 "vit-large-patch16-224-in21k","vit-base-patch32-224-in21k"]:
         model = get_vit(name, mode, pretrained, **kwargs)
     elif name == "layoutlmv3_base":
         model = get_layoutlmv3_base(name, mode, pretrained, **kwargs)
-    elif name in ["clip-vit-large-patch14","clip-vit-large-patch14-un","clip-vit-base-patch16","clip-vit-base-patch32"]:
+    elif name.startswith('clip-vit'):
         model = get_clip_vit(name, mode, pretrained, **kwargs)
     elif name.startswith('DeiT'):
         model = get_deit(name, mode, pretrained, **kwargs)
@@ -1253,7 +1375,7 @@ def get_classification_head(name='MLPClassifier1',in_features=512,num_classes=2,
     else:
         raise ValueError(f"Classification head {name} is not supported. Choose from ['MLPClassifier1', 'MLPClassifier2', 'TransformerClassifier']")
 
-def get_sklearn_model(name='logreg', **kwargs):
+def get_sklearn_model(name='logreg', **kwargs): 
     if name=='svm':
         from sklearn.svm import SVC
         return SVC(kernel='rbf', C=0.1, gamma='scale', probability=True, random_state=42)

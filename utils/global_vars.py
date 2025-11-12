@@ -8,6 +8,7 @@ class ModelProps:
     hugging: bool #True, False
     library: str #torchvision, doctr, huggingface
     architecture: str #transformer, cnn, hybrid
+    exclude_from_fe: bool = False
     # If you have optional/unknown extras:
     # extras: dict[str, object] = field(default_factory=dict)
 
@@ -21,36 +22,48 @@ _MODELS: dict[str, ModelProps] = {
     "DeiT-Base":   ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "BEiT-Base":   ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "BEiT-Large":  ModelProps(hugging=True, library="huggingface", architecture="transformer"),
-    "clip-vit-base-patch16": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
-    "clip-vit-base-patch32": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
-    "clip-vit-large-patch14-un": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
+    "BEiT-Large-inter":  ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "vit-base-patch16-224": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "vit-base-patch32-224-in21k": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "vit-large-patch16-224-in21k": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "vit-huge-patch14-224-in21k": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
-    "DeiT-Tiny":  ModelProps(hugging=True, library="huggingface", architecture="transformer"), 
-    "clip-vit-large-patch14": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "vit-base-patch16-224-in21k": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
+    "DeiT-Tiny":  ModelProps(hugging=True, library="huggingface", architecture="transformer"), 
+    "clip-vit-base-patch16": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
+    "clip-vit-base-patch32": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
+    "clip-vit-large-patch14-un": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
+    "clip-vit-large-patch14": ModelProps(hugging=True, library="huggingface", architecture="transformer",exclude_from_fe=True),
+    "clip-vit-large-patch14-inter": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
 
     ### ocr models ###
-    "dresnet50": ModelProps(hugging=False, library="doctr", architecture="cnn"),
-    "crnn_vgg16_bn": ModelProps(hugging=False, library="doctr", architecture="cnn"),
-    "vitstr_base": ModelProps(hugging=False, library="doctr", architecture="transformer"),
+    ### recognition###
+    "crnn_mobilenet": ModelProps(hugging=False, library="doctr", architecture="cnn",exclude_from_fe=True),
+    "crnn_mobilenet_224": ModelProps(hugging=False, library="doctr", architecture="cnn"),
+    "crnn_mobilenet_224-inter": ModelProps(hugging=False, library="doctr", architecture="cnn"),
+    "sar_resnet31": ModelProps(hugging=False, library="doctr", architecture="cnn",exclude_from_fe=True),
+    "sar_resnet31_224": ModelProps(hugging=False, library="doctr", architecture="cnn"),
+    "crnn_vgg16_bn": ModelProps(hugging=False, library="doctr", architecture="cnn",exclude_from_fe=True),
+    "crnn_vgg16_bn_224": ModelProps(hugging=False, library="doctr", architecture="cnn"),
+    "vitstr_base": ModelProps(hugging=False, library="doctr", architecture="transformer",exclude_from_fe=True),
+    "vitstr_base_224": ModelProps(hugging=False, library="doctr", architecture="transformer"),
+    "vitstr_small": ModelProps(hugging=False, library="doctr", architecture="transformer",exclude_from_fe=True),
+    "vitstr_small_224": ModelProps(hugging=False, library="doctr", architecture="transformer"),
     "trocr-large-handwritten": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
+    "trocr-large-handwritten-inter": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "trocr-large-stage1": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
+    "trocr-large-stage1-inter": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "trocr-base-handwritten": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "trocr-base-stage1": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "trocr-small-handwritten": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
     "trocr-small-stage1": ModelProps(hugging=True, library="huggingface", architecture="transformer"),
-    ###
-    "vitstr_small": ModelProps(hugging=False, library="doctr", architecture="transformer"),
+    ### detection ###
+    "dresnet50": ModelProps(hugging=False, library="doctr", architecture="cnn"),
+    "dresnet50-inter": ModelProps(hugging=False, library="doctr", architecture="cnn"),
     "db_mobilenet": ModelProps(hugging=False, library="doctr", architecture="cnn"),
-    "crnn_mobilenet_224": ModelProps(hugging=False, library="doctr", architecture="cnn"),
-    "linknet_resnet50_224": ModelProps(hugging=False, library="doctr", architecture="cnn"),
+    "linknet_resnet50_224": ModelProps(hugging=False, library="doctr", architecture="cnn",exclude_from_fe=True),
     "linknet_resnet50": ModelProps(hugging=False, library="doctr", architecture="cnn"),
     "linknet_resnet18": ModelProps(hugging=False, library="doctr", architecture="cnn"),
-    "crnn_mobilenet": ModelProps(hugging=False, library="doctr", architecture="cnn"),
-    "sar_resnet31": ModelProps(hugging=False, library="doctr", architecture="cnn"),
+
     ### cnn models ###
     "resnet50": ModelProps(hugging=False, library="torchvision",architecture="cnn"),
     "resnet18": ModelProps(hugging=False, library="torchvision",architecture="cnn"),
@@ -69,6 +82,7 @@ _MODELS: dict[str, ModelProps] = {
     "efficientnet_v2_l": ModelProps(hugging=False, library="torchvision",architecture="cnn"),
     "efficientnet_v2_s": ModelProps(hugging=False, library="torchvision",architecture="cnn"),
     "convnext_large": ModelProps(hugging=False, library="torchvision",architecture="cnn"),
+    "convnext_large-inter": ModelProps(hugging=False, library="torchvision",architecture="cnn"),
     "convnext_base": ModelProps(hugging=False, library="torchvision",architecture="cnn"),
     "convnext_small": ModelProps(hugging=False, library="torchvision",architecture="cnn"),
     "mobilenet_v3_small": ModelProps(hugging=False, library="torchvision",architecture="cnn"),
@@ -97,3 +111,5 @@ def get_props(model_name: str) -> ModelProps:
 
 def list_models() -> list[str]:
     return list(_MODELS.keys())
+
+

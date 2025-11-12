@@ -294,6 +294,8 @@ def get_regnet_transforms(name, **kwargs):
 
 ### TRANSFORMER TRANSFORMS ###
 def get_trocr_transforms(name='trocr-small-stage1'):
+    if 'inter' in name:
+        name = name.replace('-inter','')
     processor = TrOCRProcessor.from_pretrained(f'microsoft/{name}',use_fast=False)
     return processor
 def get_vit_transforms(name='vit-base-patch16-224-in21k'):
@@ -311,6 +313,8 @@ def get_clip_vit_transforms(name, **kwargs):
     from transformers import CLIPImageProcessor
     if name == "clip-vit-large-patch14-un":
         name = "clip-vit-large-patch14"
+    if 'inter' in name:
+        name = name.replace('-inter','')
     processor = CLIPImageProcessor.from_pretrained(f"openai/{name}")
     return processor
 def get_deit_transforms(name='DeiT-Tiny',**kwargs):
@@ -354,7 +358,7 @@ def get_dresnet50_transforms(**kwargs):
         print('no support for custom transforms')
     else:
         transform = transforms.Compose([
-            transforms.Resize(1024, interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.Resize((1024, 1024), interpolation=transforms.InterpolationMode.BILINEAR),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.798, 0.785, 0.772], std=[0.264, 0.2749, 0.287]),
         ])
@@ -386,7 +390,7 @@ def get_linknet_transforms(name,**kwargs):
                 transforms.Normalize(mean=[0.798, 0.785, 0.772], std=[0.264, 0.2749, 0.287]),
             ])
     return transform
-def get_crnn_vgg16_bn_transforms(**kwargs):
+def get_crnn_vgg16_bn_transforms(name,**kwargs):
     #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
     mode=kwargs.get('mode',)
     if kwargs.get('custom')==True:
@@ -405,18 +409,7 @@ def get_crnn_vgg16_bn_transforms(**kwargs):
                 transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
             ])
     else:
-        transform = transforms.Compose([
-            transforms.Resize((32,128), interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
-        ])
-    return transform
-def get_crnn_mobilenet_transforms(name,**kwargs):
-    #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
-    if kwargs.get('custom')==True:
-        print('no support for custom transforms')
-    else:
-        if name == 'crnn_mobilenet_224':
+        if '224' in name:
             transform = transforms.Compose([
                 transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
                 transforms.ToTensor(),
@@ -429,27 +422,61 @@ def get_crnn_mobilenet_transforms(name,**kwargs):
                 transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
             ])
     return transform
-def get_sar_resnet31_transforms(**kwargs):
+def get_crnn_mobilenet_transforms(name,**kwargs):
     #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
     if kwargs.get('custom')==True:
         print('no support for custom transforms')
     else:
-        transform = transforms.Compose([
-            transforms.Resize((32,128), interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
-        ])
+        if '224' in name:
+            transform = transforms.Compose([
+                transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+            ])
+        else:
+            transform = transforms.Compose([
+                transforms.Resize((32,128), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+            ])
     return transform
-def get_vitstr_transforms(**kwargs):
+def get_sar_resnet31_transforms(name,**kwargs):
     #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
     if kwargs.get('custom')==True:
         print('no support for custom transforms')
     else:
-        transform = transforms.Compose([
-            transforms.Resize((32,128), interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
-        ])
+        if '224' in name:
+            transform = transforms.Compose([
+                transforms.Resize((224,224), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+            ])
+        else:
+            transform = transforms.Compose([
+                transforms.Resize((32,128), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+            ])
+    return transform
+def get_vitstr_transforms(name,**kwargs):
+    #Normalize(mean=(0.694, 0.695, 0.693), std=(0.299, 0.296, 0.301))
+    if kwargs.get('custom')==True:
+        print('no support for custom transforms')
+    else:
+        if '224' in name: #assume 224 input to work correctly (correctly = no distorsions)
+            transform = transforms.Compose([
+                # pad the square image (224×224) horizontally to 224×896 → 1:4 ratio
+                transforms.Pad(padding=(336, 0, 336, 0), fill=0),  # (left, top, right, bottom)
+                # resize to final size
+                transforms.Resize((32, 128), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor()
+            ])
+        else:
+            transform = transforms.Compose([
+                transforms.Resize((32,128), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.694, 0.695, 0.693], std=[0.299, 0.296, 0.301]),
+            ])
     return transform
 
 def get_transform(name='resnet18',use_patches=True, **kwargs):
@@ -489,33 +516,33 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
     elif name=='custom_cnn':
         return get_customcnn_transforms(**kwargs)
     ### transformer models transforms ###
-    elif name in ['trocr-small-stage1','trocr-small-handwritten','trocr-base-handwritten','trocr-large-handwritten','trocr-large-stage1','trocr-base-stage1']:
+    elif name.startswith('trocr'):
         return get_trocr_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
     elif name in ["vit-base-patch16-224-in21k", "vit-base-patch16-224","vit-huge-patch14-224-in21k",
                 "vit-large-patch16-224-in21k","vit-base-patch32-224-in21k"]:
         return get_vit_transforms(name)  # Assuming Deit uses the same transform as ResNet without patches
     elif name=='layoutlmv3_base':
         return get_layoutlmv3_base_transforms(**kwargs)
-    elif name in ["clip-vit-large-patch14","clip-vit-large-patch14-un","clip-vit-base-patch16","clip-vit-base-patch32"]:
+    elif name.startswith('clip-vit'):
         return get_clip_vit_transforms(name, **kwargs)
     elif name.startswith('DeiT'):
         return get_deit_transforms(name, **kwargs)
     elif name.startswith('BEiT'):
         return get_beit_transforms(name, **kwargs)
     ### doctr models transforms ###
-    elif name=='dresnet50':
+    elif name.startswith('dresnet50'):
         return get_dresnet50_transforms(**kwargs)
-    elif name=='crnn_vgg16_bn':
-        return get_crnn_vgg16_bn_transforms(**kwargs)
-    elif name=='sar_resnet31':
-        return get_sar_resnet31_transforms(**kwargs)
+    elif name in ['crnn_vgg16_bn', 'crnn_vgg16_bn_224']:
+        return get_crnn_vgg16_bn_transforms(name,**kwargs)
+    elif name.startswith('sar'):
+        return get_sar_resnet31_transforms(name, **kwargs)
     elif name.startswith('vitstr'):
-        return get_vitstr_transforms(**kwargs)
+        return get_vitstr_transforms(name,**kwargs)
     elif name=='db_mobilenet':
         return get_db_mobilenet_transforms(**kwargs)
     elif name.startswith('linknet'):
         return get_linknet_transforms(name,**kwargs)
-    elif name in ['crnn_mobilenet', 'crnn_mobilenet_224']:
+    elif name.startswith('crnn_mobilenet'):
         return get_crnn_mobilenet_transforms(name,**kwargs)
     else:
         raise ValueError(f"Unknown model name: {name}. Please provide a valid model name.")

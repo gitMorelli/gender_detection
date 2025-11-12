@@ -85,7 +85,7 @@ def main(args):
     print("Running feature extraction script...")
     args = load_config(args.config)
     script_mode = args.script_mode
-    patch_mode = args.patch_merging
+    patch_mode = args.patch_merging 
 
     output_dir = source_path + "\\outputs\\preprocessed_data\\"
     LOG_FILE = output_dir+"file_metadata_log.json"
@@ -294,7 +294,7 @@ def parse_args():
 
 if __name__ == "__main__":
     # Add the root of the project to the path
-    source_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..','..'))
+    source_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..','..',))
     sys.path.append(source_path)
     import utils.file_IO as file_IO
     from utils.evaluation_utils import select_n_patches,compute_subgroup_accuracies

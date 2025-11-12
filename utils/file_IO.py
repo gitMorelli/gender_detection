@@ -251,7 +251,7 @@ def load_input_files(source_path,selected_FE,kind,suffix,custom_pretrained='orig
         test_filename = None
     return train_filename, val_filename, test_filename
 
-def load_preprocessed_files(kind, mode):
+def load_preprocessed_files(kind, mode): 
     if kind == 'patches_224':
         if mode == 'train':
             output = 'icdar_train_df_patches_20250716_113702.csv'
@@ -577,3 +577,12 @@ def get_experiment_from_unique_name(df, unique_name):
         return row.iloc[0]['experiment']
     else:
         return None
+
+def get_selected_model_from_input_filename(source_path,input_file_name):
+    output_dir = source_path + "\\outputs\\preprocessed_data\\"
+    LOG_FILE = output_dir+"file_metadata_log.json"
+    df_log = assemble_csv_from_log(LOG_FILE)
+
+    row=df_log[df_log['experiment']==input_file_name]
+    model_used = row['model'].values[0]
+    return model_used
