@@ -83,7 +83,7 @@ def main(args):
 
     warnings.filterwarnings("ignore")
     print("Running feature extraction script...")
-    args = load_config(args.config)
+    args = load_config(args.config) 
     script_mode = args.script_mode
     patch_mode = args.patch_merging 
 

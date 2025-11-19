@@ -5,18 +5,42 @@ import matplotlib.pyplot as plt
 from contextlib import nullcontext
 import logging
 from logging.handlers import RotatingFileHandler
+import sys 
 
-def get_logger(log_path='train.log', level=logging.INFO, max_bytes=5_000_000, backup_count=5):
+def get_logger(
+    log_path='train.log',
+    level=logging.INFO,
+    max_bytes=5_000_000,
+    backup_count=5,
+):
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(log_path) or ".", exist_ok=True)
+
     logger = logging.getLogger('train_logger')
     logger.setLevel(level)
-    if logger.hasHandlers():
-        logger.handlers.clear()
+    logger.propagate = False  # don't double-log to root
 
-    # Console
-    ch = logging.StreamHandler()
+    # Close and remove existing handlers safely
+    if logger.handlers:
+        for h in list(logger.handlers):
+            try:
+                h.close()
+            finally:
+                logger.removeHandler(h)
+
+    # --- Console handler ---
+    ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(level)
-    # Rotating file handler (prevents infinite-size logs)
-    fh = RotatingFileHandler(log_path, maxBytes=max_bytes, backupCount=backup_count)
+
+    # --- File handler ---
+    # delay=True means the file isn't opened until the first log write
+    fh = RotatingFileHandler(
+        log_path,
+        maxBytes=max_bytes,
+        backupCount=backup_count,
+        encoding="utf-8",
+        delay=True,
+    )
     fh.setLevel(level)
 
     fmt = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -25,6 +49,7 @@ def get_logger(log_path='train.log', level=logging.INFO, max_bytes=5_000_000, ba
 
     logger.addHandler(ch)
     logger.addHandler(fh)
+
     return logger
 
 class TrainingProfiler:

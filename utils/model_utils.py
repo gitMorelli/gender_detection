@@ -835,6 +835,18 @@ def get_crnn_vgg16_bn(name, mode, pretrained, **kwargs):
             x = self.gap(x)             # [B, C, 1, 1]
             x = x.flatten(1)            # shape: [B, C]
             return x
+    class CRNNFeatStage(nn.Module):
+        """Return CNN feature map after a given index in feat_extractor."""
+        def __init__(self, crnn, end_index: int):
+            super().__init__()
+            self.backbone = nn.Sequential(*list(crnn.children())[:end_index+1])
+            self.gap = torch.nn.AdaptiveAvgPool2d(1)
+
+        def forward(self, x):
+            x = self.backbone(x)
+            x = self.gap(x)             # [B, C, 1, 1]
+            x = x.flatten(1)            # shape: [B, C]
+            return x
     if mode=='classification head':
         print('no support for classification head for dbnet')
     elif mode=='as is':
@@ -842,7 +854,10 @@ def get_crnn_vgg16_bn(name, mode, pretrained, **kwargs):
     elif mode=='truncated':
         truncation=kwargs.get('truncation', 'remove head')
         if truncation=='remove head':
-            return WrappedModel(model)
+            if 'inter' in name:
+                return CRNNFeatStage(model, end_index=23)
+            else:
+                return WrappedModel(model)
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
 def crnn_mobilenet_v3_large(name, mode, pretrained, **kwargs):
@@ -1054,39 +1069,65 @@ def get_deit(name, mode, pretrained, **kwargs):
         def forward(self, pixel_values):
             outputs = self.hugging_model(pixel_values=pixel_values,output_attentions=True)
             return outputs.hidden_states[-1][:, 0, :]  # Return the CLS token output
-    if name in ["DeiT-Tiny", "DeiT-Small", "DeiT-Base","DeiT-Tiny-Dist","DeiT-Base-Dist" ,"DeiT-Small-Dist"]:
-        from transformers import DeiTForImageClassificationWithTeacher
-        if pretrained:
-            if name=="DeiT-Tiny-Dist":
-                model = DeiTForImageClassificationWithTeacher.from_pretrained(f'facebook/deit-tiny-distilled-patch16-224',output_hidden_states=True)
-            elif name=="DeiT-Base-Dist":
-                model = DeiTForImageClassificationWithTeacher.from_pretrained(f'facebook/deit-base-distilled-patch16-224',output_hidden_states=True)
-            elif name=="DeiT-Small-Dist":
-                model = DeiTForImageClassificationWithTeacher.from_pretrained(f'facebook/deit-small-distilled-patch16-224',output_hidden_states=True)
-            if name=="DeiT-Tiny":
-                model = ViTForImageClassification.from_pretrained(f'facebook/deit-tiny-patch16-224',output_hidden_states=True)
-            elif name=="DeiT-Small":
-                model = ViTForImageClassification.from_pretrained(f'facebook/deit-small-patch16-224',output_hidden_states=True)
-            elif name=="DeiT-Base":
-                model = ViTForImageClassification.from_pretrained(f'facebook/deit-base-patch16-224',output_hidden_states=True)
-        else:
-            print("no support for loading model without pretrained weights")
-        if mode == 'classification head':
-            raise ValueError("Classification head is not supported for DeiT models.")
-        elif mode == 'as is':
-            pass
-        elif mode == 'truncated':
-            truncation = kwargs.get('truncation', 'remove head')
-            if truncation == 'remove head':
-                model = WrappedModel(model) 
-            else:
-                raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
-        contrastive = kwargs.get('contrastive', False)
-        if contrastive:
-            in_features = 192
-            contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
+    class DeiTClsExtractor(nn.Module):
+        """
+        Extract the [CLS] token from the N-th ViT/DeiT encoder layer (default: 12th).
+        Works with:
+        - transformers.ViTForImageClassification  (DeiT often uses this class)
+        - transformers.ViTModel
+        - transformers.DeiTModel (if you use distilled variants; see token_index)
+        Assumes pixel_values are already resized & normalized.
+        """
+        def __init__(self, vit_or_classifier, layer_index: int = 6, token_index: int = 0):
+            super().__init__()
+            # If it's a classifier, grab the base ViT
+            self.vit = getattr(vit_or_classifier, "vit", vit_or_classifier)
+            self.layer_index = layer_index
+
+            # Which token to read: 0 = CLS; for DeiT distilled models, 1 can be distillation token
+            self.token_index = token_index
+
+        def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
+            out = self.vit(pixel_values=pixel_values, output_hidden_states=True)
+            # hidden_states[0]: embeddings (after patch+pos(+cls/distill))
+            # hidden_states[k]: output after k-th transformer block
+            hs = out.hidden_states[self.layer_index]        # [B, seq_len, hidden_dim]
+            cls_like = hs[:, self.token_index, :]           # pick CLS (or distill) token
+            return cls_like
+
+    from transformers import DeiTForImageClassificationWithTeacher
+    if pretrained:
+        if name=="DeiT-Tiny-Dist":
+            model = DeiTForImageClassificationWithTeacher.from_pretrained(f'facebook/deit-tiny-distilled-patch16-224',output_hidden_states=True)
+        elif name=="DeiT-Base-Dist":
+            model = DeiTForImageClassificationWithTeacher.from_pretrained(f'facebook/deit-base-distilled-patch16-224',output_hidden_states=True)
+        elif name=="DeiT-Small-Dist":
+            model = DeiTForImageClassificationWithTeacher.from_pretrained(f'facebook/deit-small-distilled-patch16-224',output_hidden_states=True)
+        if "DeiT-Tiny" in name:
+            model = ViTForImageClassification.from_pretrained(f'facebook/deit-tiny-patch16-224',output_hidden_states=True)
+        elif "DeiT-Small" in name:
+            model = ViTForImageClassification.from_pretrained(f'facebook/deit-small-patch16-224',output_hidden_states=True)
+        elif "DeiT-Base" in name:
+            model = ViTForImageClassification.from_pretrained(f'facebook/deit-base-patch16-224',output_hidden_states=True)
     else:
-        raise ValueError(f"Model {name} is not supported. Choose from ['DeiT-Tiny', 'DeiT-Small', 'DeiT-Base']")
+        print("no support for loading model without pretrained weights")
+    if mode == 'classification head':
+        raise ValueError("Classification head is not supported for DeiT models.")
+    elif mode == 'as is':
+        pass
+    elif mode == 'truncated':
+        truncation = kwargs.get('truncation', 'remove head')
+        if truncation == 'remove head':
+            if 'inter' in name:
+                model = DeiTClsExtractor(model, layer_index=6, token_index=0)
+            else:
+                model = WrappedModel(model) 
+        else:
+            raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
+    contrastive = kwargs.get('contrastive', False)
+    if contrastive:
+        in_features = 192
+        contrastive_model = ContrastiveModel(model, in_features=in_features,projection_dim=128)
     return model
 def get_beit(name, mode, pretrained, **kwargs):
     from transformers import BeitForImageClassification
@@ -1306,7 +1347,7 @@ def get_model(name="resnet50", mode='classification head', pretrained=True, **kw
         model = get_vitstr(name, mode, pretrained, **kwargs)
     elif name.startswith('sar'):
         model = get_sar_resnet31(name, mode, pretrained, **kwargs)
-    elif name in ["crnn_vgg16_bn","crnn_vgg16_bn_224"]:
+    elif name.startswith('crnn_vgg16_bn'):
         model = get_crnn_vgg16_bn(name, mode, pretrained, **kwargs)
     elif name == "db_mobilenet":
         model = get_db_mobilenet(name, mode, pretrained, **kwargs)

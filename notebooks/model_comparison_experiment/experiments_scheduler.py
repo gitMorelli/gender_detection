@@ -60,7 +60,6 @@ def generate_experiments(config_path, experiment_csv,experiment):
 
     args.with_pca = False
     args.n_splits = 10
-    args.with_pca = False
     args.selected_model = 'logreg'
     args.with_feature_scaling = False
 
@@ -104,7 +103,7 @@ def generate_experiments(config_path, experiment_csv,experiment):
     return try_args, i, script_name 
 
 if __name__ == "__main__":
-    experiment_csv = os.path.join('experiment_tables', "experiment_table_20251111_113627.pkl")
+    experiment_csv = os.path.join('experiment_tables', "experiment_table_20251112_164941.pkl")
     experiments = ['standard_patches','standard_patches_single','standard_body','standard_patches_generalization']
     config_path = 'configs/exp_patch_overfitting1.yaml'
 

@@ -532,7 +532,7 @@ def get_transform(name='resnet18',use_patches=True, **kwargs):
     ### doctr models transforms ###
     elif name.startswith('dresnet50'):
         return get_dresnet50_transforms(**kwargs)
-    elif name in ['crnn_vgg16_bn', 'crnn_vgg16_bn_224']:
+    elif name.startswith('crnn_vgg16_bn'):
         return get_crnn_vgg16_bn_transforms(name,**kwargs)
     elif name.startswith('sar'):
         return get_sar_resnet31_transforms(name, **kwargs)

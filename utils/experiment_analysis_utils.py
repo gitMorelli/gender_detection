@@ -96,3 +96,22 @@ def box_and_whiskers(df, type='squares', accuracy_col='ensembled_weighted_accura
     plt.savefig(f"{save_to}\\{save_title}.pdf")   # vector for publication
     plt.savefig(f"{save_to}\\{save_title}.png", dpi=300)
     plt.show()
+
+###script generalization###
+def script_generalization_compute_diffs(row,metric='individual'): ######### DONE ########
+    if row['train_on_language'] == 'arabic':
+        diffs=[]
+        for acc in zip(row[f'arabic,all_{metric}_accuracies'], row[f'english,all_{metric}_accuracies']):
+            diffs.append(acc[0]-acc[1])
+    elif row['train_on_language'] == 'english':
+        diffs=[]
+        for acc in zip(row[f'english,all_{metric}_accuracies'], row[f'arabic,all_{metric}_accuracies']):
+            diffs.append(acc[0]-acc[1])
+    else:
+        diffs=None
+    return diffs
+
+def script_generalization_join_acc_lists(df,merge_cols=['FE model','type'],columns=['script_generalization']):
+    df_copy=df.copy()
+    df_copy = df_copy.groupby(merge_cols, sort=False, as_index=False).agg({col: 'sum' for col in columns})   # list + list => concatenation
+    return df_copy

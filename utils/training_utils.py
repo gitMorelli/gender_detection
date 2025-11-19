@@ -2,6 +2,8 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 import torch
 import torch.optim as optim
+import logging
+import sys
 from datetime import datetime
 from utils.monitoring import TrainingProfiler,TrainingMetrics, CheckpointManager, get_logger
 from utils.evaluation_utils import perform_validation, perform_validation_contrastive
@@ -654,7 +656,7 @@ def train_fine(
               f"Val Loss: {val_loss:.4f} | Avg Grad Norm: {avg_grad_norm:.4f} | "
               f"Epoch Time: {epoch_time:.2f}s | Val Time: {val_time:.2f}s")
         for i,current_lr in enumerate(current_lrs):
-            logger.info(f"block {i} lr:",f"{current_lr:.6f}")
+            logger.info(f"block {i} lr: {current_lr:.6f}")
 
         # Check for improvement and save checkpoint
         if metrics.check_improvement(val_loss):
@@ -701,6 +703,15 @@ def train_fine(
         'last_train_loss': metrics.train_losses[-1],
         'last_train_acc': metrics.train_accuracies[-1],
     }
+
+    # --- cleanly close loggers to release file handles ---
+    for h in list(logger.handlers):
+        try:
+            h.close()
+        finally:
+            logger.removeHandler(h)
+    logging.shutdown()
+
     return best_model_performance 
 
 
@@ -751,6 +762,10 @@ class OptimizationManager:
                 param_groups.append({'params': block_params_no_decay, 'lr': block_lr, 'weight_decay': 0.0})
                 self.param_groups_per_phase[i] += 1 #I know how many param groups correspond to an unfreezed layer (1 if no decay, 2 if decay)
         #print(param_groups)
+        if self.type_of_training == 'from_scratch':
+            #all parameters
+            param_groups = [{'params': self.model.parameters(), 'lr': self.phase_lr[0], 
+                             'weight_decay': self.phase_optimizer_hyperparams[0].get('weight_decay', 0)}]
         self.optimizer = get_optimizer(param_groups, name=self.optimizer_name)
         return self.optimizer
 
