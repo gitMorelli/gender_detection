@@ -1,4 +1,3 @@
-```markdown
 # Project Name Placeholder [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![Conda Environment](https://img.shields.io/badge/environment-conda:yaml-green.svg)](#environment)
 [![Hardware](https://img.shields.io/badge/hardware-NVIDIA_RTX_4060-orange.svg)](#environment)
@@ -144,7 +143,3 @@ Below are the unique architectural configurations and feature extraction strateg
 
 * **Optimization:** Learning Rate = `1e-3` | Gradient Clipping enabled
 * **Aggregation Strategy:** Majority Voting + Calibration
-
-```
-
-```
