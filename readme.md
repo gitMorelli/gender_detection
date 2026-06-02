@@ -4,11 +4,30 @@
 
 ## 📝 Description
 
-This repository contains the official code implementation for our paper.
+This repository contains the official code implementation for the paper:  
+🔬 **"Comparing Vision Transformers and CNNs for Sex Classification from Handwriting"**
 
-| Paper Details | Abstract |
-| :--- | :--- |
-| **Comparing Vision Transformers and CNNs for Sex Classification from Handwriting**<br><br>📊 **Key Metric:**<br>`80.1% Page-Level Accuracy`<br><br>🎯 **Dataset:**<br>`ICDAR2013` | Handwriting is a biometric marker, encoding information regarding an individual's demographic traits, psychological state, and neurological health. Advances in machine learning enable the automatic analysis of handwriting, with potential applications in fields like forensics and healthcare.<br><br>Pre-trained deep learning vision models are often used instead of training new models from scratch due to the limited availability of data for handwriting classification tasks. Vision Transformers (ViTs) are increasingly adopted as pre-trained baselines in many applications; however, their application to handwriting classification remains under-explored.<br><br>To address this, we present a comparative analysis of ViTs and CNNs architectures as feature extractors for the task of sex classification, using the publicly available **ICDAR2013 "Gender Prediction from Handwriting"** dataset. We explore a wide array of pre-trained models, differing in architecture, pre-training data, and pre-training objectives.<br><br>Our results show that **models based on ViTs features consistently outperform those based on CNNs features** on this task. Exploiting features extracted from `clip-vit-large`, we are able to achieve a page-level classification accuracy of **80.1%**, which is comparable with the best results achieved in the literature with more task-specific approaches. |
+> 🏆 **Key Finding:** Vision Transformers (ViTs) consistently outperform CNN architectures as feature extractors for handwriting classification. By leveraging features from `clip-vit-large`, this approach achieves a page-level classification accuracy of **80.1%**—matching specialized, task-specific state-of-the-art architectures in current literature.
+
+---
+
+### 🔗 Project Resources
+
+* 📄 **Manuscript:** [Download Full Paper PDF](./docs/paper_manuscript.pdf) *(Pre-submission draft / Local Copy)*
+* 📊 **Dataset:** [ICDAR2013 "Gender Prediction from Handwriting" Dataset (QUWI)](https://www.comp.hkbu.edu.hk/~icdar2013/Competition.html)  
+  * *Note: The ICDAR2013 handwriting dataset is a standard multilingual baseline compiled from 475 unique writers, featuring both Arabic and English text samples.*
+
+---
+
+### 📄 Abstract
+
+Handwriting is a biometric marker, encoding information regarding an individual's demographic traits, psychological state, and neurological health. Advances in machine learning enable the automatic analysis of handwriting, with potential applications in fields like forensics and healthcare. 
+
+Because data for handwriting classification tasks is often limited, pre-trained deep learning vision models are frequently used instead of training from scratch. While Vision Transformers (ViTs) are increasingly adopted as pre-trained baselines across various domains, their application to handwriting classification remains under-explored. 
+
+To address this, we present a **comparative analysis of ViTs and CNNs architectures** as feature extractors for the task of sex classification, utilizing the publicly available **ICDAR2013 "Gender Prediction from Handwriting"** dataset. We explore a wide array of pre-trained models, differing in architecture, pre-training data, and pre-training objectives. 
+
+Our results demonstrate that **models based on ViT features consistently outperform those based on CNN features**. Notably, exploiting features extracted from `clip-vit-large`, we achieve a page-level classification accuracy of **80.1%**, which is highly competitive with the best results in the literature achieved via more task-specific approaches.
 
 ---
 
