@@ -87,14 +87,13 @@ Below are the unique architectural configurations and feature extraction strateg
 #### 1. `clip-vit-large-patch14-inter`
 
 * **Feature Extractor:** `clip-vit-large-patch14`
-* *Target:* **CLS token of the 12th transformer block** of the vision encoder.
-* *Module Path:* `src.utils.model_utils.get_clip_vit(pretrained=True, mode='truncated', truncation='remove head', name='clip-vit-large-patch14-inter')`
+* *Target:* Extracted features correspond to the **CLS token of the 12th transformer block** of the vision encoder.
+* *Encoder definition:* The feature extractor is defined by the following module with the specified arguments: `src.utils.model_utils.get_clip_vit(pretrained=True, mode='truncated', truncation='remove head', name='clip-vit-large-patch14-inter')`
 
 
-* **Classification Head:** MLP (`src.utils.model_utils.get_classification_head`)
-* *Parameters:* `name='MLPClassifier1'`, `num_classes=2`, `activation='relu'`, `hidden_sizes=[256]`, `dropout=0.9`, `batchnorm=False`, `with_input_norm='batch_norm'`
-
-
+* **Classification Head:** MLP
+* The classifier used on top of the feature extractor is an MLP with one hidden layer and two output neurons. The hidden layer has 256 neurons, relu activation functions are used, after the hidden layer a dropout layer with dropout=0.9 is used, a BatchNorm1d layer is used before the hidden layer to normalize the input data, weighted-ensembling is used as aggregation strategy during prediction. Gradient clipping with a max norm of 1.0 on the loss is used, a learning rate of lr=1e-3 is used -> 
+* *Classifier definition:* The feature extractor is defined by the following module with the specified arguments: `src.utils.model_utils.get_classification_head(name='MLPClassifier1', num_classes=2, activation='relu', hidden_sizes=[256], dropout=0.9, batchnorm=False, with_input_norm='batch_norm')`
 * **Optimization:** Learning Rate = `1e-3` | Gradient Clipping Max Norm = `1.0`
 * **Aggregation Strategy:** Weighted Ensembling
 
@@ -106,11 +105,11 @@ Below are the unique architectural configurations and feature extraction strateg
 
 * **Feature Extractor:** `clip-vit-large-patch14-un`
 * *Target:* **CLS token of the last transformer block**.
-* *Module Path:* `src.utils.model_utils.get_clip_vit(pretrained=True, mode='truncated', truncation='remove head', name='clip-vit-large-patch14-un')`
+* *Encoder definition:* `src.utils.model_utils.get_clip_vit(pretrained=True, mode='truncated', truncation='remove head', name='clip-vit-large-patch14-un')`
 
 
-* **Classification Head:** MLP (`src.utils.model_utils.get_classification_head`)
-* *Parameters:* `name='MLPClassifier1'`, `num_classes=2`, `activation='relu'`, `hidden_sizes=[128]`, `dropout=0.1`, `batchnorm=False`, `with_input_norm='batch_norm'`
+* **Classification Head:** MLP 
+* *Classifier definition:* `src.utils.model_utils.get_classification_head((name='MLPClassifier1', num_classes=2, activation='relu', hidden_sizes=[128], dropout=0.1, batchnorm=False, with_input_norm='batch_norm')`
 
 
 * **Optimization:** Learning Rate = `1e-4` | Gradient Clipping enabled
@@ -120,7 +119,7 @@ Below are the unique architectural configurations and feature extraction strateg
 
 * **Feature Extractor:** `BEiT-Large-inter`
 * *Target:* **CLS token of the 12th transformer block** of the vision encoder.
-* *Module Path:* `src.utils.model_utils.get_clip_vit(pretrained=True, mode='truncated', truncation='remove head', name='BEiT-Large-inter')`
+* *Encoder definition:* `src.utils.model_utils.get_clip_vit(pretrained=True, mode='truncated', truncation='remove head', name='BEiT-Large-inter')`
 
 
 * **Classification Head:** MLP (`src.utils.model_utils.get_classification_head`)
@@ -134,7 +133,7 @@ Below are the unique architectural configurations and feature extraction strateg
 
 * **Feature Extractor:** `resnet50`
 * *Target:* Output of the last layer before the pre-trained classification head (average pooled and flattened output of the final convolutional block).
-* *Module Path:* `src.utils.model_utils.get_clip_vit(pretrained=True, mode='truncated', truncation='remove head', name='resnet50')`
+* *Encoder definition:* `src.utils.model_utils.get_clip_vit(pretrained=True, mode='truncated', truncation='remove head', name='resnet50')`
 
 
 * **Classification Head:** MLP (`src.utils.model_utils.get_classification_head`)
