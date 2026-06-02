@@ -58,7 +58,7 @@ This section will be updated soon ..
 * **Software Environment:** Package versions and dependencies are explicitly managed via Conda. You can recreate the exact environment using:
 ```bash
 conda env create -f environment.yml
-conda activate <env_name>
+conda activate GeneralPurposeML
 
 ```
 
