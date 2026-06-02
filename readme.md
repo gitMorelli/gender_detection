@@ -13,9 +13,10 @@ This repository contains the official code implementation for the paper:
 
 ### 🔗 Project Resources
 
-* 📄 **Manuscript:** [Download Full Paper PDF](./docs/paper_manuscript.pdf) *(Pre-submission draft / Local Copy)*
+* 📄 **Manuscript:** [Download Full Paper PDF](./docs/paper-pre-submission.pdf) *(Pre-submission draft / Local Copy)*
 * 📊 **Dataset:** [ICDAR2013 "Gender Prediction from Handwriting" Dataset (QUWI)](https://www.kaggle.com/competitions/icdar2013-gender-prediction-from-handwriting/data)  
   * *Note: The ICDAR2013 handwriting dataset is a standard multilingual baseline compiled from 475 unique writers, featuring both Arabic and English text samples.*
+  * The dataset can be also found here: https://tc11.cvc.uab.es/datasets/GenderIdentifify2013_1
 
 ---
 
