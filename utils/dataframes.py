@@ -130,7 +130,7 @@ class CustomPatchDataset(Dataset):
             'label': label
         }
 
-class PreProcessedDataset(Dataset):
+class PreProcessedDataset(Dataset): 
     def __init__(self, df,label_column, transform=None, huggingface=False, use_augmentation=None, code='simclr',
                  source_dir='C:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\data_on_disk'):
         """
@@ -913,7 +913,7 @@ class ZarrContrastive(Dataset):
 
 def merge_dfs(train_1, train_2, mode):
     print('merging dfs train_1 and train_2 with lengths:', len(train_1), len(train_2))
-    if mode=='concat':
+    if mode=='concat' or mode=='add':
         train_1.drop(columns=['page'], inplace=True) if 'page' in train_1.columns else None
         train_2.drop(columns=['page'], inplace=True) if 'page' in train_2.columns else None
         # Concatenate both datasets to build a unified group mapping
@@ -941,6 +941,15 @@ def merge_dfs(train_1, train_2, mode):
         train_2['patch_num'] = train_2.groupby('page').cumcount()
         train_1['patch_num'] = train_1['patch_num'] % patch_2_per_page
         merged_df = pd.merge(train_1, train_2, on=['page','patch_num'], suffixes=('_1', '_2'))
+        if mode=='add':
+            # Sum feature columns instead of concatenating
+            feature_cols_1 = [c for c in merged_df.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit() and c.endswith('_1')]
+            feature_cols_2 = [c for c in merged_df.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit() and c.endswith('_2')]
+            for col1, col2 in zip(feature_cols_1, feature_cols_2):
+                col_base = col1[:-2]
+                merged_df[col_base] = merged_df[col1] + merged_df[col2]
+            # Drop the suffixed columns
+            merged_df.drop(columns=feature_cols_1 + feature_cols_2, inplace=True, errors='ignore')
         print(f'Merged DataFrame length: {len(merged_df)}')
     else:
         raise ValueError("Invalid mode. Use 'concat' to merge DataFrames.")

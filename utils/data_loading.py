@@ -73,7 +73,9 @@ def load_classification_head(selected_FE,selected_classifier,classifier_type,val
             train_df = train_df.merge(df_writers, on='writer', how='left')
         return pipeline, train_df
     else:
-        search_dir = base_dir+f'torch_model_trained_on_rep/{selected_classifier}/'
+        lang_sub = kwargs.get('lang', '')
+        search_dir = base_dir+f'torch_model_trained_on_rep{lang_sub}/{selected_classifier}/'
+        #print('search_dir:', search_dir)
         checkpoint_path = os.path.join(search_dir, 'checkpoint_best.pt')
         #print('checkpoint_path:', checkpoint_path)
         model = model_utils.get_classification_head(name=selected_classifier, in_features=in_features, num_classes=2,**kwargs)

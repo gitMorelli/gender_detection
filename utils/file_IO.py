@@ -230,7 +230,7 @@ def load_input_files(source_path,selected_FE,kind,suffix,custom_pretrained='orig
     else:
         input_dir=source_path+f'\\outputs\\online_deep_feature_extraction\\{selected_FE}\\{custom_pretrained}\\extracted_representation'
     if kind == 'patches_224':
-        source_file_train='icdar_train_df_patches_20250716_113702'
+        source_file_train='icdar_train_df_patches_20250716_113702' 
         source_file_val='icdar_train_df_patches_20250716_120511'
         source_file_test='icdar_train_df_patches_20250716_115204'
         train_filename = input_dir+f'\\train{suffix}\\{selected_FE}_features_{source_file_train}.csv'
@@ -273,6 +273,8 @@ def load_preprocessed_files(kind, mode):
             output = 'icdar_train_df_body_20250523_181312.csv'
         elif mode == 'val':
             output = 'icdar_train_df_body_20250716_123551.csv'
+        elif mode == 'test':
+            output = 'icdar_train_df_patches_20251209_161732.csv'
     elif kind == 'words_sentences':
         if mode == 'train':
             output = 'icdar_train_df_words_sentences_20250522_230307.csv'

@@ -304,7 +304,7 @@ def compute_subgroup_accuracies(pipeline, train_df,cols_to_drop,target_label):
 
     return subgroup_accuracies
 
-def compute_predictions_and_uncertainties(model, train_df, head_type,calibrate=False,threshold=0.5,use_external_probs=None, list_of_metrics=None):
+def compute_predictions_and_uncertainties(model, train_df, head_type,calibrate=False,threshold=0.5,use_external_probs=None, list_of_metrics=None, out_iso=None):
     out_results = {}
     if use_external_probs is not None:
         y_prob = use_external_probs
@@ -323,10 +323,10 @@ def compute_predictions_and_uncertainties(model, train_df, head_type,calibrate=F
         train_df=train_df.drop(columns=feature_cols)
     
     if calibrate:
-        from sklearn.isotonic import IsotonicRegression
-        iso = IsotonicRegression(out_of_bounds='clip')
-        iso.fit(y_prob, train_df['male'])
-        y_prob = iso.predict(y_prob)
+        if out_iso is not None:
+            y_prob = out_iso.predict(y_prob)
+        else:
+            print("Calibration requested but no calibrator provided.")
     #y_pred = pipeline.predict(X_train.values)
     y_pred =(y_prob>= threshold).astype(int)
     train_df['y_prob'] = y_prob

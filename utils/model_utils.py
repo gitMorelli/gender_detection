@@ -384,6 +384,7 @@ def get_resnet(name,mode, pretrained, **kwargs):
         else:
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
     return model
+
 def get_mobilenet(name, mode, pretrained, **kwargs):
     from torchvision.models import mobilenet_v3_large, MobileNet_V3_Large_Weights
     if name == 'mobilenet_v3_large':
@@ -1294,7 +1295,7 @@ def get_swin(name, mode, pretrained, **kwargs):
         weights = Swin_B_Weights.IMAGENET1K_V1 if pretrained else None
         model = swin_b(weights=weights)
     if mode == 'classification head':
-        num_classes = kwargs.get('num_classes', 2)
+        num_classes = kwargs.get('num_classes', 2) 
         hidden_sizes = kwargs.get('hidden_sizes', [128])
         in_features = model.head.in_features
         mlp = CustomMLP(input_size=in_features, hidden_sizes=hidden_sizes, output_size=num_classes)
@@ -1309,6 +1310,7 @@ def get_swin(name, mode, pretrained, **kwargs):
             raise ValueError(f"Truncation {truncation} is not supported. Choose from ['remove head']")
     return model
 
+ 
 def get_model(name="resnet50", mode='classification head', pretrained=True, **kwargs):
     ''' 
     - name: the name of the model to download/load 
@@ -1419,7 +1421,8 @@ def get_classification_head(name='MLPClassifier1',in_features=512,num_classes=2,
 def get_sklearn_model(name='logreg', **kwargs): 
     if name=='svm':
         from sklearn.svm import SVC
-        return SVC(kernel='rbf', C=0.1, gamma='scale', probability=True, random_state=42)
+        C=kwargs.get('C',1.0)
+        return SVC(kernel='rbf', C=C, gamma='scale', probability=True, random_state=42)
     elif name=='logreg':
         from sklearn.linear_model import LogisticRegression
         penalty=kwargs.get('penalty','l2')

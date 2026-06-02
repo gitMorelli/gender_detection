@@ -1,3 +1,4 @@
+import json
 import matplotlib.pyplot as plt
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -69,7 +70,7 @@ def main(args):
             train_df_extra = pd.read_csv(extra_train_filename)
             val_df_extra = pd.read_csv(extra_val_filename)
             train_FE = dataframes.merge_dfs(train_FE, train_df_extra, mode=extra_integration_mode)
-            val_df = dataframes.merge_dfs(val_df, val_df_extra, mode=extra_integration_mode)
+            val_df = dataframes.merge_dfs(val_df, val_df_extra, mode=extra_integration_mode) 
 
         train_FE = dataframes.aggregate_dfs(train_FE,mode=aggregation_mode)
         val_df = dataframes.aggregate_dfs(val_df,mode=aggregation_mode)
@@ -181,7 +182,7 @@ def main(args):
     time_taken_cross_val = end_time - start_time
     print(f"Time taken to cross-validate the model: {time_taken_cross_val:.2f} seconds")
 
-    if with_pca:
+    if with_pca: 
         pca = pipeline.named_steps['pca']
         print(f"Number of features used after PCA: {pca.n_components_}")
 
@@ -192,6 +193,19 @@ def main(args):
         print('error: save path does not exist')
     joblib.dump(pipeline, full_save_path)
     print(f"Model pipeline saved to file")
+
+    # Save best model performance to JSON as a dict
+    best_model_performance = {
+        "average_ensembled_weighted_accuracy": average_ensembled_weighted / n_splits,
+        "average_individual_accuracy": average_individual / n_splits,
+        "cross_val_accuracies": cross_val_accuracies,
+        "cross_val_subgroup_accuracies": cross_val_subgroup_accuracies,
+        "time_taken_cross_val_seconds": time_taken_cross_val
+    }
+    performance_json_path = os.path.join(save_path, "best_model_performance_temp.json")
+    with open(performance_json_path, "w") as f:
+        json.dump(best_model_performance, f, indent=4)
+    print(f"Best model performance saved to {performance_json_path}")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="ML experiments!")

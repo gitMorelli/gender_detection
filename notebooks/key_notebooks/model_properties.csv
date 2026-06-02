@@ -1,0 +1,17 @@
+Arch,Mode,Data,N_par,Depth,Out,In,Models
+C,C,IN1K,"[2.3e+05, 9.2e+06]","[16, 432]","[64, 1024]","[224, 224]","alexnet_gap, densenet121, googlenet, mobilenet_v3_large, mobilenet_v3_small, resnet34_layer1, resnet34_layer2, resnet34_layer3, vgg11"
+C,C,IN1K,"[1.1e+07, 2.1e+07]","[34, 712]","[512, 1920]","[224, 224], [384, 384]","densenet201, efficientnet_v2_s, regnet_x_3_2, regnet_y_3_2, resnet18, resnet34, vgg16_512"
+C,C,IN1K,"[2.4e+07, 5.7e+07]","[23, 572]","[768, 4096]","[224, 224], [299, 299]","alexnet, convnext_small, densenet161, inception_net, resnet101, resnet50"
+C,C,IN1K,"[8.8e+07, 1.4e+08]","[41, 1400]","[1024, 4096]","[224, 224], [480, 480]","convnext_base, efficientnet_v2_l, regnet_x_32, regnet_y_32, vgg16"
+C,C,IN1K,"[2.0e+08, 6.4e+08]","[69, 563]","[384, 7392]","[224, 224]","convnext_large, convnext_large-inter, regnet_y_128"
+C,TD,D,"[3.0e+06, 2.4e+07]","[66, 248]","[512, 2048]","[1024, 1024], [224, 224]","db_mobilenet, dresnet50, dresnet50-inter, linknet_resnet18, linknet_resnet50, linknet_resnet50_224"
+C,TR,D,"[1.3e+05, 4.6e+07]","[26, 249]","[80, 960]","[32, 128], [224, 224]","crnn_mobilenet, crnn_mobilenet_224, crnn_mobilenet_224-inter, crnn_vgg16_bn, crnn_vgg16_bn_224, crnn_vgg16_bn_224-inter, sar_resnet31, sar_resnet31_224"
+H,C,IN1K,"[3.0e+07, 3.0e+07]","[660, 660]","[512, 512]","[224, 224]",maxvit
+T,C,IN1K,"[4.9e+07, 8.7e+07]","[287, 287]","[768, 1024]","[256, 256]","swin_b, swin_s"
+T,C,IN21K,"[8.6e+07, 6.3e+08]","[214, 554]","[50, 257]","[224, 224]","vit-base-patch16-224, vit-base-patch16-224-in21k, vit-base-patch32-224-in21k, vit-huge-patch14-224-in21k, vit-large-patch16-224-in21k"
+T,C+D,IN1K,"[5.5e+06, 8.7e+07]","[211, 213]","[192, 768]","[224, 224]","DeiT-Base, DeiT-Small, DeiT-Small-Dist, DeiT-Tiny, DeiT-Tiny-inter"
+T,Co,Clip-vit,"[1.5e+08, 4.3e+08]","[152, 296]","[512, 1024]","[224, 224]","clip-vit-base-patch16, clip-vit-base-patch32, clip-vit-large-patch14, clip-vit-large-patch14-inter, clip-vit-large-patch14-un"
+T,M,IN21K,"[8.7e+07, 3.0e+08]","[251, 491]","[768, 1024]","[384, 384]","BEiT-Base, BEiT-Large, BEiT-Large-inter"
+T,TR,D,"[2.1e+07, 8.5e+07]","[129, 129]","[384, 768]","[32, 128]","vitstr_base, vitstr_base_224, vitstr_small, vitstr_small_224"
+T,TR,T,"[2.2e+07, 3.0e+08]","[214, 418]","[577, 1024]","[384, 384]","trocr-base-stage1, trocr-large-stage1, trocr-large-stage1-inter, trocr-small-stage1"
+T,TR,T+I,"[2.2e+07, 3.0e+08]","[214, 418]","[577, 1024]","[384, 384]","trocr-base-handwritten, trocr-large-handwritten, trocr-large-handwritten-inter, trocr-small-handwritten"

@@ -3384,5 +3384,21 @@
         "truncation": "remove head",
         "transform_mode": "resize",
         "description": " "
+    },
+    "icdar_train_df_patches_20251209_161732.csv": {
+        "full_path": "c:\\Users\\andre\\VsCode\\PD related projects\\gender_detection\\outputs\\preprocessed_data\\icdar_train_df_patches_20251209_161732.csv",
+        "size_bytes": 77271,
+        "created": "2025-12-09T16:17:32.918014",
+        "modified": "2025-12-09T16:17:32.924010",
+        "accessed": "2025-12-09T16:17:32.924010",
+        "m patches": 50,
+        "source_file": "icdar_test_private_df_20250716_101521.csv",
+        "gw": 15,
+        "n_cc": 1,
+        "prop": 1,
+        "sort_by": "black_ratio",
+        "resolution": 448,
+        "stride": 224,
+        "description": "\n        body crops for test set"
     }
 }
