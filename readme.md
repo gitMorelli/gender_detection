@@ -1,46 +1,28 @@
-# Project Name Placeholder [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
+# Comparing Vision Transformers and CNNs for Sex Classification from Handwriting [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![Conda Environment](https://img.shields.io/badge/environment-conda:yaml-green.svg)](#environment)
 [![Hardware](https://img.shields.io/badge/hardware-NVIDIA_RTX_4060-orange.svg)](#environment)
 
 ## 📝 Description
-Provide a concise summary of your research project, the dataset used, and the core purpose of these machine learning models here.
+
+This repository contains the official code implementation for our paper.
+
+| Paper Details | Abstract |
+| :--- | :--- |
+| **Comparing Vision Transformers and CNNs for Sex Classification from Handwriting**<br><br>📊 **Key Metric:**<br>`80.1% Page-Level Accuracy`<br><br>🎯 **Dataset:**<br>`ICDAR2013` | Handwriting is a biometric marker, encoding information regarding an individual's demographic traits, psychological state, and neurological health. Advances in machine learning enable the automatic analysis of handwriting, with potential applications in fields like forensics and healthcare.<br><br>Pre-trained deep learning vision models are often used instead of training new models from scratch due to the limited availability of data for handwriting classification tasks. Vision Transformers (ViTs) are increasingly adopted as pre-trained baselines in many applications; however, their application to handwriting classification remains under-explored.<br><br>To address this, we present a comparative analysis of ViTs and CNNs architectures as feature extractors for the task of sex classification, using the publicly available **ICDAR2013 "Gender Prediction from Handwriting"** dataset. We explore a wide array of pre-trained models, differing in architecture, pre-training data, and pre-training objectives.<br><br>Our results show that **models based on ViTs features consistently outperform those based on CNNs features** on this task. Exploiting features extracted from `clip-vit-large`, we are able to achieve a page-level classification accuracy of **80.1%**, which is comparable with the best results achieved in the literature with more task-specific approaches. |
 
 ---
 
 ## 🚀 Using the Code
 
-Follow these steps to process the data, extract features, and train/evaluate the models.
+This section will be updated soon ..
 
 ### 1. Data Pre-processing
-```bash
-# Add the command or script used for pre-processing
-python src/preprocess.py --data_dir ./data
-
-```
 
 ### 2. Feature Extraction
 
-```bash
-# Add the command used for extracting representations
-python src/extract_features.py --model clip-vit-large-patch14-inter
-
-```
-
 ### 3. Model Training
 
-```bash
-# Add the command used for training the model
-python src/train.py --config config/default.yaml
-
-```
-
 ### 4. Evaluation
-
-```bash
-# Add the command used for evaluating the model
-python src/evaluate.py --model_path ./models/best_model.pt
-
-```
 
 ---
 
@@ -59,8 +41,6 @@ conda env create -f environment.yml
 conda activate <env_name>
 
 ```
-
-
 
 ### Global Hyperparameters (Table 3 Best Models)
 
