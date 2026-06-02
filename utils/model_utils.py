@@ -1214,6 +1214,43 @@ def get_clip_vit(name, mode, pretrained, **kwargs):
             hs = out.hidden_states[self.layer_index]   # [B, seq_len, hidden_dim]
             cls = hs[:, 0, :]                          # [CLS]
             return cls
+    ''' In newer versions the output_hidden_states cannot be retrieved
+    thus you should use hooks
+    class WrappedModelInter(nn.Module):
+      """
+      Uses register_forward_hook to extract CLS from a specific
+      encoder layer — works regardless of transformers version.
+      """
+      def __init__(self, model, layer_index: int = 12):
+          super().__init__()
+          self.vision = getattr(model, "vision_model", model)
+
+          num_layers = self.vision.config.num_hidden_layers
+          assert 1 <= layer_index <= num_layers, \
+              f"layer_index must be in [1, {num_layers}]"
+
+          self._captured = None
+
+          # Hook fires after encoder.layers[layer_index - 1] completes
+          # layer_index=12 → layers[11] → output after block 12
+          target_layer = self.vision.encoder.layers[layer_index - 1]
+          self._hook = target_layer.register_forward_hook(self._capture_hook)
+
+      def _capture_hook(self, module, input, output):
+          # CLIPEncoderLayer returns a tuple; index 0 is the hidden state
+          hidden = output[0] if isinstance(output, tuple) else output
+          self._captured = hidden
+
+      def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
+          self._captured = None
+          # Just run the full vision model — the hook captures mid-way
+          self.vision(pixel_values=pixel_values)
+          assert self._captured is not None, "Hook did not fire"
+          return self._captured[:, 0, :]  # CLS token
+
+      def remove_hook(self):
+          """Call this when done to avoid memory leaks."""
+          self._hook.remove()'''
     class WrappedModel(torch.nn.Module):
         def __init__(self, model, type_of_output='cls',normalization=False):
             super().__init__()
@@ -1223,6 +1260,9 @@ def get_clip_vit(name, mode, pretrained, **kwargs):
 
         def forward(self, x):
             image_features = self.model.get_image_features(x)
+            #for new versions get_image_features returns a pooler object -> use image_features = image_features.last_hidden_state[:,0,:]
+            if hasattr(image_features, 'last_hidden_state'):
+                image_features = image_features.last_hidden_state[:, 0, :]
             # Normalize the features (optional but common)
             if self.normalization:
                 image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
