@@ -109,7 +109,7 @@ Below are the unique architectural configurations and feature extraction strateg
 
 
 * **Classification Head:** MLP 
-* *Classifier definition:* `src.utils.model_utils.get_classification_head((name='MLPClassifier1', num_classes=2, activation='relu', hidden_sizes=[128], dropout=0.1, batchnorm=False, with_input_norm='batch_norm')`
+* *Classifier definition:* `src.utils.model_utils.get_classification_head(name='MLPClassifier1', num_classes=2, activation='relu', hidden_sizes=[128], dropout=0.1, batchnorm=False, with_input_norm='batch_norm')`
 
 
 * **Optimization:** Learning Rate = `1e-4` | Gradient Clipping enabled
@@ -122,9 +122,8 @@ Below are the unique architectural configurations and feature extraction strateg
 * *Encoder definition:* `src.utils.model_utils.get_clip_vit(pretrained=True, mode='truncated', truncation='remove head', name='BEiT-Large-inter')`
 
 
-* **Classification Head:** MLP (`src.utils.model_utils.get_classification_head`)
-* *Parameters:* `name='MLPClassifier1'`, `num_classes=2`, `activation='relu'`, `hidden_sizes=[16]`, `dropout=0.1`, `batchnorm=False`, `with_input_norm='batch_norm'`
-
+* **Classification Head:** MLP 
+* *Classifier definition:* `src.utils.model_utils.get_classification_head(name='MLPClassifier1', num_classes=2, activation='relu', hidden_sizes=[16], dropout=0.1, batchnorm=False, with_input_norm='batch_norm')`
 
 * **Optimization:** Learning Rate = `1e-3` | Gradient Clipping enabled
 * **Aggregation Strategy:** Majority Voting + Calibration
@@ -136,9 +135,8 @@ Below are the unique architectural configurations and feature extraction strateg
 * *Encoder definition:* `src.utils.model_utils.get_clip_vit(pretrained=True, mode='truncated', truncation='remove head', name='resnet50')`
 
 
-* **Classification Head:** MLP (`src.utils.model_utils.get_classification_head`)
-* *Parameters:* `name='MLPClassifier1'`, `num_classes=2`, `activation='relu'`, `hidden_sizes=[16]`, `dropout=0.1`, `batchnorm=False`, `with_input_norm='batch_norm'`
-
+* **Classification Head:** MLP 
+* *Classifier definition:* `src.utils.model_utils.get_classification_head(name='MLPClassifier1', num_classes=2, activation='relu', hidden_sizes=[16], dropout=0.1, batchnorm=False, with_input_norm='batch_norm')`
 
 * **Optimization:** Learning Rate = `1e-3` | Gradient Clipping enabled
 * **Aggregation Strategy:** Majority Voting + Calibration
