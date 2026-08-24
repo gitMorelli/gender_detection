@@ -122,7 +122,7 @@ def plot_cropped_sections(train_df_expanded):
         # Plot the cropped section
         axes[i].imshow(cropped_image)
         axes[i].axis('off')
-        axes[i].set_title(f"Row {row['index']}")
+        axes[i].set_title(f"Writer {row['writer']}")
 
     plt.tight_layout()
     plt.show()

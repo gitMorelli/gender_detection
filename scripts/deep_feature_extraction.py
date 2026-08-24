@@ -77,6 +77,7 @@ def main(args):
     contrastive_mode = args.contrastive_mode
     augmentation_code = args.augmentation_code
     custom_pretrained = args.custom_pretrained  # 'original', 'contrastive', 'fine-tune'
+    
     verbose=args.verbose
 
     torch.cuda.empty_cache()
@@ -90,11 +91,16 @@ def main(args):
         model=model_utils.get_custom_pretrained_weights(selected_model,model,custom_pretrained=custom_pretrained,which_checkpoint='last')                                          
     # Define loss function and optimizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if verbose:
+    if verbose: 
         print("Device is: ",device) 
     model = model.to(device)
-    train_df = pd.read_csv(f"{source_path}\\outputs\\preprocessed_data\\{input_filename}")
-    train_df=file_IO.change_filename_from_to(train_df, fr=saved, to=running)
+
+    if hasattr(args, 'train_df_path'):
+        train_df = pd.read_csv(args.train_df_path)
+    else:
+        train_df = pd.read_csv(f"{source_path}\\outputs\\preprocessed_data\\{input_filename}")
+        train_df=file_IO.change_filename_from_to(train_df, fr=saved, to=running)
+    
     train_df['page'] = train_df.groupby(['writer', 'isEng', 'same_text']).ngroup()
     if n_patches > 0:
         #print(f"Selecting {n_patches} patches per page...")

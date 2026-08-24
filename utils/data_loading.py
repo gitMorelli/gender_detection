@@ -52,7 +52,7 @@ def get_dataloaders(transform, batch_size=16, N_max=282,file_name='icdar_train_d
 
     return train_dataloader, val_dataloader
 
-def load_classification_head(selected_FE,selected_classifier,classifier_type,validation_mode,train_filename,source_path,**kwargs):
+def load_classification_head(selected_FE,selected_classifier,classifier_type,validation_mode,train_filename,source_path,search_dir=None,**kwargs):
 
     train_df = pd.read_csv(train_filename)
     cols_to_keep = [c for c in train_df.columns if c.startswith('f') and len(c) > 1 and c[1].isdigit()]#[:256]  # Keep only the first 256 features
@@ -74,7 +74,8 @@ def load_classification_head(selected_FE,selected_classifier,classifier_type,val
         return pipeline, train_df
     else:
         lang_sub = kwargs.get('lang', '')
-        search_dir = base_dir+f'torch_model_trained_on_rep{lang_sub}/{selected_classifier}/'
+        if search_dir is None:
+            search_dir = base_dir+f'torch_model_trained_on_rep{lang_sub}/{selected_classifier}/'
         #print('search_dir:', search_dir)
         checkpoint_path = os.path.join(search_dir, 'checkpoint_best.pt')
         #print('checkpoint_path:', checkpoint_path)
