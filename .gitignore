@@ -14,6 +14,9 @@ outputs/preprocessed_data/*
 outputs/data_on_disk/*
 !outputs/preprocessed_data/file_metadata_log.json
 
+pipeline_single_model/datasets
+pipeline_single_model/models
+
 # Ignore Jupyter notebook checkpoints
 .ipynb_checkpoints/
 
