@@ -34,16 +34,40 @@ Our results demonstrate that **models based on ViT features consistently outperf
 
 ## 🚀 Using the Code
 
-### 1. Training a specific pipeline
+Note that when using ipynb files you usually should run the "easy_acces" or "reload" group of cells (last heading in each notebook)
+
+### 1. Training a specific pipeline from scratch
 You can use the notebooks in the notebooks/pipeline_single_model folder to train a pipeline on a specific dataset (IAM or ICDAR) with a specific vision extractor.
+A readme.txt contains more detailed information
 The available models are the one in utils/model_utils.py -> get_model function.
 You first have to download the ICDAR13 or IAM dataset yourself to use the code (and use the same directory structure assumed in the notebook)
 You can find the IAM (online) dataset at: https://fki.tic.heia-fr.ch/databases/iam-on-line-handwriting-database 
 
 ### 2. Reproducing paper experiments
+a) Generating the patch datasets: 
+Use the notebooks in notebooks/add_new_dataset for creating a new patch dataset (a csv with a row for each patch and columns that define the position of the patch in the page, the full image path, the page metadata and the patch properties) and its .zarr version
+(.zarr format makes the deep feature extraction from the patch dataset fast) -> this saves the csv in the outputs\\preprocessed_data folder 
+and the zarr in a folder of choice (you can set the path, eg save it with the icdar image dataset); This also saves metadata about the csv file in an
+output/preprocessed_data/file_metadata_log.json file.
+b) Extact features with the vision encoders:
+Use the notebooks/key_notebooks/deep_feature_extraction.ipynb notebook to extract representations for the desired folders
+When file_metadata_log.json is read, a unique name is associated to each patches dataset (eg 'squares_gw5.0_m5.0_idx2' is the standard squares set 
+discussed in the paper and 'body_gwnan_m1.0_idx1' is the standard body) -> identify correctly the name of the dataset you want to use
+-> this saves a csv file for each specified vision encoder in output/preprocessed_data/ (containing the same patch data as before and for each patch the extracted features, one column per feature)
+The name of the dataset and its properties are logged in file_metadata_log.json
+c) Run full model comparison
+- Use model_comparison_experiment/model_comparison_experiment_prepararion.ipynb notebook to prepare the list of experiments to run ->
+file_metadata_log.json is read, as before choose the patch datasets you want to consider (eg 'squares_gw5.0_m5.0_idx2' and 'body_gwnan_m1.0_idx1').
+All the files generated at the step b from this dataset will be put in the experiment (experiment is saved as a pkl file inside notebooks/model_comaprison../experiment_tables)
+- Run the experiments_scheduler.py script in the model_comparison_experiment/ folder to run the comparison (select the correct filepath for the experiment)  -> for each model the cross validaiton results are saved in the usual file_metadata_log.json file.
+- Use the experiment_analysis notebook to inspect results (to select the correct experiments you should specify the name of the experiment file
+same as first step in this section c)
+d) Run selected model comparison using the notebooks/key_notebooks/sklearn_model_on_rep notebook (probably you will have to change the filenames
+in the file_IO.load_input_files function, now it is set to load the file saved at step c for the selected models on my last experiment file)
+e) Similarly as 1 you can train the final models with the notebooks in notebooks/key_notebooks using torch_model_on_rep.ipynb
 
 ### Note
-Much of the code is not useful anymore (residuals from experiments not reported in the paper, e.g. fine-tuning) and in general is a bit messy. 
+- Much of the code is not useful anymore (residuals from experiments not reported in the paper, e.g. fine-tuning) and in general is a bit messy. 
 I will take time to clean the repository soon :-)
 
 ---
