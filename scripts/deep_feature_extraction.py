@@ -55,7 +55,7 @@ def main(args):
     huggingface = args.huggingface
     pooling = args.pooling  # if true in transformer models use pooling, if false only the cls token
     custom_transform = args.custom_transform
-    transform_mode = args.transform_mode
+    transform_mode = args.transform_mode 
     save_h5 = args.save_h5
     selected_model = args.selected_model  # googlenet, alexnet
     truncation = args.truncation
@@ -116,22 +116,28 @@ def main(args):
         select_cls = False
     
     #dataloading
+    if hasattr(args, 'selected_dataset'):
+        selected_dataset = args.selected_dataset
+    else:
+        selected_dataset = 'zarr'
     if batching:
         #dataset = CustomPatchDataset(train_df[:1000], transform, huggingface=huggingface)
         #dataset = CachedPatchDataset(train_df[:1000], transform, huggingface=huggingface)
-        #dataset = LazyPatchDataset(train_df[:1000], transform, huggingface=huggingface)
         #hdf5_path = "C:\\Users\\andre\PhD\Datasets\ICDAR 2013 - Gender Identification Competition Dataset\\hdf5_train_writers_2.h5"
         #dataset = HDF5ImageCropDataset(train_df[:1000], hdf5_path,transform, huggingface=huggingface)
         #dataset=FastOnTheFlyDataset(train_df[:1000], transform, huggingface=huggingface, image_cache_size=100)
         #dataset = HDF5ImageCropDataset_resize(train_df[:1000], hdf5_path, transform=transform, huggingface=huggingface)#, patches=patches, select_cls=select_cls)
-        dataset = ZarrImageCropDataset_resize(train_df, zarr_path, transform=transform, 
-                                              huggingface=huggingface,use_augmentation=data_augmentation,code=augmentation_code)
-        #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
+        if selected_dataset == 'zarr':
+            dataset = ZarrImageCropDataset_resize(train_df, zarr_path, transform=transform, 
+                                                  huggingface=huggingface,use_augmentation=data_augmentation,code=augmentation_code)
+        elif selected_dataset == 'lazy':
+            dataset = LazyPatchDataset(train_df, transform, huggingface=huggingface)
+            #dataset = ZarrImageCropDataset_resize_workers(train_df[:1000], zarr_path, transform=transform, huggingface=huggingface)
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,pin_memory=pin_memory)
     
     if show_image:
         print("Saving debug images...")
-        display_debug_images(dataloader,save_dir, save_name='train')
+        display_debug_images(dataloader,save_dir, save_name='train') 
         print("Debug images saved.")
     
     if not(data_augmentation):
@@ -274,7 +280,7 @@ if __name__ == "__main__":
     from utils.train_on_rep_utils import select_n_patches
     from utils.script_launching import load_config
     from utils.script_launching import DotDict
-    from utils.dataframes import ZarrImageCropDataset_resize
+    from utils.dataframes import ZarrImageCropDataset_resize, LazyPatchDataset
     from utils.visualization import display_debug_images
     
     args = parse_args()

@@ -34,15 +34,17 @@ Our results demonstrate that **models based on ViT features consistently outperf
 
 ## 🚀 Using the Code
 
-This section will be updated soon ..
+### 1. Training a specific pipeline
+You can use the notebooks in the notebooks/pipeline_single_model folder to train a pipeline on a specific dataset (IAM or ICDAR) with a specific vision extractor.
+The available models are the one in utils/model_utils.py -> get_model function.
+You first have to download the ICDAR13 or IAM dataset yourself to use the code (and use the same directory structure assumed in the notebook)
+You can find the IAM (online) dataset at: https://fki.tic.heia-fr.ch/databases/iam-on-line-handwriting-database 
 
-### 1. Data Pre-processing
+### 2. Reproducing paper experiments
 
-### 2. Feature Extraction
-
-### 3. Model Training
-
-### 4. Evaluation
+### Note
+Much of the code is not useful anymore (residuals from experiments not reported in the paper, e.g. fine-tuning) and in general is a bit messy. 
+I will take time to clean the repository soon :-)
 
 ---
 

@@ -60,6 +60,24 @@ def get_sentence_regions(img, n_selected_lines=3, n_slices=3, spacing=15, r_mask
             selected_lines[i].append((lines[closest_idx][0]-spacing, lines[closest_idx][1]+spacing))
     return selected_lines, x_limits
 
+def process_row_sentences(row,n_selected_lines=3, n_slices=3, spacing=15, r_mask=0.1, r_min=0.5):
+    #image = Image.open(row["file_name"])  # Open the image
+    image = cv2.imread(row["file_name"], cv2.IMREAD_GRAYSCALE)
+    #print(row["file_name"])
+    lines_per_page,x_lims = get_sentence_regions(image, n_selected_lines=n_selected_lines, n_slices=n_slices, 
+                                                 spacing=spacing, r_mask=r_mask, r_min=r_min)
+    
+    # Create a new row for each patch
+    new_rows = []
+    for i in range(len(lines_per_page)):
+        for (y1, y2) in lines_per_page[i]:
+            x1, x2 = x_lims[i]
+            new_row = row.copy()
+            new_row["x"], new_row["y"], new_row["x2"], new_row["y2"] = x1, y1, x2, y2
+            new_rows.append(new_row)
+    
+    return new_rows
+
 def extract_patches(image,gw=5,n_cc=10, prop=1):
     """Splits image into grid patches and checks for text presence."""
     image_gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
@@ -93,6 +111,20 @@ def extract_patches(image,gw=5,n_cc=10, prop=1):
             #not on the number of different components (see): https://chatgpt.com/share/682d9a39-622c-8010-b50a-da370dcf214c
     return valid_patches
 
+def process_row(row,gw=5,n_cc=10,prop=1):
+    image = Image.open(row["file_name"])  # Open the image
+    #print(row["file_name"])
+    patches = extract_patches(image,gw=gw,n_cc=n_cc, prop=prop)  # Extract patches
+    
+    # Create a new row for each patch
+    new_rows = []
+    for (x, y, x2, y2,n_cc,b_ratio) in patches:
+        new_row = row.copy()
+        new_row["x"], new_row["y"], new_row["x2"], new_row["y2"],new_row["n_cc"],new_row["black_ratio"] = x, y, x2, y2, n_cc, b_ratio
+        new_rows.append(new_row)
+    
+    return new_rows 
+
 def extract_body(image,r=0.1):
     img = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
     height, width = img.shape
@@ -115,12 +147,33 @@ def extract_body(image,r=0.1):
             break
     return (0,start,width,end)
 
-def extract_patches_resolution(image, resolution=224, stride=112,n_cc=1):
-    """Extracts patches of a specified resolution from the image."""
-    image_gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
-    img_height, img_width = image_gray.shape
+def process_row_body(row,r=0.1):
+    new_rows = []
+    image = Image.open(row["file_name"])  # Open the image
+    #print(row["file_name"])
+    x1,y1,x2,y2 = extract_body(image,r=r)  # Extract patches
     
-    valid_patches = []
+    new_row = row.copy()
+    new_row["x"], new_row["y"], new_row["x2"], new_row["y2"] = x1, y1, x2, y2
+    new_rows.append(new_row)
+    return new_rows
+
+def extract_patches_resolution(image, resolution=224, stride=112,n_cc=1, dynamic=False, gw=5):
+    """Extracts patches of a specified resolution from the image."""
+    #check if the image is already grayscale, if not convert it to grayscale
+    if image.mode != 'L':
+        image_gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
+    else:
+        image_gray = np.array(image)
+    img_height, img_width = image_gray.shape
+    if dynamic:
+        # Adjust resolution and stride based on image size
+        resolution_new = img_width // gw
+        stride_new = resolution_new * stride // resolution
+        resolution = resolution_new
+        stride = stride_new
+    
+    valid_patches = [] 
     for y in range(0, img_height - resolution + 1, stride):
         for x in range(0, img_width - resolution + 1, stride):
             patch = image_gray[y:y+resolution, x:x+resolution]
@@ -139,10 +192,9 @@ def extract_patches_resolution(image, resolution=224, stride=112,n_cc=1):
     
     return valid_patches
 
-def process_row(row,gw=5,n_cc=10,prop=1):
+def process_row_resolution(row, resolution=224, stride=112, n_cc=1,dynamic=False,gw=5):
     image = Image.open(row["file_name"])  # Open the image
-    #print(row["file_name"])
-    patches = extract_patches(image,gw=gw,n_cc=n_cc, prop=prop)  # Extract patches
+    patches = extract_patches_resolution(image,resolution=resolution,stride=stride,n_cc=n_cc, dynamic=dynamic, gw=gw)  # Extract patches
     
     # Create a new row for each patch
     new_rows = []
@@ -153,38 +205,42 @@ def process_row(row,gw=5,n_cc=10,prop=1):
     
     return new_rows
 
-def process_row_sentences(row,n_selected_lines=3, n_slices=3, spacing=15, r_mask=0.1, r_min=0.5):
-    #image = Image.open(row["file_name"])  # Open the image
-    image = cv2.imread(row["file_name"], cv2.IMREAD_GRAYSCALE)
-    #print(row["file_name"])
-    lines_per_page,x_lims = get_sentence_regions(image, n_selected_lines=n_selected_lines, n_slices=n_slices, 
-                                                 spacing=spacing, r_mask=r_mask, r_min=r_min)
+def extract_patches_iam(image,gw=5,n_cc=10, prop=1):
+    """Splits image into grid patches and checks for text presence."""
+    if image.mode != 'L':
+        image_gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
+    else:
+        image_gray = np.array(image)
+    h, w = image_gray.shape
+    patch_w = w // gw
     
-    # Create a new row for each patch
-    new_rows = []
-    for i in range(len(lines_per_page)):
-        for (y1, y2) in lines_per_page[i]:
-            x1, x2 = x_lims[i]
-            new_row = row.copy()
-            new_row["x"], new_row["y"], new_row["x2"], new_row["y2"] = x1, y1, x2, y2
-            new_rows.append(new_row)
+    valid_patches = []
     
-    return new_rows
+    for j in range(gw):
+        x1, y1 = j * patch_w, 0
+        x2, y2 = x1 + patch_w, h
+        patch = image_gray[y1:y2, x1:x2]
+        
+        # Check for text using connected components
+        _, binary = cv2.threshold(patch, 180, 255, cv2.THRESH_BINARY_INV)
+        num_labels, _, stats, _ = cv2.connectedComponentsWithStats(binary)
+        
+        if num_labels > n_cc:  # More than 1 means text is present
+            #patch_rgb = image.crop((x1, y1, x2, y2))  # Extract RGB patch
+            #areas = stats[1:, cv2.CC_STAT_AREA]  # skip background (label 0)
+            black_pixel_count = np.sum(binary == 255)
+            # Optionally: compute percentage of black
+            total_pixels = binary.size
+            black_ratio = black_pixel_count / total_pixels
+            valid_patches.append((x1, y1, x2, y2,num_labels,black_ratio))
+        # maybe you should filter based on the number of pixels
+        #not on the number of different components (see): https://chatgpt.com/share/682d9a39-622c-8010-b50a-da370dcf214c
+    return valid_patches
 
-def process_row_body(row,r=0.1):
-    new_rows = []
+def process_row_iam(row,gw=5,n_cc=10,prop=1):
     image = Image.open(row["file_name"])  # Open the image
     #print(row["file_name"])
-    x1,y1,x2,y2 = extract_body(image,r=r)  # Extract patches
-    
-    new_row = row.copy()
-    new_row["x"], new_row["y"], new_row["x2"], new_row["y2"] = x1, y1, x2, y2
-    new_rows.append(new_row)
-    return new_rows
-
-def process_row_resolution(row, resolution=224, stride=112, n_cc=1):
-    image = Image.open(row["file_name"])  # Open the image
-    patches = extract_patches_resolution(image,resolution=resolution,stride=stride,n_cc=n_cc)  # Extract patches
+    patches = extract_patches_iam(image,gw=gw,n_cc=n_cc, prop=prop)  # Extract patches
     
     # Create a new row for each patch
     new_rows = []
@@ -193,4 +249,4 @@ def process_row_resolution(row, resolution=224, stride=112, n_cc=1):
         new_row["x"], new_row["y"], new_row["x2"], new_row["y2"],new_row["n_cc"],new_row["black_ratio"] = x, y, x2, y2, n_cc, b_ratio
         new_rows.append(new_row)
     
-    return new_rows
+    return new_rows 

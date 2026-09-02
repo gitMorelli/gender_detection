@@ -173,11 +173,12 @@ def ensembled_predictions_w_uncertainty(base_preds,writers,mode='majority_vote',
     if mode == 'majority_vote':
         def most_common_with_diff(x):
             counts = Counter(x)
-            most_common_count = counts.most_common(1)[0][1]
-            least_common_count = counts.most_common()[-1][1]
+            common = counts.most_common()
+            top_label, top_count = common[0]
+            runner_up = common[1][1] if len(common) > 1 else 0
             return pd.Series({
-            'writer_pred': counts.most_common(1)[0][0],
-            'count_diff': most_common_count - least_common_count
+                'writer_pred': top_label,
+                'count_diff': (top_count - runner_up)/(top_count + runner_up) 
             })
         def most_common_with_diff_with_fallback(group):
             preds = group['pred']
@@ -348,8 +349,6 @@ def compute_predictions_and_uncertainties(model, train_df, head_type,calibrate=F
         out_results[f"Accuracy for {metric}"] = accuracy_score(train_df[train_df['train']==0]['grouped_true'], train_df[train_df['train']==0][metric])
     
     #cross_val_subgroup_accuracies.append(compute_subgroup_accuracies(pipeline, train_FE_temp, cols_to_drop, target_label))
-    n_patches = int(len(train_df)/len(train_df['page'].unique()))
-    train_df['majority_vote_uncertainty'] /= n_patches #-> 1 if all patches classified the same, 0 if all patches classified differently
 
     #I compute the writer level results
     writer_level_df,accuracy_writer_level = get_writer_level_prediction(train_df[train_df['train']==0], threshold)

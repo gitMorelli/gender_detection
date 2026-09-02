@@ -269,6 +269,9 @@ def display_vis_on_background(visualizations,df,mask=False,selected_metric='weig
                 rgb_image = Image.fromarray(show_mask_on_image(patch, visualization,tensor=False), mode='RGB')
             else:
                 rgb_image = Image.fromarray(visualization, mode='RGB')
+            
+            v = np.asarray(visualization).squeeze()
+            assert v.ndim == 2, f"expected 2-D mask, got {v.shape}"
             # Convert to RGBA (adds alpha channel = fully opaque)
             overlay = rgb_image.convert('RGBA')
 
@@ -301,8 +304,8 @@ def display_vis_on_background(visualizations,df,mask=False,selected_metric='weig
             position = (int(x1/x_scale), int(y1/y_scale))
 
             # Make the overlay semi-transparent
-            #alpha = overlay.split()[3].point(lambda p: int(p * 0.8))
-            alpha = overlay.split()[3].point(lambda p: 255)
+            alpha = overlay.split()[3].point(lambda p: int(p * 0.5))
+            #alpha = overlay.split()[3].point(lambda p: 255)
             overlay.putalpha(alpha)
             # Paste the overlay image onto the background
             background.paste(overlay, position, overlay)  # third argument is the mask for transparency
@@ -431,22 +434,24 @@ def list_cv2_colormaps():
         'COLORMAP_DEEPGREEN': cv2.COLORMAP_DEEPGREEN,
     }
     return colormaps
-def show_mask_on_image(input_tensor, mask,tensor=True, colormap=cv2.COLORMAP_JET, top_percent=90.0,gamma=1.0,alpha=1):
+def show_mask_on_image(input_tensor, mask,tensor=True, colormap=cv2.COLORMAP_JET, top_percent=10.0,gamma=1.0,alpha=1):
     if tensor:
         np_img = input_tensor[0].detach().cpu().numpy().transpose(1, 2, 0)
     else:
         np_img = input_tensor
         np_img = np.float32(np_img) / 255
-    mask_r=cv2.resize(mask, (np_img.shape[1], np_img.shape[0]))
-    if mask_r.ndim == 3:
-        mask_r = mask_r[..., 0]
+    if mask.ndim != 2:
+        raise ValueError(f"expected 2-D mask, got {mask.shape}")
+    mask_r = cv2.resize(mask, (np_img.shape[1], np_img.shape[0]),
+                        interpolation=cv2.INTER_CUBIC)
     mask_r = mask_r.astype(np.float32)
-    if mask_r.max() > 1.5:  # likely 0–255
-        mask_r /= 255.0
+    '''if mask_r.max() > 1.5:  # likely 0–255
+        mask_r /= 255.0'''
     mask_r = np.clip(mask_r, 0.0, 1.0)
 
     # ---- keep only "spikes" (top X%) ----
-    q = np.clip(1.0 - top_percent / 100.0, 0.0, 1.0)
+    #q = np.clip(1.0 - top_percent / 100.0, 0.0, 1.0)
+    q = top_percent / 100.0
     thresh = float(np.quantile(mask_r, q)) if mask_r.size else 1.0
     #print(thresh)
 

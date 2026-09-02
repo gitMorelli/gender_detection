@@ -372,7 +372,7 @@ class CachedPatchDataset(Dataset):
 class LazyPatchDataset(Dataset):
     def __init__(self, df, transform=None, huggingface=False):
         self.transform = transform
-        self.images = []
+        self.images = [] 
         self.huggingface = huggingface
 
         for idx, row in df.iterrows():
@@ -390,7 +390,7 @@ class LazyPatchDataset(Dataset):
         if self.huggingface:
             inputs = self.transform(images=img, return_tensors="pt")
             patch_tensor = inputs['pixel_values'][0]  # shape: (C, H, W)
-        elif transform:
+        elif self.transform:
             patch_tensor = self.transform(img)
         else:
             patch_tensor = img  # raw PIL.Image
